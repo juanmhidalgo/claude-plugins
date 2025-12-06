@@ -31,6 +31,17 @@ Comprehensive code review workflow with skeptical AI feedback triage.
 /plugin install code-review@juanmhidalgo-plugins
 ```
 
+## Updating Plugins
+
+```bash
+# Refresh marketplace metadata
+/plugin marketplace update juanmhidalgo-plugins
+
+# Reinstall to get latest version
+/plugin uninstall code-review@juanmhidalgo-plugins
+/plugin install code-review@juanmhidalgo-plugins
+```
+
 ## Requirements
 
 - `gh` CLI installed and authenticated

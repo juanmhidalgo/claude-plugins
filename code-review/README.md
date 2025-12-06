@@ -13,18 +13,37 @@ Comprehensive code review workflow for Claude Code: branch reviews, PR feedback 
 | `/code-review/fixes-plan [name]` | Generate/update REVIEW_FIXES.md tracking document |
 | `/code-review/mark-fixed [#\|all]` | Verify fixes against code and update tracking |
 
-## Workflow
+## Workflows
 
+### Branch Review (before PR)
 ```
-┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│  /branch or     │────▶│  /fixes-plan    │────▶│  /mark-fixed    │
-│  /staged        │     │  (tracking doc) │     │  (verify fixes) │
-└─────────────────┘     └─────────────────┘     └─────────────────┘
+/code-review/branch         → Identify issues in branch
+        ↓
+/code-review/fixes-plan X   → Generate REVIEW_FIXES.md
+        ↓
+    Implement fixes         → Write code to fix issues
+        ↓
+/code-review/mark-fixed 3   → Verify & mark issue #3 as fixed
+        ↓
+/code-review/mark-fixed all → Verify all remaining issues
+```
 
-┌─────────────────┐     ┌─────────────────┐
-│  /triage PR#    │────▶│  /dismiss PR#   │
-│  (AI feedback)  │     │  (false pos)    │
-└─────────────────┘     └─────────────────┘
+### PR Feedback Triage (after PR)
+```
+/code-review/triage 42      → Filter AI feedback (valid vs false positive)
+        ↓
+/code-review/dismiss 42     → Dismiss false positives on GitHub
+        ↓
+/code-review/fixes-plan X   → Add verified issues to tracking doc
+        ↓
+    Implement fixes         → Write code to fix issues
+        ↓
+/code-review/mark-fixed all → Verify & update tracking doc
+```
+
+### Pre-commit Review
+```
+/code-review/staged         → Review before committing
 ```
 
 ## Core Principle
@@ -58,9 +77,21 @@ The plugin includes bash scripts for GitHub API operations (no MCP required):
 
 ## Installation
 
-This plugin is included in the ~/.claude repository. To use in other projects:
+```bash
+# Add marketplace (first time only)
+/plugin marketplace add juanmhidalgo/claude-plugins
+
+# Install plugin
+/plugin install code-review@juanmhidalgo-plugins
+```
+
+## Updating
 
 ```bash
-/plugin marketplace add ~/.claude/plugins
-/plugin install code-review
+# Refresh marketplace metadata
+/plugin marketplace update juanmhidalgo-plugins
+
+# Reinstall to get latest version
+/plugin uninstall code-review@juanmhidalgo-plugins
+/plugin install code-review@juanmhidalgo-plugins
 ```
