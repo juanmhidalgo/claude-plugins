@@ -53,6 +53,13 @@ Comprehensive code review workflow:
 
 AI feedback is NOT valid by default. Every comment from AI reviewers must be verified against actual code before acting on it.
 
+## Development Guidelines
+
+When modifying any plugin:
+1. **Always bump the version** in the plugin's `.claude-plugin/plugin.json` file
+2. Use semantic versioning: patch (0.0.x) for fixes, minor (0.x.0) for features, major (x.0.0) for breaking changes
+3. **Update the CHANGELOG.md** in the plugin's root directory with the changes made
+
 ## Requirements
 
 - `gh` CLI installed and authenticated
