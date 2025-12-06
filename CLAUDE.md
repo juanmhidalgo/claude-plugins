@@ -47,6 +47,7 @@ Comprehensive code review workflow:
 | `/code-review:triage PR#` | Triage AI reviewer feedback |
 | `/code-review:dismiss PR#` | Dismiss false positives on GitHub |
 | `/code-review:fixes-plan` | Generate REVIEW_FIXES.md tracking |
+| `/code-review:implement-fix` | Implement fixes, asking for technical decisions |
 | `/code-review:mark-fixed` | Verify and mark issues fixed |
 
 ### Core Principle
