@@ -48,6 +48,7 @@ status: in_progress
 - [ ] **Completed**
 
 **File:** `path/to/file.py:line-range`
+**GitHub:** `ref_id: review_comment:123456789` _(if from PR feedback)_
 
 **Problem:** Clear description of the issue and its impact.
 
@@ -68,6 +69,7 @@ status: in_progress
 - [ ] **Completed**
 
 **File:** `path/to/file.py:line-range`
+**GitHub:** `ref_id: review_comment:123456789` _(if from PR feedback)_
 
 **Problem:** Description
 
@@ -150,9 +152,10 @@ After merge, monitor:
 1. **One issue per section** - Keep issues atomic and focused
 2. **Include solution code** - Makes implementation faster
 3. **Add file paths with lines** - Easy navigation
-4. **Update progress table** - Track completion at a glance
-5. **Use implementation log** - Document decisions and blockers
-6. **Add post-merge monitoring** - Don't forget to verify in prod
+4. **Preserve ref_id from triage** - Enables auto-resolving on GitHub after fix
+5. **Update progress table** - Track completion at a glance
+6. **Use implementation log** - Document decisions and blockers
+7. **Add post-merge monitoring** - Don't forget to verify in prod
 
 ## File Naming Convention
 
@@ -168,10 +171,12 @@ REVIEW_FIXES.md
 ## Integration with Other Commands
 
 1. `/code-review/branch` → identifies issues
-2. `/code-review/triage` → adds verified AI feedback issues
-3. `/code-review/fixes-plan` → creates/updates this document
-4. Manual implementation → check off items
-5. Post-merge → verify monitoring items
+2. `/code-review/triage` → adds verified AI feedback issues (includes ref_id)
+3. `/code-review/fixes-plan` → creates/updates this document (preserve ref_id!)
+4. `/code-review/implement-fix` → implement fixes
+5. `/code-review/mark-fixed` → verify and mark as fixed
+6. `/code-review/resolve-fixed` → resolve GitHub threads for fixed issues
+7. Post-merge → verify monitoring items
 
 ## Frontmatter Fields
 

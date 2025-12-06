@@ -5,6 +5,15 @@ All notable changes to this plugin will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2025-12-06
+
+### Added
+- `/code-review:resolve-fixed PR#` - Resolve GitHub threads for issues marked as fixed in REVIEW_FIXES.md
+
+### Changed
+- `review-fixes-plan` skill now includes `**GitHub:** ref_id` field to link issues to PR comments
+- Updated workflow documentation to include resolve-fixed step
+
 ## [1.1.0] - 2025-12-06
 
 ### Added

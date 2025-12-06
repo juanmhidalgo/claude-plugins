@@ -13,6 +13,7 @@ Comprehensive code review workflow for Claude Code: branch reviews, PR feedback 
 | `/code-review/fixes-plan [name]` | Generate/update REVIEW_FIXES.md tracking document |
 | `/code-review/implement-fix [#\|all]` | Implement fixes, asking for technical decisions when needed |
 | `/code-review/mark-fixed [#\|all]` | Verify fixes against code and update tracking |
+| `/code-review/resolve-fixed PR#` | Resolve GitHub threads for issues marked as fixed |
 
 ## Workflows
 
@@ -40,6 +41,10 @@ Comprehensive code review workflow for Claude Code: branch reviews, PR feedback 
 /code-review/implement-fix  → Implement fixes (asks for tech decisions)
         ↓
 /code-review/mark-fixed all → Verify & update tracking doc
+        ↓
+    git push                → Push fixes to PR
+        ↓
+/code-review/resolve-fixed 42 → Resolve GitHub threads
 ```
 
 ### Pre-commit Review
