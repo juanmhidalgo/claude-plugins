@@ -1,0 +1,23 @@
+{
+  "name": "juanmhidalgo-plugins",
+  "owner": {
+    "name": "Juan M. Hidalgo"
+  },
+  "metadata": {
+    "description": "Personal Claude Code plugins for code review and development workflows",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "code-review",
+      "source": "./code-review",
+      "description": "Comprehensive code review workflow: branch reviews, PR triage, false positive dismissal, and fix tracking",
+      "version": "1.0.0",
+      "author": {
+        "name": "Juan M. Hidalgo"
+      },
+      "keywords": ["code-review", "pr", "github", "triage"],
+      "category": "productivity"
+    }
+  ]
+}
