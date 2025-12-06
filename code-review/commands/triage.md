@@ -22,7 +22,9 @@ External AI reviewers (Copilot, Gemini, etc.) lack full context. Their suggestio
    ~/.claude/plugins/code-review/scripts/pr-triage-comments.sh OWNER REPO PR_NUMBER
    ```
    - Returns only bot comments by default with `ref_id` for each comment
-   - Add `1500 true` at the end to include human comments
+   - **Automatically excludes resolved and outdated threads** (via GraphQL)
+   - Add `1500 true` to include human comments
+   - Add `1500 false true` to include resolved threads
 
 2. **For EACH comment, ask:**
    - Is this technically correct for THIS codebase?
@@ -53,7 +55,7 @@ External AI reviewers (Copilot, Gemini, etc.) lack full context. Their suggestio
 # PR #[number] Feedback Triage
 
 ## Stats
-- Bot comments: X | Human comments: Y
+- Bot comments: X | Human comments: Y | Skipped: R resolved, O outdated
 - Verified valid: Z | Needs investigation: W | False positives: V
 
 ## VERIFIED VALID

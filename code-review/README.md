@@ -54,10 +54,25 @@ Comprehensive code review workflow for Claude Code: branch reviews, PR feedback 
 
 The plugin includes bash scripts for GitHub API operations (no MCP required):
 
-- `pr-triage-comments.sh` - Fetch PR comments optimized for triage
+- `pr-triage-comments.sh` - Fetch PR comments optimized for triage (filters resolved/outdated via GraphQL)
 - `pr-resolve-comment.sh` - Dismiss/resolve comments on GitHub
 - `pr-comments.sh` - Full PR comments fetch
 - `pr-review-summary.sh` - Quick review status summary
+
+### pr-triage-comments.sh
+
+```bash
+# Basic usage (bot comments only, excludes resolved)
+./scripts/pr-triage-comments.sh owner repo pr_number
+
+# Include human comments
+./scripts/pr-triage-comments.sh owner repo pr_number 1500 true
+
+# Include resolved threads
+./scripts/pr-triage-comments.sh owner repo pr_number 1500 false true
+```
+
+Output includes `resolved` and `outdated` status for inline comments, with stats on filtered items.
 
 ## Agents
 
