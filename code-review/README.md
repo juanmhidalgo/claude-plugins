@@ -11,6 +11,7 @@ Comprehensive code review workflow for Claude Code: branch reviews, PR feedback 
 | `/code-review/triage PR#` | Triage AI feedback (Copilot, Gemini) with skeptical verification |
 | `/code-review/dismiss PR#` | Dismiss false positives on GitHub with justification |
 | `/code-review/fixes-plan [name]` | Generate/update REVIEW_FIXES.md tracking document |
+| `/code-review/implement-fix [#\|all]` | Implement fixes, asking for technical decisions when needed |
 | `/code-review/mark-fixed [#\|all]` | Verify fixes against code and update tracking |
 
 ## Workflows
@@ -21,7 +22,7 @@ Comprehensive code review workflow for Claude Code: branch reviews, PR feedback 
         ↓
 /code-review/fixes-plan X   → Generate REVIEW_FIXES.md
         ↓
-    Implement fixes         → Write code to fix issues
+/code-review/implement-fix  → Implement fixes (asks for tech decisions)
         ↓
 /code-review/mark-fixed 3   → Verify & mark issue #3 as fixed
         ↓
@@ -36,7 +37,7 @@ Comprehensive code review workflow for Claude Code: branch reviews, PR feedback 
         ↓
 /code-review/fixes-plan X   → Add verified issues to tracking doc
         ↓
-    Implement fixes         → Write code to fix issues
+/code-review/implement-fix  → Implement fixes (asks for tech decisions)
         ↓
 /code-review/mark-fixed all → Verify & update tracking doc
 ```
@@ -84,6 +85,7 @@ Output includes `resolved` and `outdated` status for inline comments, with stats
 - **branch-review** - Best practices for branch code review
 - **review-fixes-plan** - Template for REVIEW_FIXES.md tracking documents
 - **receiving-code-review** - Guidelines for evaluating received feedback
+- **technical-decisions** - When and how to ask for technical decisions before implementing fixes
 
 ## Requirements
 

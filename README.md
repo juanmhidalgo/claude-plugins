@@ -24,6 +24,7 @@ Comprehensive code review workflow with skeptical AI feedback triage.
 - `/code-review/triage` - Triage AI feedback (Copilot, Gemini)
 - `/code-review/dismiss` - Dismiss false positives on GitHub
 - `/code-review/fixes-plan` - Generate fix tracking document
+- `/code-review/implement-fix` - Implement fixes, asking for technical decisions
 - `/code-review/mark-fixed` - Verify and mark fixes
 
 **Install:**
