@@ -5,6 +5,15 @@ All notable changes to this plugin will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2025-12-07
+
+### Changed
+- `/code-review:triage` now includes human comments by default (previously only showed bot comments)
+- Script option changed from `include_humans` (default: false) to `bots_only` (default: false)
+
+### Fixed
+- Added `per_page=100` to GitHub API calls to fetch all comments (was missing comments when PR had more than 30)
+
 ## [1.2.2] - 2025-12-07
 
 ### Fixed

@@ -4,20 +4,20 @@
 #
 # Options:
 #   max_body_length   Truncate comment bodies (default: 1500, 0=unlimited)
-#   include_humans    Include human comments (default: false, bots only)
+#   bots_only         Only show bot comments (default: false, shows all)
 #   show_resolved     Include resolved threads (default: false)
 #
 # Example: ./pr-triage-comments.sh facebook react 123
 #          ./pr-triage-comments.sh facebook react 123 1500 true false
-#          ./pr-triage-comments.sh facebook react 123 0 true true
+#          ./pr-triage-comments.sh facebook react 123 0 false true
 
 set -euo pipefail
 
-OWNER="${1:?Usage: $0 owner repo pr_number [max_body_length] [include_humans] [show_resolved]}"
-REPO="${2:?Usage: $0 owner repo pr_number [max_body_length] [include_humans] [show_resolved]}"
-PR_NUMBER="${3:?Usage: $0 owner repo pr_number [max_body_length] [include_humans] [show_resolved]}"
+OWNER="${1:?Usage: $0 owner repo pr_number [max_body_length] [bots_only] [show_resolved]}"
+REPO="${2:?Usage: $0 owner repo pr_number [max_body_length] [bots_only] [show_resolved]}"
+PR_NUMBER="${3:?Usage: $0 owner repo pr_number [max_body_length] [bots_only] [show_resolved]}"
 MAX_BODY="${4:-1500}"
-INCLUDE_HUMANS="${5:-false}"
+BOTS_ONLY="${5:-false}"
 SHOW_RESOLVED="${6:-false}"
 
 # Bot patterns for filtering
@@ -65,7 +65,7 @@ RESOLUTION_MAP=$(gh api graphql \
 PR_INFO=$(gh api "repos/$OWNER/$REPO/pulls/$PR_NUMBER" --jq '{number, title, author: .user.login}')
 
 # Fetch and process issue comments (general comments)
-ISSUE_COMMENTS=$(gh api "repos/$OWNER/$REPO/issues/$PR_NUMBER/comments" | jq --arg max "$MAX_BODY" '
+ISSUE_COMMENTS=$(gh api "repos/$OWNER/$REPO/issues/$PR_NUMBER/comments?per_page=100" | jq --arg max "$MAX_BODY" '
   [.[] | {
     ref_id: ("issue_comment:" + (.id | tostring)),
     type: "issue_comment",
@@ -78,7 +78,7 @@ ISSUE_COMMENTS=$(gh api "repos/$OWNER/$REPO/issues/$PR_NUMBER/comments" | jq --a
 ')
 
 # Fetch and process review comments (inline comments) - include id for resolution lookup
-REVIEW_COMMENTS_RAW=$(gh api "repos/$OWNER/$REPO/pulls/$PR_NUMBER/comments" | jq --arg max "$MAX_BODY" '
+REVIEW_COMMENTS_RAW=$(gh api "repos/$OWNER/$REPO/pulls/$PR_NUMBER/comments?per_page=100" | jq --arg max "$MAX_BODY" '
   [.[] | {
     ref_id: ("review_comment:" + (.id | tostring)),
     comment_id: (.id | tostring),
@@ -102,7 +102,7 @@ REVIEW_COMMENTS=$(echo "$REVIEW_COMMENTS_RAW" | jq --argjson res "$RESOLUTION_MA
 ')
 
 # Fetch and process reviews
-REVIEWS=$(gh api "repos/$OWNER/$REPO/pulls/$PR_NUMBER/reviews" | jq --arg max "$MAX_BODY" '
+REVIEWS=$(gh api "repos/$OWNER/$REPO/pulls/$PR_NUMBER/reviews?per_page=100" | jq --arg max "$MAX_BODY" '
   [.[] | select(.body != "" or .state == "APPROVED" or .state == "CHANGES_REQUESTED") | {
     ref_id: ("review:" + (.id | tostring)),
     type: "review",
@@ -119,7 +119,7 @@ REVIEWS=$(gh api "repos/$OWNER/$REPO/pulls/$PR_NUMBER/reviews" | jq --arg max "$
 BOT_FILTER='.'
 RESOLVED_FILTER='.'
 
-if [ "$INCLUDE_HUMANS" != "true" ]; then
+if [ "$BOTS_ONLY" = "true" ]; then
   BOT_FILTER='[.[] | select(.is_bot == true)]'
 fi
 

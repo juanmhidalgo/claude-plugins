@@ -21,9 +21,9 @@ External AI reviewers (Copilot, Gemini, etc.) lack full context. Their suggestio
    ```bash
    ${CLAUDE_PLUGIN_ROOT}/scripts/pr-triage-comments.sh OWNER REPO PR_NUMBER
    ```
-   - Returns only bot comments by default with `ref_id` for each comment
+   - Returns all comments (bots and humans) by default with `ref_id` for each comment
    - **Automatically excludes resolved and outdated threads** (via GraphQL)
-   - Add `1500 true` to include human comments
+   - Add `1500 true` to show only bot comments
    - Add `1500 false true` to include resolved threads
 
 2. **For EACH comment, ask:**
