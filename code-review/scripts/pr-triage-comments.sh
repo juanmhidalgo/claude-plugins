@@ -65,7 +65,7 @@ RESOLUTION_MAP=$(gh api graphql \
 PR_INFO=$(gh api "repos/$OWNER/$REPO/pulls/$PR_NUMBER" --jq '{number, title, author: .user.login}')
 
 # Fetch and process issue comments (general comments)
-ISSUE_COMMENTS=$(gh api "repos/$OWNER/$REPO/issues/$PR_NUMBER/comments" --jq --arg max "$MAX_BODY" '
+ISSUE_COMMENTS=$(gh api "repos/$OWNER/$REPO/issues/$PR_NUMBER/comments" | jq --arg max "$MAX_BODY" '
   [.[] | {
     ref_id: ("issue_comment:" + (.id | tostring)),
     type: "issue_comment",
@@ -78,7 +78,7 @@ ISSUE_COMMENTS=$(gh api "repos/$OWNER/$REPO/issues/$PR_NUMBER/comments" --jq --a
 ')
 
 # Fetch and process review comments (inline comments) - include id for resolution lookup
-REVIEW_COMMENTS_RAW=$(gh api "repos/$OWNER/$REPO/pulls/$PR_NUMBER/comments" --jq --arg max "$MAX_BODY" '
+REVIEW_COMMENTS_RAW=$(gh api "repos/$OWNER/$REPO/pulls/$PR_NUMBER/comments" | jq --arg max "$MAX_BODY" '
   [.[] | {
     ref_id: ("review_comment:" + (.id | tostring)),
     comment_id: (.id | tostring),
@@ -102,7 +102,7 @@ REVIEW_COMMENTS=$(echo "$REVIEW_COMMENTS_RAW" | jq --argjson res "$RESOLUTION_MA
 ')
 
 # Fetch and process reviews
-REVIEWS=$(gh api "repos/$OWNER/$REPO/pulls/$PR_NUMBER/reviews" --jq --arg max "$MAX_BODY" '
+REVIEWS=$(gh api "repos/$OWNER/$REPO/pulls/$PR_NUMBER/reviews" | jq --arg max "$MAX_BODY" '
   [.[] | select(.body != "" or .state == "APPROVED" or .state == "CHANGES_REQUESTED") | {
     ref_id: ("review:" + (.id | tostring)),
     type: "review",
