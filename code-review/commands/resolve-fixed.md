@@ -35,7 +35,7 @@ For each completed issue with a ref_id:
 1. **Parse the ref_id** to get the comment type and ID
 2. **Run the resolve script:**
    ```bash
-   ~/.claude/plugins/code-review/scripts/pr-resolve-comment.sh OWNER REPO PR_NUMBER REF_ID resolve
+   ${CLAUDE_PLUGIN_ROOT}/scripts/pr-resolve-comment.sh OWNER REPO PR_NUMBER REF_ID resolve
    ```
 3. **Track result** - success or failure
 

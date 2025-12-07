@@ -17,7 +17,7 @@ Check if there's a recent `/code-review/triage` output in this conversation with
 
 If not, fetch PR comments:
 ```bash
-~/.claude/plugins/code-review/scripts/pr-triage-comments.sh OWNER REPO PR_NUMBER
+${CLAUDE_PLUGIN_ROOT}/scripts/pr-triage-comments.sh OWNER REPO PR_NUMBER
 ```
 
 ### Step 2: For Each False Positive
@@ -39,7 +39,7 @@ Dismiss with reason:
 
 For each confirmed dismissal, run:
 ```bash
-~/.claude/plugins/code-review/scripts/pr-resolve-comment.sh OWNER REPO PR_NUMBER REF_ID dismiss "REASON"
+${CLAUDE_PLUGIN_ROOT}/scripts/pr-resolve-comment.sh OWNER REPO PR_NUMBER REF_ID dismiss "REASON"
 ```
 
 This will:

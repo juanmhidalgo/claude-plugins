@@ -19,7 +19,7 @@ External AI reviewers (Copilot, Gemini, etc.) lack full context. Their suggestio
 
 1. **Fetch PR feedback** (optimized for low token usage):
    ```bash
-   ~/.claude/plugins/code-review/scripts/pr-triage-comments.sh OWNER REPO PR_NUMBER
+   ${CLAUDE_PLUGIN_ROOT}/scripts/pr-triage-comments.sh OWNER REPO PR_NUMBER
    ```
    - Returns only bot comments by default with `ref_id` for each comment
    - **Automatically excludes resolved and outdated threads** (via GraphQL)
