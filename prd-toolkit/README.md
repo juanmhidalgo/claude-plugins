@@ -17,6 +17,8 @@ Create and manage Product Requirements Documents (PRDs) with AI assistance.
 | Command | Description |
 |---------|-------------|
 | `/prd:create [feature]` | Generate a concise mini-PRD for a new feature |
+| `/prd:refine [file \| issue-url]` | Improve an existing PRD with feedback |
+| `/prd:validate [file \| issue-url]` | Verify implementation matches PRD criteria |
 
 ## Usage
 
@@ -27,46 +29,73 @@ Create and manage Product Requirements Documents (PRDs) with AI assistance.
 ```
 
 The agent will:
-1. Detect your project's tech stack automatically
-2. Ask clarifying questions if needed
-3. Generate a structured mini-PRD
-4. Let you iterate and refine
-5. Publish to GitHub, ClickUp, or save locally
+1. Ask clarifying questions if needed
+2. Generate a structured mini-PRD
+3. Let you iterate and refine
+4. Publish to GitHub, ClickUp, or save locally
 
-### Example Output
+### Refine an existing PRD
 
-```markdown
-# User Authentication with OAuth
-
-## Overview
-Enable users to sign in using their existing Google or GitHub accounts,
-reducing friction and improving security.
-
-## Goals
-- Reduce signup abandonment by 30%
-- Eliminate password management overhead
-- Improve account security with OAuth providers
-
-## Acceptance Criteria
-- [ ] User can sign in with Google OAuth
-- [ ] User can sign in with GitHub OAuth
-- [ ] New users are created on first OAuth login
-- [ ] Existing users can link OAuth providers
-
-## QA Checklist
-- [ ] OAuth flow completes successfully
-- [ ] User profile is populated from OAuth data
-- [ ] Error states show helpful messages
+```
+/prd:refine ./docs/prd-auth.md
+/prd:refine https://github.com/owner/repo/issues/123
+/prd:refine paste
 ```
 
-## Features
+The agent will:
+1. Analyze against best practices
+2. Identify weak acceptance criteria or missing sections
+3. Suggest specific improvements
+4. Apply changes to file or GitHub issue
 
-- **Adaptive flow**: Brief input gets clarifying questions, detailed input gets immediate draft
-- **Stack detection**: Automatically detects your project type for tailored criteria
-- **Multiple outputs**: GitHub Issues, ClickUp tasks, local files, or just display
-- **Iterative**: Refine the PRD through conversation
+### Validate implementation
+
+```
+/prd:validate ./docs/prd-auth.md
+/prd:validate https://github.com/owner/repo/issues/123
+```
+
+The agent will:
+1. Extract acceptance criteria from PRD
+2. Search codebase for implementations
+3. Generate validation report with ✅/⚠️/❌ status
+4. Offer to create issues for missing items
+
+## PRD Format
+
+```markdown
+# Feature Name
+
+## Overview
+[Problem + solution in 2-3 sentences]
+
+## Goals
+- [Business/user objective]
+
+## User Stories
+- Como [rol], quiero [acción] para [beneficio]
+
+## Acceptance Criteria
+- [ ] [Observable behavior from user perspective]
+
+## Out of Scope
+- [What this version does NOT include]
+
+## QA Checklist
+- [ ] [User scenario to validate]
+```
+
+## Philosophy
+
+PRDs focus on **observable behavior**, not implementation details:
+
+| Good ✅ | Bad ❌ |
+|---------|--------|
+| Usuario puede iniciar sesión con Google | Implement OAuth 2.0 with PKCE |
+| La sesión se mantiene por 24 horas | Store JWT in Redis with 24h TTL |
+| Error muestra opción de reintentar | Use exponential backoff retry |
 
 ## Requirements
 
-- `gh` CLI installed and authenticated (for GitHub publishing)
+- `gh` CLI installed and authenticated (for GitHub features)
 - ClickUp API token (for ClickUp publishing, optional)

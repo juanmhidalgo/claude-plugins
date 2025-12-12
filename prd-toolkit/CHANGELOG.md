@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.0] - 2025-12-12
+
+### Added
+- `/prd:refine` command - Improve existing PRDs with feedback and suggestions
+- `/prd:validate` command - Verify implementation matches PRD acceptance criteria
+- `prd-validator` agent - QA-focused agent for validating implementations
+
 ## [1.1.0] - 2025-12-12
 
 ### Changed
