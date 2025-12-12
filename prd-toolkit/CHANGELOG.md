@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.1] - 2025-12-12
+
+### Fixed
+- Fixed `author` field in plugin.json to use object format (was string, expected object)
+
 ## [1.3.0] - 2025-12-12
 
 ### Added
