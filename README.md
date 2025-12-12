@@ -9,7 +9,7 @@ Personal Claude Code plugins for development workflows.
 /plugin marketplace add juanmhidalgo/claude-plugins
 
 # Or from local path
-/plugin marketplace add /home/juan/Develop/juanmhidalgo/claude-plugins
+/plugin marketplace add /path/to/claude-plugins
 ```
 
 ## Available Plugins
