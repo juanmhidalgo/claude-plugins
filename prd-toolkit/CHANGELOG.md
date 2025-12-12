@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.0] - 2025-12-12
+
+### Added
+- `/prd:analyze` command - Identify gaps, edge cases, and ambiguities in requirements before implementation
+- Supports file paths, GitHub issue URLs, or pasted text directly
+
 ## [1.2.1] - 2025-12-12
 
 ### Changed

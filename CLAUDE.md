@@ -64,6 +64,7 @@ Create and manage Product Requirements Documents (PRDs) with AI assistance.
 | `/prd:create [feature]` | Generate a concise mini-PRD for a new feature |
 | `/prd:refine [file \| issue-url]` | Improve existing PRD or convert vague issue to PRD |
 | `/prd:validate [file \| issue-url]` | Verify implementation matches PRD criteria |
+| `/prd:analyze [file \| issue-url \| text]` | Identify gaps, edge cases, and ambiguities before implementation |
 
 ### Core Principle
 
