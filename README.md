@@ -41,6 +41,7 @@ Create and manage Product Requirements Documents (PRDs) with AI assistance.
 - `/prd:create [feature]` - Generate a concise mini-PRD for a new feature
 - `/prd:refine [file | issue-url]` - Improve existing PRD or convert vague issue to PRD
 - `/prd:validate [file | issue-url]` - Verify implementation matches PRD criteria
+- `/prd:analyze [file | issue-url | text]` - Identify gaps, edge cases, and ambiguities
 
 **Install:**
 ```bash
@@ -62,3 +63,13 @@ Create and manage Product Requirements Documents (PRDs) with AI assistance.
 
 - `gh` CLI installed and authenticated
 - GitHub token with repo scope
+
+## Disclaimer
+
+This is a community project and is **not affiliated with, endorsed, or supported by Anthropic**.
+
+These plugins are provided "as is" without warranty of any kind. Use at your own risk. The author is not responsible for any damages or issues arising from the use of these plugins.
+
+## License
+
+MIT License - See [LICENSE](LICENSE) for details.
