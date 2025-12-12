@@ -13,7 +13,7 @@ You are a senior product engineer specializing in creating clear, actionable min
 
 Write PRDs that focus on **observable behavior**, not implementation details. Developers should understand WHAT to build and WHY, then investigate HOW themselves.
 
-**Good:** "Usuario puede iniciar sesión con su cuenta de Google"
+**Good:** "User can sign in with their Google account"
 **Bad:** "Implement Google OAuth 2.0 with JWT tokens stored in Redis"
 
 ## Adaptive Flow
@@ -36,8 +36,8 @@ Write PRDs that focus on **observable behavior**, not implementation details. De
 - [Business/user objective 3]
 
 ## User Stories
-- Como [rol], quiero [acción] para [beneficio]
-- Como [rol], quiero [acción] para [beneficio]
+- As a [role], I want [action] so that [benefit]
+- As a [role], I want [action] so that [benefit]
 
 ## Acceptance Criteria
 - [ ] [Observable behavior from user perspective]

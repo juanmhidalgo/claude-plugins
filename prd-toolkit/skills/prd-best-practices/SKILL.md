@@ -28,10 +28,10 @@ allowed-tools: Read
 Focus on **what the user experiences**, not how it's built.
 
 **Good (observable behavior):**
-- [ ] Usuario puede iniciar sesión con su cuenta de Google
-- [ ] La sesión se mantiene activa por 24 horas
-- [ ] Si falla el login, se muestra mensaje de error con opción de reintentar
-- [ ] Admin puede conectar múltiples workspaces simultáneamente
+- [ ] User can sign in with their Google account
+- [ ] Session stays active for 24 hours
+- [ ] If login fails, error message shows with retry option
+- [ ] Admin can connect multiple workspaces simultaneously
 
 **Bad (implementation details):**
 - [ ] Implement OAuth 2.0 with PKCE flow
@@ -41,15 +41,15 @@ Focus on **what the user experiences**, not how it's built.
 
 ## Writing User Stories
 
-Use the format: **Como [rol], quiero [acción] para [beneficio]**
+Use the format: **As a [role], I want [action] so that [benefit]**
 
 **Good:**
-- Como administrador, quiero conectar mi workspace de Teams para que mi equipo reciba notificaciones
-- Como usuario, quiero responder desde Teams para tomar acción sin abrir otra app
+- As an admin, I want to connect my Teams workspace so that my team receives notifications
+- As a user, I want to reply from Teams so that I can take action without opening another app
 
 **Bad:**
-- Como developer, quiero usar la API de Teams para implementar webhooks
-- Como sistema, quiero validar tokens OAuth para autenticar usuarios
+- As a developer, I want to use the Teams API to implement webhooks
+- As a system, I want to validate OAuth tokens to authenticate users
 
 ## Section Guidelines
 
@@ -87,7 +87,7 @@ Use the format: **Como [rol], quiero [acción] para [beneficio]**
 
 1. **Specifying implementation** - Don't mention databases, APIs, or code patterns
 2. **Scope creep** - Use Out of Scope section to set boundaries
-3. **Vague criteria** - "Should be fast" → "Responde en menos de 2 segundos"
+3. **Vague criteria** - "Should be fast" → "Responds in under 2 seconds"
 4. **System perspective** - Write from user POV, not system POV
 5. **Missing error cases** - What happens when things fail?
 

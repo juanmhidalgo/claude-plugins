@@ -1,6 +1,6 @@
 {
   "name": "prd-toolkit",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Create and manage Product Requirements Documents (PRDs) with AI assistance. Generate structured mini-PRDs and publish to GitHub Issues or ClickUp.",
   "author": "juanmhidalgo",
   "homepage": "https://github.com/juanmhidalgo/claude-plugins",

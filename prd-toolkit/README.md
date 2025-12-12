@@ -17,7 +17,7 @@ Create and manage Product Requirements Documents (PRDs) with AI assistance.
 | Command | Description |
 |---------|-------------|
 | `/prd:create [feature]` | Generate a concise mini-PRD for a new feature |
-| `/prd:refine [file \| issue-url]` | Improve an existing PRD with feedback |
+| `/prd:refine [file \| issue-url]` | Improve existing PRD or convert vague issue to PRD |
 | `/prd:validate [file \| issue-url]` | Verify implementation matches PRD criteria |
 
 ## Usage
@@ -34,7 +34,7 @@ The agent will:
 3. Let you iterate and refine
 4. Publish to GitHub, ClickUp, or save locally
 
-### Refine an existing PRD
+### Refine or convert to PRD
 
 ```
 /prd:refine ./docs/prd-auth.md
@@ -43,9 +43,9 @@ The agent will:
 ```
 
 The agent will:
-1. Analyze against best practices
-2. Identify weak acceptance criteria or missing sections
-3. Suggest specific improvements
+1. Detect if input is already a PRD or a vague issue
+2. If PRD: analyze and suggest improvements
+3. If vague issue: convert to structured PRD format
 4. Apply changes to file or GitHub issue
 
 ### Validate implementation
@@ -73,7 +73,7 @@ The agent will:
 - [Business/user objective]
 
 ## User Stories
-- Como [rol], quiero [acción] para [beneficio]
+- As a [role], I want [action] so that [benefit]
 
 ## Acceptance Criteria
 - [ ] [Observable behavior from user perspective]
@@ -91,9 +91,9 @@ PRDs focus on **observable behavior**, not implementation details:
 
 | Good ✅ | Bad ❌ |
 |---------|--------|
-| Usuario puede iniciar sesión con Google | Implement OAuth 2.0 with PKCE |
-| La sesión se mantiene por 24 horas | Store JWT in Redis with 24h TTL |
-| Error muestra opción de reintentar | Use exponential backoff retry |
+| User can sign in with Google | Implement OAuth 2.0 with PKCE |
+| Session stays active for 24 hours | Store JWT in Redis with 24h TTL |
+| Error shows retry option | Use exponential backoff retry |
 
 ## Requirements
 

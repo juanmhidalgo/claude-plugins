@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.1] - 2025-12-12
+
+### Changed
+- Unified `/prd:refine` to also convert vague issues to structured PRDs
+- Standardized all examples and documentation to English
+
 ## [1.2.0] - 2025-12-12
 
 ### Added
