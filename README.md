@@ -33,6 +33,20 @@ Comprehensive code review workflow with skeptical AI feedback triage.
 /plugin install code-review@juanmhidalgo-plugins
 ```
 
+### prd-toolkit
+
+Create and manage Product Requirements Documents (PRDs) with AI assistance.
+
+**Commands:**
+- `/prd:create [feature]` - Generate a concise mini-PRD for a new feature
+- `/prd:refine [file | issue-url]` - Improve existing PRD or convert vague issue to PRD
+- `/prd:validate [file | issue-url]` - Verify implementation matches PRD criteria
+
+**Install:**
+```bash
+/plugin install prd-toolkit@juanmhidalgo-plugins
+```
+
 ## Updating Plugins
 
 ```bash

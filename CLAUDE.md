@@ -55,6 +55,20 @@ Comprehensive code review workflow:
 
 AI feedback is NOT valid by default. Every comment from AI reviewers must be verified against actual code before acting on it.
 
+## Available Plugin: prd-toolkit
+
+Create and manage Product Requirements Documents (PRDs) with AI assistance.
+
+| Command | Purpose |
+|---------|---------|
+| `/prd:create [feature]` | Generate a concise mini-PRD for a new feature |
+| `/prd:refine [file \| issue-url]` | Improve existing PRD or convert vague issue to PRD |
+| `/prd:validate [file \| issue-url]` | Verify implementation matches PRD criteria |
+
+### Core Principle
+
+PRDs focus on **observable behavior**, not implementation details. Describe what users can do, not how it's implemented.
+
 ## Development Guidelines
 
 When modifying any plugin:
