@@ -5,7 +5,27 @@ All notable changes to this plugin will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.3.1] - 2025-12-16
+## [2.0.0] - 2025-12-16
+
+### Added
+- `/code-review:pr <PR>` - Comprehensive multi-agent PR review workflow inspired by Anthropic's approach
+- New specialized agents for parallel review:
+  - `pr-eligibility-checker` (Haiku) - Validates PR is reviewable (not draft/closed/bot/trivial)
+  - `claudemd-discoverer` (Haiku) - Finds relevant CLAUDE.md files in affected directories
+  - `pr-summarizer` (Haiku) - Generates PR change summary
+  - `claudemd-compliance-reviewer` (Sonnet) - Audits changes against CLAUDE.md guidelines
+  - `bug-scanner` (Sonnet) - Shallow scan for obvious bugs in diff
+  - `git-history-reviewer` (Sonnet) - Analyzes git blame/history for context
+  - `pr-comments-reviewer` (Sonnet) - Checks previous PR comments that may apply
+  - `code-comments-reviewer` (Sonnet) - Verifies compliance with code comment guidance
+  - `confidence-scorer` (Haiku) - Scores issues 0-100 to filter false positives
+- Confidence scoring system with explicit rubric (0-100 scale, threshold 80)
+- Automatic false positive filtering based on:
+  - Pre-existing issues
+  - Linter/compiler-catchable issues
+  - Pedantic nitpicks
+  - Issues on unmodified lines
+  - Intentionally silenced issues (lint ignore)
 
 ### Fixed
 - Fixed `branch-reviewer` agent type reference to use namespaced format `code-review:branch-reviewer` in `/code-review:branch` and `/code-review:staged` commands (was causing "Agent type 'branch-reviewer' not found" error)

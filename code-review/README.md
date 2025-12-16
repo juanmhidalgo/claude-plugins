@@ -6,16 +6,32 @@ Comprehensive code review workflow for Claude Code: branch reviews, PR feedback 
 
 | Command | Description |
 |---------|-------------|
-| `/code-review/branch [base]` | Review current branch vs base (default: main) |
-| `/code-review/staged` | Review staged changes before commit |
-| `/code-review/triage PR#` | Triage AI feedback (Copilot, Gemini) with skeptical verification |
-| `/code-review/dismiss PR#` | Dismiss false positives on GitHub with justification |
-| `/code-review/fixes-plan [name]` | Generate/update REVIEW_FIXES.md tracking document |
-| `/code-review/implement-fix [#\|all]` | Implement fixes, asking for technical decisions when needed |
-| `/code-review/mark-fixed [#\|all]` | Verify fixes against code and update tracking |
-| `/code-review/resolve-fixed PR#` | Resolve GitHub threads for issues marked as fixed |
+| `/code-review:pr <PR>` | **Multi-agent PR review** with confidence scoring |
+| `/code-review:branch [base]` | Review current branch vs base (default: main) |
+| `/code-review:staged` | Review staged changes before commit |
+| `/code-review:triage PR#` | Triage AI feedback (Copilot, Gemini) with skeptical verification |
+| `/code-review:dismiss PR#` | Dismiss false positives on GitHub with justification |
+| `/code-review:fixes-plan [name]` | Generate/update REVIEW_FIXES.md tracking document |
+| `/code-review:implement-fix [#\|all]` | Implement fixes, asking for technical decisions when needed |
+| `/code-review:mark-fixed [#\|all]` | Verify fixes against code and update tracking |
+| `/code-review:resolve-fixed PR#` | Resolve GitHub threads for issues marked as fixed |
 
 ## Workflows
+
+### Multi-Agent PR Review (recommended)
+
+```
+/code-review:pr 123         → Full PR review with 5 parallel agents
+```
+
+**Workflow steps:**
+1. Eligibility check (skip drafts, bots, trivial PRs)
+2. CLAUDE.md discovery in affected directories
+3. PR summary generation
+4. **5 parallel reviews**: CLAUDE.md compliance, bug scan, git history, previous PR comments, code comments
+5. Confidence scoring (0-100) for each issue
+6. Filter issues below 80 confidence
+7. Post review comment on PR
 
 ### Branch Review (before PR)
 ```
@@ -81,6 +97,22 @@ The plugin includes bash scripts for GitHub API operations (no MCP required):
 Output includes `resolved` and `outdated` status for inline comments, with stats on filtered items.
 
 ## Agents
+
+### PR Review Workflow Agents
+
+| Agent | Model | Purpose |
+|-------|-------|---------|
+| `pr-eligibility-checker` | Haiku | Validates PR is reviewable |
+| `claudemd-discoverer` | Haiku | Finds CLAUDE.md in affected dirs |
+| `pr-summarizer` | Haiku | Generates change summary |
+| `claudemd-compliance-reviewer` | Sonnet | Audits CLAUDE.md compliance |
+| `bug-scanner` | Sonnet | Shallow scan for obvious bugs |
+| `git-history-reviewer` | Sonnet | Analyzes git blame/history |
+| `pr-comments-reviewer` | Sonnet | Checks previous PR feedback |
+| `code-comments-reviewer` | Sonnet | Verifies code comment guidance |
+| `confidence-scorer` | Haiku | Scores issues 0-100 |
+
+### Other Agents
 
 - **branch-reviewer** - Code review specialist for branch comparisons
 - **pr-feedback-analyst** - Skeptical AI feedback analyst
