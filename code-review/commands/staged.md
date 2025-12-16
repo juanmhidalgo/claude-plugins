@@ -12,7 +12,7 @@ description: Code review of staged changes before committing
 
 ## Instructions
 
-Use Task tool with subagent_type="branch-reviewer" to perform a comprehensive code review of staged changes.
+Use Task tool with subagent_type="code-review:branch-reviewer" to perform a comprehensive code review of staged changes.
 
 **Review process:**
 1. Get staged diff: `git diff --cached`
