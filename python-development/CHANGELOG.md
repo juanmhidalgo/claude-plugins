@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.0] - 2025-12-30
+
+### Added
+- **tech-debt-finder** skill for analyzing Python codebases for technical debt
+  - Debt markers scanning (TODO, FIXME, HACK, XXX)
+  - Code smells detection (broad exceptions, hardcoded values, magic numbers)
+  - Complexity indicators (long files, deep nesting)
+  - Framework-specific anti-patterns for Django, Flask, FastAPI
+  - Optional integration with radon, flake8, pylint
+  - Prioritized markdown report generation (P1/P2/P3)
+  - Reference documentation:
+    - patterns.md - Complete scanning patterns by category
+
 ## [1.1.0] - 2025-12-19
 
 ### Added
