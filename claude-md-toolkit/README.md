@@ -105,6 +105,84 @@ File: ./CLAUDE.md
 Backup: ./CLAUDE.md.backup-2026-01-07-143052
 ```
 
+### `/init [--standalone]`
+
+Initialize or enhance a CLAUDE.md file with best practices baked in from the start.
+
+**Two modes:**
+
+1. **Enhance mode** (default): Optimizes existing CLAUDE.md from `/init`
+2. **Standalone mode** (`--standalone`): Generates optimized CLAUDE.md from scratch
+
+**Usage:**
+
+```bash
+# Enhance mode - leverages /init from Claude Code
+/init                                # First, generate base CLAUDE.md (Anthropic's analysis)
+/claude-md-toolkit:init              # Then, enhance with best practices
+
+# Standalone mode - generate optimized from scratch
+/claude-md-toolkit:init --standalone  # Auto-detects framework and generates optimized file
+```
+
+**Why two modes?**
+
+- **Enhance mode**: Benefits from Anthropic's ongoing improvements to `/init` command
+- **Standalone mode**: Convenient when you want everything optimized immediately
+
+**Smart project detection (standalone mode):**
+- Detects project size: small (<10K LOC), medium (10-50K), large (>50K)
+- Identifies framework: Django, FastAPI, React, Next.js, Go, Rust, or Generic
+- Selects appropriate template with framework-specific rules
+- Sets token targets based on project size
+
+**Framework-specific templates included:**
+- **Django**: Migration rules, ORM best practices, security standards
+- **FastAPI**: Pydantic validation, async patterns, dependency injection
+- **React**: Hooks rules, state management, accessibility
+- **Generic**: Universal best practices for any project type
+
+**Example output (standalone mode):**
+
+```
+✓ CLAUDE.md generated successfully!
+
+Generated for:
+- Framework: Django
+- Size: small (~4,200 LOC)
+- Token count: ~950 tokens (target: 800-1200)
+
+Features:
+- ✓ XML semantic structure
+- ✓ Django-specific rules (migrations, security, ORM)
+- ✓ Priority-based rule system
+- ✓ Optimized for Django best practices
+
+Next Steps:
+1. Review and customize CLAUDE.md
+2. Add project-specific rules
+3. Run /claude-md-toolkit:analyze-claude-md to verify score
+```
+
+**Example output (enhance mode):**
+
+```
+✓ CLAUDE.md enhanced successfully!
+
+Applied enhancements:
+- ✓ XML semantic structure added
+- ✓ Critical rules marked with priority attributes
+- ✓ Persuasion principles applied
+- ✓ Token-optimized structure
+
+Metrics:
+- Original: 850 tokens
+- Enhanced: 920 tokens
+- Effectiveness: +188% (structure score: 8/25 → 24/25)
+
+Backup: CLAUDE.md.backup-20260107-133412
+```
+
 ## Installation
 
 ### From Marketplace
@@ -164,16 +242,33 @@ Run `/optimize-claude-md` when:
 - Content has grown organically and become verbose
 - Migrating from old CLAUDE.md format
 
-### Recommended Workflow
+### Recommended Workflows
 
-1. **Bootstrap**: Run `/init` to create initial CLAUDE.md
-2. **Analyze**: Run `/analyze-claude-md` to get baseline score
-3. **Optimize**: Run `/optimize-claude-md --level=moderate`
-4. **Verify**: Run `/analyze-claude-md` again to confirm improvement
-5. **Review**: Manually check changes in your editor
-6. **Test**: Use Claude Code to ensure behavior is correct
-7. **Commit**: Add to version control
-8. **Maintain**: Re-analyze quarterly or after major changes
+**Option 1: Quick Start (Enhance Mode)**
+1. **Generate base**: Run `/init` to create initial CLAUDE.md (Anthropic's analysis)
+2. **Enhance**: Run `/claude-md-toolkit:init` to apply best practices
+3. **Verify**: Run `/claude-md-toolkit:analyze-claude-md` to confirm quality (should be 80-90+)
+4. **Review**: Manually check changes in your editor
+5. **Test**: Use Claude Code to ensure behavior is correct
+6. **Commit**: Add to version control
+7. **Maintain**: Re-analyze quarterly or after major changes
+
+**Option 2: Standalone (From Scratch)**
+1. **Generate optimized**: Run `/claude-md-toolkit:init --standalone` (auto-detects framework)
+2. **Customize**: Add project-specific rules and context
+3. **Verify**: Run `/claude-md-toolkit:analyze-claude-md` to confirm quality
+4. **Test**: Use Claude Code to ensure behavior is correct
+5. **Commit**: Add to version control
+6. **Maintain**: Re-analyze quarterly or after major changes
+
+**Option 3: Improve Existing (Legacy CLAUDE.md)**
+1. **Analyze**: Run `/claude-md-toolkit:analyze-claude-md` to get baseline score
+2. **Optimize**: Run `/claude-md-toolkit:optimize-claude-md --level=moderate`
+3. **Verify**: Run `/claude-md-toolkit:analyze-claude-md` again to confirm improvement
+4. **Review**: Manually check changes in your editor
+5. **Test**: Use Claude Code to ensure behavior is correct
+6. **Commit**: Add to version control
+7. **Maintain**: Re-analyze quarterly or after major changes
 
 ## Examples
 

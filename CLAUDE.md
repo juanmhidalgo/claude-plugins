@@ -1,12 +1,12 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
-## Repository Overview
-
+<project_context>
 This is a Claude Code plugins marketplace containing plugins for development workflows. The marketplace provides installable plugins that extend Claude Code with slash commands, agents, and skills.
+</project_context>
 
-## Architecture
+<architecture>
+
+## Plugin Architecture
 
 ```
 .claude-plugin/
@@ -21,22 +21,53 @@ This is a Claude Code plugins marketplace containing plugins for development wor
   scripts/             # Shell scripts for automation
 ```
 
-### Plugin Structure
-
-- **Commands**: Markdown files defining slash commands with YAML frontmatter (`allowed-tools`, `argument-hint`, `description`)
-- **Agents**: Markdown files with YAML frontmatter defining specialized agents with specific tools and skills
-- **Skills**: Best practices documents activated by agents, providing domain knowledge
-
 ### Key Patterns
 
-Commands can embed shell output using `!` backticks:
-```markdown
-- **Current branch**: !`git branch --show-current`
-```
+- **Commands**: Markdown files with YAML frontmatter (`allowed-tools`, `argument-hint`, `description`)
+- **Agents**: Markdown files with YAML frontmatter defining specialized agents with specific tools and skills
+- **Skills**: Best practices documents activated by agents, providing domain knowledge
+- **Shell output embedding**: Commands can embed shell output using `!` backticks (e.g., `!`git branch --show-current``)
+- **Arguments**: Commands accept arguments via `$1`, `$ARGUMENTS`
 
-Commands accept arguments via `$1`, `$ARGUMENTS`.
+</architecture>
 
-## Available Plugin: code-review
+<critical_rules>
+
+<rule id="version-bump" priority="blocking" authority="repository-standard">
+
+## Version Management
+
+When modifying any plugin, YOU MUST complete these steps IN ORDER:
+
+1. **Bump the version** in the plugin's `.claude-plugin/plugin.json` file
+2. **Use semantic versioning**: patch (0.0.x) for fixes, minor (0.x.0) for features, major (x.0.0) for breaking changes
+3. **Update the CHANGELOG.md** in the plugin's root directory with the changes made
+
+NEVER skip version bumping. This is a MANDATORY step that prevents version conflicts and maintains marketplace integrity. No exceptions.
+
+</rule>
+
+<rule id="ai-review-verification" priority="critical">
+
+## AI Code Review Principle
+
+AI feedback is NOT valid by default. YOU MUST verify every comment from AI reviewers against actual code before acting on it. This applies to all code review workflows.
+
+</rule>
+
+<rule id="prd-observable-behavior" priority="recommended">
+
+## PRD Documentation Standard
+
+PRDs focus on **observable behavior**, not implementation details. Describe what users can do, not how it's implemented.
+
+</rule>
+
+</critical_rules>
+
+<available_plugins>
+
+## code-review Plugin
 
 Comprehensive code review workflow:
 
@@ -51,13 +82,9 @@ Comprehensive code review workflow:
 | `/code-review:mark-fixed` | Verify and mark issues fixed |
 | `/code-review:resolve-fixed PR#` | Resolve GitHub threads for fixed issues |
 
-### Core Principle
+## prd-toolkit Plugin
 
-AI feedback is NOT valid by default. Every comment from AI reviewers must be verified against actual code before acting on it.
-
-## Available Plugin: prd-toolkit
-
-Create and manage Product Requirements Documents (PRDs) with AI assistance.
+Create and manage Product Requirements Documents (PRDs):
 
 | Command | Purpose |
 |---------|---------|
@@ -66,21 +93,18 @@ Create and manage Product Requirements Documents (PRDs) with AI assistance.
 | `/prd:validate [file \| issue-url]` | Verify implementation matches PRD criteria |
 | `/prd:analyze [file \| issue-url \| text]` | Identify gaps, edge cases, and ambiguities before implementation |
 
-### Core Principle
+</available_plugins>
 
-PRDs focus on **observable behavior**, not implementation details. Describe what users can do, not how it's implemented.
-
-## Development Guidelines
-
-When modifying any plugin:
-1. **Always bump the version** in the plugin's `.claude-plugin/plugin.json` file
-2. Use semantic versioning: patch (0.0.x) for fixes, minor (0.x.0) for features, major (x.0.0) for breaking changes
-3. **Update the CHANGELOG.md** in the plugin's root directory with the changes made
+<environment_requirements>
 
 ## Requirements
 
 - `gh` CLI installed and authenticated
 - GitHub token with repo scope
+
+</environment_requirements>
+
+<common_commands>
 
 ## Installation Commands
 
@@ -91,3 +115,5 @@ When modifying any plugin:
 # Install plugin
 /plugin install code-review@juanmhidalgo-plugins
 ```
+
+</common_commands>
