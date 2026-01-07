@@ -1,0 +1,80 @@
+# Changelog
+
+All notable changes to the claude-md-toolkit plugin will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [0.2.0] - 2026-01-07
+
+### Changed
+- **Optimized all command and skill files using Anthropic's best practices (dog-fooding)**
+  - Applied XML tag structure throughout all files for better parseability
+  - Reduced token count by 30% (8,136 → 5,776 tokens)
+  - Added proper hierarchy with nested tags and priority attributes
+  - Consolidated repetitive content into structured sections
+  - Removed verbose explanations of basic concepts
+
+### Improved
+- `/analyze-claude-md` command (214 → 165 lines, -23%)
+  - Added XML tags for analysis criteria sections
+  - Used `<context>`, `<task>`, and structured output format
+  - Added `<rule priority="blocking">` for critical requirements
+  - Improved clarity with weighted analysis dimensions
+
+- `/optimize-claude-md` command (384 → 222 lines, -43%)
+  - Restructured with clear XML workflow steps
+  - Added persuasion principles (Authority: "YOU MUST", Scarcity: "IMMEDIATELY")
+  - Consolidated optimization level descriptions
+  - Improved safety checks with blocking priority
+
+- `claude-md-best-practices` skill (419 → 335 lines, -21%)
+  - Organized with semantic XML tags for each major section
+  - Added clear examples with `<pattern_N>` naming
+  - Consolidated persuasion principles section
+  - Improved anti-patterns table format
+
+### Technical
+- Total line reduction: 1,017 → 722 lines (-30%)
+- Total token savings: ~2,360 tokens (-30%)
+- Created backups in `.backups/` directory for reference
+- Maintained all essential content while improving structure
+
+## [0.1.0] - 2026-01-07
+
+### Added
+- Initial release of claude-md-toolkit plugin
+- `/analyze-claude-md` command - Comprehensive analysis of CLAUDE.md files against Anthropic's best practices
+  - Analyzes structure (XML tags, hierarchy, consistency)
+  - Evaluates conciseness (token efficiency, verbosity)
+  - Checks content quality (essential sections, references, sensitive data)
+  - Reviews memory patterns (imports, modularization)
+  - Generates optimization score (0-100) with detailed recommendations
+  - Provides token efficiency report with savings estimates
+- `/optimize-claude-md` command - Automated optimization with three levels
+  - Conservative: Add XML tags without content changes
+  - Moderate (default): XML tags + consolidation + verbosity reduction
+  - Aggressive: Complete restructuring for maximum token efficiency
+  - Creates automatic backups before changes
+  - Shows preview with side-by-side comparisons
+  - Supports save-as-new or in-place optimization
+- `claude-md-best-practices` skill - Consolidated Anthropic guidelines
+  - XML tag usage patterns and best practices
+  - CLAUDE.md structure and organization guidelines
+  - Memory system hierarchy and modularization patterns
+  - Persuasion principles for rule enforcement
+  - Token efficiency optimization techniques
+  - Quality checklist and anti-patterns to avoid
+  - References official Anthropic documentation:
+    - XML Tags: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/use-xml-tags
+    - CLAUDE.md Guidelines: https://claude.com/blog/using-claude-md-files
+    - Memory System: https://code.claude.com/docs/en/memory
+
+### Features
+- Automatic file location (checks `./CLAUDE.md`, `./.claude/CLAUDE.md`)
+- Backup creation with timestamps before optimization
+- Token savings estimation and reporting
+- Side-by-side before/after previews
+- Safety checks for content preservation and sensitive data
+- Modular organization support (`.claude/rules/*.md`)
+- Path-specific rules detection (YAML frontmatter)
