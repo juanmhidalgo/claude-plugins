@@ -1,6 +1,16 @@
 ---
-allowed-tools: Bash, Task, Read
+allowed-tools:
+  - Bash(git *)
+  - Task
+  - Read
 description: Code review of staged changes before committing
+hooks:
+  - event: Stop
+    once: true
+    command: |
+      echo "📝 Staged changes review complete."
+      echo "  • Fix issues, then commit with /commit"
+      echo "  • Or track fixes with /code-review:fixes-plan"
 ---
 
 ## Context

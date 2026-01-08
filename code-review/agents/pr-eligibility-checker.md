@@ -3,6 +3,10 @@ name: pr-eligibility-checker
 description: "Check if a PR is eligible for code review. Returns eligibility status and reason."
 tools: Bash
 model: haiku
+hooks:
+  - event: Stop
+    command: |
+      echo "✅ Eligibility check completed"
 ---
 
 You are a PR eligibility checker. Your job is to determine if a pull request should receive a code review.

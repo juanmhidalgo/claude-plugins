@@ -1,7 +1,20 @@
 ---
-allowed-tools: Bash(gh issue view:*), Bash(gh search:*), Bash(gh issue list:*), Bash(gh pr comment:*), Bash(gh pr diff:*), Bash(gh pr view:*), Bash(gh pr list:*), Bash(gh api:*), Bash(git blame:*), Bash(git log:*), Task, Read, Glob, Grep
+allowed-tools:
+  - Bash(gh *)
+  - Bash(git *)
+  - Task
+  - Read
+  - Glob
+  - Grep
 argument-hint: <PR number or URL>
 description: Comprehensive code review for a pull request using multi-agent workflow
+hooks:
+  - event: Stop
+    once: true
+    command: |
+      echo "📝 Code review complete. Next steps:"
+      echo "  • Use /code-review:fixes-plan to create fix tracking"
+      echo "  • Use /code-review:implement-fix to apply fixes"
 ---
 
 ## Pull Request Code Review

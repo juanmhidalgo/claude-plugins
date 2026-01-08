@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.4.1] - 2026-01-08
+
+### Fixed
+- Corrected `prd-specialist` agent hooks to use only officially documented variables
+- Simplified hook command to static message (removed undocumented `$output` variable usage)
+- Hook now complies with official Claude Code hook specification
+
+## [1.4.0] - 2026-01-08
+
+### Changed
+- Refactored all commands to use YAML-style lists for `allowed-tools` for better readability
+- Updated all command frontmatter to use modern YAML list syntax
+- Updated `prd-specialist` agent to use YAML list format for tools
+
+### Added
+- Added `context: fork` to `prd-best-practices` skill for isolated execution context
+- Added `agent: prd-toolkit:prd-specialist` to `prd-best-practices` skill for proper routing
+- Added `user-invocable: true` to `prd-best-practices` skill to enable direct slash command invocation
+- Added hooks to `prd-specialist` agent for completion feedback
+- Added `Bash(gh *)` wildcard permission to `prd-specialist` agent
+
+### Improved
+- Skills now support hot-reload (changes take effect immediately)
+- Better agent routing with explicit agent field in skills
+- PRD best practices skill can now run in forked context for better isolation
+
 ## [1.3.1] - 2025-12-12
 
 ### Fixed

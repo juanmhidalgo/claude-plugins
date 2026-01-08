@@ -1,5 +1,6 @@
 ---
-allowed-tools: Task
+allowed-tools:
+  - Task
 argument-hint: [file-path | github-issue-url]
 description: Verify implementation matches PRD acceptance criteria
 ---

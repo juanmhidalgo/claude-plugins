@@ -1,5 +1,6 @@
 ---
-allowed-tools: Task
+allowed-tools:
+  - Task
 argument-hint: [file-path | github-issue-url | text]
 description: Identify gaps, edge cases, and ambiguities in requirements before implementation
 ---

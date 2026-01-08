@@ -1,5 +1,10 @@
 ---
-allowed-tools: Read, Write, Bash, Grep
+allowed-tools:
+  - Read
+  - Write
+  - Bash(git *)
+  - Bash(grep *)
+  - Grep
 argument-hint: [issue-number | "all"]
 description: Verify and mark issues as fixed in REVIEW_FIXES.md
 ---

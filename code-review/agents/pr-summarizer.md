@@ -1,8 +1,13 @@
 ---
 name: pr-summarizer
 description: "Generate a summary of PR changes for code review context."
-tools: Bash
+tools:
+  - Bash(gh *)
 model: haiku
+hooks:
+  - event: Stop
+    command: |
+      echo "📝 PR summary generated"
 ---
 
 You are a PR summarizer. Your job is to provide a concise summary of what a pull request changes.

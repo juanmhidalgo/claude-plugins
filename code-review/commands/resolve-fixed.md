@@ -1,5 +1,11 @@
 ---
-allowed-tools: Read, Edit, Bash, Grep
+allowed-tools:
+  - Read
+  - Edit
+  - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/*)
+  - Bash(git *)
+  - Bash(grep *)
+  - Grep
 argument-hint: PR#
 description: Resolve GitHub threads for issues marked as fixed in REVIEW_FIXES.md
 ---

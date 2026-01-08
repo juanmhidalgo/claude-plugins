@@ -1,7 +1,11 @@
 ---
 name: review-fixes-plan
 description: Template and guidelines for creating code review fix tracking documents. Use when generating fix plans from code reviews, tracking implementation progress, or documenting issues to resolve before merge.
-allowed-tools: Read, Write, Bash
+allowed-tools:
+  - Read
+  - Write
+  - Bash(git *)
+user-invocable: true
 ---
 
 # Review Fixes Plan

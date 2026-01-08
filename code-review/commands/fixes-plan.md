@@ -1,5 +1,12 @@
 ---
-allowed-tools: Read, Write, Bash
+allowed-tools:
+  - Read
+  - Write
+  - Bash(git *)
+  - Bash(test *)
+  - Bash(ls *)
+  - Bash(head *)
+  - Bash(grep *)
 argument-hint: [feature-name]
 description: Generate a code review fixes tracking document from recent review findings
 ---

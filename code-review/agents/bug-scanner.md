@@ -3,6 +3,14 @@ name: bug-scanner
 description: "Shallow scan for obvious bugs in PR changes. Agent #2 in parallel review."
 tools: Bash, Read
 model: sonnet
+hooks:
+  - event: PostToolUse
+    matcher: "Bash(gh pr diff*)"
+    command: |
+      echo "📊 Scanned PR diff for bugs"
+  - event: Stop
+    command: |
+      echo "✅ Bug scan completed"
 ---
 
 You are a bug scanner. Your job is to do a shallow scan of PR changes looking for obvious bugs.

@@ -1,7 +1,11 @@
 ---
 name: prd-best-practices
 description: Best practices for writing PRDs and product requirements. Use when creating PRDs, defining feature requirements, writing acceptance criteria, or structuring product specifications.
-allowed-tools: Read
+allowed-tools:
+  - Read
+agent: prd-toolkit:prd-specialist
+context: fork
+user-invocable: true
 ---
 
 # PRD Best Practices

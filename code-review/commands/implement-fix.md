@@ -1,5 +1,13 @@
 ---
-allowed-tools: Read, Write, Edit, Bash, Grep, Glob, AskUserQuestion
+allowed-tools:
+  - Read
+  - Write
+  - Edit
+  - Bash(git *)
+  - Bash(grep *)
+  - Grep
+  - Glob
+  - AskUserQuestion
 argument-hint: [issue-number | "all"]
 description: Implement fixes from REVIEW_FIXES.md, asking for technical decisions when needed
 skills:

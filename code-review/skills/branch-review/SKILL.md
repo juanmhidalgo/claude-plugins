@@ -1,7 +1,12 @@
 ---
 name: branch-review
 description: Best practices for reviewing branch changes and pull requests. Use when doing code reviews, comparing branches, analyzing diffs, or preparing PRs for merge.
-allowed-tools: Bash, Read, Grep
+allowed-tools:
+  - Bash(git *)
+  - Read
+  - Grep
+agent: code-review:branch-reviewer
+user-invocable: true
 ---
 
 # Branch Review Best Practices

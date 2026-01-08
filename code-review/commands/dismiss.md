@@ -1,5 +1,8 @@
 ---
-allowed-tools: Bash, Read
+allowed-tools:
+  - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/*)
+  - Bash(git *)
+  - Read
 argument-hint: PR#
 description: Dismiss false positive comments on a PR with justification
 ---

@@ -5,6 +5,41 @@ All notable changes to this plugin will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.1] - 2026-01-08
+
+### Fixed
+- Corrected agent hooks to use only officially documented variables
+- Simplified hook commands to static messages (removed undocumented `$output` variable usage)
+- All hooks now comply with official Claude Code hook specification
+
+## [2.1.0] - 2026-01-08
+
+### Changed
+- Refactored all commands to use YAML-style lists for `allowed-tools` for better readability
+- Implemented wildcard patterns in bash permissions (e.g., `Bash(git *)`, `Bash(gh *)`) to reduce permission prompts
+- Updated all command frontmatter to use modern YAML list syntax
+- Added `${CLAUDE_PLUGIN_ROOT}/scripts/*` wildcard for script permissions
+
+### Added
+- Added hooks to commands for better user guidance:
+  - `/pr` now shows next steps after completion
+  - `/staged` and `/branch` suggest follow-up commands
+- Added hooks to agents for automatic feedback:
+  - `bug-scanner` reports issue count on completion
+  - `pr-eligibility-checker` shows eligibility status
+  - `confidence-scorer` displays confidence levels with visual indicators
+  - `pr-summarizer` shows PR type and file count
+- Added `agent` field to `branch-review` skill to ensure proper routing to `code-review:branch-reviewer`
+- Added `user-invocable: true` to skills that are useful as direct slash commands:
+  - `branch-review`
+  - `technical-decisions`
+  - `receiving-code-review`
+  - `review-fixes-plan`
+
+### Improved
+- Skills now support hot-reload (changes take effect immediately)
+- Better permission handling with wildcard patterns reduces unnecessary prompts
+
 ## [2.0.0] - 2025-12-16
 
 ### Added

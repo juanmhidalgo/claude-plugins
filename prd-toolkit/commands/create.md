@@ -1,5 +1,6 @@
 ---
-allowed-tools: Task
+allowed-tools:
+  - Task
 argument-hint: [feature-name | short-description]
 description: Generate a concise product mini-PRD for a new feature
 ---

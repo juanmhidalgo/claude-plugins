@@ -1,5 +1,6 @@
 ---
-allowed-tools: Task
+allowed-tools:
+  - Task
 argument-hint: [file-path | github-issue-url | "paste"]
 description: Improve existing PRD or convert vague issue to structured PRD
 ---

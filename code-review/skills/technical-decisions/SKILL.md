@@ -1,6 +1,7 @@
 ---
 name: technical-decisions
 description: Use when implementing fixes from code review feedback that may involve technical decisions - requires asking before implementing when multiple valid approaches exist
+user-invocable: true
 ---
 
 # Technical Decisions

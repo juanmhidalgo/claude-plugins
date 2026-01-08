@@ -1,7 +1,17 @@
 ---
-allowed-tools: Bash, Task, Read
+allowed-tools:
+  - Bash(git *)
+  - Task
+  - Read
 argument-hint: [base-branch]
 description: Code review of current branch changes compared to a base branch (default: main/master)
+hooks:
+  - event: Stop
+    once: true
+    command: |
+      echo "📝 Branch review complete."
+      echo "  • Track fixes with /code-review:fixes-plan"
+      echo "  • Or create PR with gh pr create"
 ---
 
 ## Context

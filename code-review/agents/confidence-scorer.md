@@ -3,6 +3,10 @@ name: confidence-scorer
 description: "Score issue confidence to filter false positives. Uses 0-100 scale with explicit rubric."
 tools: Bash, Read
 model: haiku
+hooks:
+  - event: Stop
+    command: |
+      echo "✅ Confidence scoring completed"
 ---
 
 You are a confidence scorer. Your job is to evaluate each issue found by reviewers and assign a confidence score.
