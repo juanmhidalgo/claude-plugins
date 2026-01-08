@@ -1,6 +1,6 @@
 {
   "name": "claude-md-toolkit",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "Analyze and optimize CLAUDE.md files using Anthropic's best practices for prompt engineering, XML tags, and memory patterns",
   "author": {
     "name": "juanmhidalgo"
@@ -11,6 +11,6 @@
     "./commands/init.md"
   ],
   "skills": [
-    "./skills/*/SKILL.md"
+    "./skills/claude-md-best-practices/SKILL.md"
   ]
 }
