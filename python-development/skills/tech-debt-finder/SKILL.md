@@ -1,6 +1,24 @@
 ---
 name: tech-debt-finder
-description: Find technical debt in Python projects. Scans for debt markers (TODO/FIXME/HACK), code smells, complexity issues, and framework anti-patterns (Django, Flask, FastAPI). Outputs prioritized P1/P2/P3 markdown reports. Use when asked to audit code quality, find refactoring opportunities, identify legacy code issues, or generate a tech debt report.
+description: Find technical debt in Python projects with prioritized reports.
+keywords:
+  - tech-debt
+  - code-quality
+  - refactoring
+  - code-smells
+  - legacy-code
+triggers:
+  - "find tech debt"
+  - "audit code quality"
+  - "identify refactoring opportunities"
+  - "scan for code smells"
+  - "generate tech debt report"
+code-triggers:
+  - "TODO"
+  - "FIXME"
+  - "HACK"
+  - "XXX"
+  - "NOQA"
 ---
 
 # Tech Debt Finder

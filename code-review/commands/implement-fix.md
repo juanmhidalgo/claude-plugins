@@ -10,6 +10,16 @@ allowed-tools:
   - AskUserQuestion
 argument-hint: [issue-number | "all"]
 description: Implement fixes from REVIEW_FIXES.md, asking for technical decisions when needed
+keywords:
+  - implement-fix
+  - code-fix
+  - bug-fix
+  - review-fixes
+triggers:
+  - "implement review fixes"
+  - "fix review issues"
+  - "apply code fixes"
+  - "implement bug fixes"
 skills:
   - technical-decisions
   - receiving-code-review

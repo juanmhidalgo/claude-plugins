@@ -29,6 +29,49 @@ This is a Claude Code plugins marketplace containing plugins for development wor
 - **Shell output embedding**: Commands can embed shell output using `!` backticks (e.g., `!`git branch --show-current``)
 - **Arguments**: Commands accept arguments via `$1`, `$ARGUMENTS`
 
+### Discoverability Fields
+
+Commands and skills support optional fields for improved discoverability:
+
+| Field | Type | Format | Purpose |
+|-------|------|--------|---------|
+| `keywords` | `string[]` | kebab-case lowercase | Search/taxonomy terms (e.g., `pull-request`, `code-review`) |
+| `triggers` | `string[]` | Natural language | User intent phrases (e.g., `"review this PR"`, `"check my code"`) |
+| `code-triggers` | `string[]` | Code identifiers | Patterns that activate skills (e.g., `BaseModel`, `Field`) |
+
+**Example command frontmatter:**
+```yaml
+---
+description: Comprehensive code review for a pull request
+keywords:
+  - pull-request
+  - code-review
+  - github-pr
+triggers:
+  - "review this PR"
+  - "review pull request"
+allowed-tools: [...]
+---
+```
+
+**Example skill frontmatter with code-triggers:**
+```yaml
+---
+name: pydantic
+description: Data validation with Pydantic v2.
+keywords:
+  - pydantic-v2
+  - data-validation
+triggers:
+  - "create data model"
+  - "validate input"
+code-triggers:
+  - "BaseModel"
+  - "Field"
+  - "field_validator"
+---
+```
+
 </architecture>
 
 <critical_rules>

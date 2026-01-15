@@ -5,6 +5,16 @@ allowed-tools:
   - Read
 argument-hint: PR#
 description: Dismiss false positive comments on a PR with justification
+keywords:
+  - false-positive
+  - dismiss-comment
+  - resolve-thread
+  - pr-feedback
+triggers:
+  - "dismiss false positives"
+  - "resolve PR comments"
+  - "dismiss AI suggestions"
+  - "reject bot feedback"
 ---
 
 ## Context

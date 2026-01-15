@@ -1,6 +1,16 @@
 ---
 name: technical-decisions
-description: Use when implementing fixes from code review feedback that may involve technical decisions - requires asking before implementing when multiple valid approaches exist
+description: Guidelines for handling technical decisions during code review implementation.
+keywords:
+  - technical-decisions
+  - implementation-choices
+  - architecture-decisions
+  - trade-offs
+triggers:
+  - "decide between approaches"
+  - "multiple implementation options"
+  - "technical trade-off"
+  - "architectural decision"
 user-invocable: true
 ---
 

@@ -3,6 +3,16 @@ allowed-tools:
   - Task
 argument-hint: [feature-name | short-description]
 description: Generate a concise product mini-PRD for a new feature
+keywords:
+  - prd
+  - product-requirements
+  - feature-spec
+  - mini-prd
+triggers:
+  - "create a PRD"
+  - "write product requirements"
+  - "generate feature spec"
+  - "new feature PRD"
 ---
 
 ## Feature Request

@@ -1,6 +1,27 @@
 ---
 name: django-ninja
-description: Build APIs with Django using type hints. Use when creating REST APIs with Django, defining endpoints, schemas, authentication, routers, or working with Django ORM serialization. Triggers on NinjaAPI, Schema, ModelSchema, Router, @api.get, @api.post.
+description: Build APIs with Django using type hints.
+keywords:
+  - django-ninja
+  - django-api
+  - rest-api
+  - type-hints
+  - openapi
+triggers:
+  - "create Django API"
+  - "define API endpoint"
+  - "build REST API with Django"
+  - "Django API schema"
+  - "Django authentication"
+code-triggers:
+  - "NinjaAPI"
+  - "Schema"
+  - "ModelSchema"
+  - "Router"
+  - "@api.get"
+  - "@api.post"
+  - "@api.put"
+  - "@api.delete"
 ---
 
 # Django Ninja

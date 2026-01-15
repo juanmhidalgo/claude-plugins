@@ -5,6 +5,16 @@ All notable changes to the claude-md-toolkit plugin will be documented in this f
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-01-15
+
+### Added
+- Added `keywords` and `triggers` fields to all commands and skill for improved discoverability
+- Commands now include semantic keywords for search and natural language triggers for intent matching
+- Plugin-level keywords and triggers added to plugin.json
+
+### Changed
+- Skill description simplified (triggers moved to dedicated field)
+
 ## [0.3.3] - 2026-01-08
 
 ### Fixed

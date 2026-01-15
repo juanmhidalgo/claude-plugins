@@ -7,6 +7,16 @@ allowed-tools:
   - Grep
 argument-hint: [issue-number | "all"]
 description: Verify and mark issues as fixed in REVIEW_FIXES.md
+keywords:
+  - verify-fix
+  - mark-fixed
+  - fix-verification
+  - issue-completion
+triggers:
+  - "mark as fixed"
+  - "verify fixes"
+  - "check if fixed"
+  - "mark issue completed"
 ---
 
 ## Context

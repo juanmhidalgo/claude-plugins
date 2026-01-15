@@ -1,6 +1,16 @@
 ---
 description: Initialize or enhance a CLAUDE.md file with Anthropic's best practices
 argument-hint: "[--standalone]"
+keywords:
+  - claude-md-init
+  - memory-setup
+  - project-config
+  - claude-configuration
+triggers:
+  - "create CLAUDE.md"
+  - "initialize memory file"
+  - "set up CLAUDE.md"
+  - "start new CLAUDE.md"
 allowed-tools: [Read, Write, Bash, Glob, Grep]
 ---
 

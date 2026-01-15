@@ -6,6 +6,18 @@ allowed-tools:
   - Read
 argument-hint: PR#
 description: Triage PR feedback from AI reviewers - verify validity before implementing
+keywords:
+  - ai-feedback
+  - copilot-review
+  - gemini-review
+  - false-positives
+  - pr-comments
+triggers:
+  - "triage AI feedback"
+  - "review bot comments"
+  - "check AI suggestions"
+  - "verify AI review"
+  - "handle copilot feedback"
 ---
 
 ## Context

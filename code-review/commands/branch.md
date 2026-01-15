@@ -5,6 +5,17 @@ allowed-tools:
   - Read
 argument-hint: [base-branch]
 description: Code review of current branch changes compared to a base branch (default: main/master)
+keywords:
+  - branch-review
+  - branch-comparison
+  - git-diff
+  - pre-merge
+triggers:
+  - "review my branch"
+  - "review branch changes"
+  - "compare branches"
+  - "review before merge"
+  - "code review current branch"
 hooks:
   - event: Stop
     once: true

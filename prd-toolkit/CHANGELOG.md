@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.5.0] - 2026-01-15
+
+### Added
+- Added `keywords` and `triggers` fields to all commands and skill for improved discoverability
+- Commands now include semantic keywords for search and natural language triggers for intent matching
+- Plugin-level triggers added to plugin.json
+
+### Changed
+- Skill description simplified (triggers moved to dedicated field)
+
 ## [1.4.1] - 2026-01-08
 
 ### Fixed

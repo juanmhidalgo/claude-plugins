@@ -4,6 +4,16 @@ allowed-tools:
   - Task
   - Read
 description: Code review of staged changes before committing
+keywords:
+  - staged-changes
+  - pre-commit
+  - git-diff
+  - code-quality
+triggers:
+  - "review staged changes"
+  - "check before commit"
+  - "review what I'm about to commit"
+  - "code review staged"
 hooks:
   - event: Stop
     once: true

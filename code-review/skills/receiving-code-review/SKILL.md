@@ -1,6 +1,16 @@
 ---
 name: receiving-code-review
-description: Use when receiving code review feedback, before implementing suggestions, especially if feedback seems unclear or technically questionable - requires technical rigor and verification, not performative agreement or blind implementation
+description: Guidelines for receiving and processing code review feedback with technical rigor.
+keywords:
+  - code-review-feedback
+  - review-reception
+  - feedback-verification
+  - pushback-patterns
+triggers:
+  - "received code review"
+  - "process review feedback"
+  - "verify reviewer suggestion"
+  - "push back on feedback"
 user-invocable: true
 ---
 

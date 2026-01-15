@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.0] - 2026-01-15
+
+### Added
+- Added `keywords`, `triggers`, and `code-triggers` fields to all skills for improved discoverability
+- Skills now include semantic keywords for search, natural language triggers for intent matching, and code-triggers for pattern detection
+- Plugin-level triggers added to plugin.json
+
+### Changed
+- Skill descriptions simplified (triggers moved to dedicated structured fields)
+- Extracted code patterns (BaseModel, Field, etc.) from descriptions into `code-triggers` field
+
 ## [1.2.0] - 2025-12-30
 
 ### Added

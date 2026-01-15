@@ -1,6 +1,18 @@
 ---
 name: branch-review
-description: Best practices for reviewing branch changes and pull requests. Use when doing code reviews, comparing branches, analyzing diffs, or preparing PRs for merge.
+description: Best practices for reviewing branch changes and pull requests.
+keywords:
+  - code-review
+  - branch-comparison
+  - diff-analysis
+  - pr-preparation
+  - security-checklist
+triggers:
+  - "review branch changes"
+  - "compare branches"
+  - "analyze diff"
+  - "prepare PR for merge"
+  - "check code before merge"
 allowed-tools:
   - Bash(git *)
   - Read

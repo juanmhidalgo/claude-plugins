@@ -1,6 +1,17 @@
 ---
 name: claude-md-best-practices
-description: Anthropic's official best practices for CLAUDE.md files, including XML tag usage, memory patterns, and prompt engineering for optimal Claude Code performance
+description: Anthropic's official best practices for CLAUDE.md files.
+keywords:
+  - claude-md
+  - memory-file
+  - xml-tags
+  - prompt-engineering
+  - context-management
+triggers:
+  - "write better CLAUDE.md"
+  - "CLAUDE.md best practices"
+  - "optimize memory file"
+  - "structure CLAUDE.md"
 ---
 
 # CLAUDE.md Best Practices

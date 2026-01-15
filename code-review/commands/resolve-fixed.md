@@ -8,6 +8,16 @@ allowed-tools:
   - Grep
 argument-hint: PR#
 description: Resolve GitHub threads for issues marked as fixed in REVIEW_FIXES.md
+keywords:
+  - resolve-threads
+  - github-comments
+  - pr-threads
+  - close-threads
+triggers:
+  - "resolve GitHub threads"
+  - "close PR threads"
+  - "resolve fixed issues"
+  - "mark threads resolved"
 ---
 
 ## Context

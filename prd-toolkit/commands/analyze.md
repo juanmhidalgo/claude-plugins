@@ -3,6 +3,16 @@ allowed-tools:
   - Task
 argument-hint: [file-path | github-issue-url | text]
 description: Identify gaps, edge cases, and ambiguities in requirements before implementation
+keywords:
+  - requirements-analysis
+  - gap-analysis
+  - edge-cases
+  - ambiguity-detection
+triggers:
+  - "analyze requirements"
+  - "find gaps in PRD"
+  - "identify edge cases"
+  - "check for ambiguities"
 ---
 
 ## Input to Analyze

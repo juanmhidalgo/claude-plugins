@@ -8,6 +8,19 @@ allowed-tools:
   - Grep
 argument-hint: <PR number or URL>
 description: Comprehensive code review for a pull request using multi-agent workflow
+keywords:
+  - pull-request
+  - code-review
+  - github-pr
+  - multi-agent
+  - bug-detection
+  - security-review
+triggers:
+  - "review this PR"
+  - "review pull request"
+  - "check PR for issues"
+  - "code review my changes"
+  - "run code review on PR"
 hooks:
   - event: Stop
     once: true

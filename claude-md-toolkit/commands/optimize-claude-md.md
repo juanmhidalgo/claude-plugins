@@ -1,6 +1,16 @@
 ---
 description: Optimize a CLAUDE.md file by applying Anthropic's best practices automatically
 argument-hint: "[path/to/CLAUDE.md] [--level=conservative|moderate|aggressive]"
+keywords:
+  - claude-md-optimization
+  - token-efficiency
+  - prompt-improvement
+  - memory-optimization
+triggers:
+  - "optimize my CLAUDE.md"
+  - "improve CLAUDE.md"
+  - "make CLAUDE.md better"
+  - "reduce CLAUDE.md tokens"
 allowed-tools: [Read, Write, Bash]
 ---
 

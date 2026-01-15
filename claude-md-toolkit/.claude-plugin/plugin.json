@@ -1,10 +1,17 @@
 {
   "name": "claude-md-toolkit",
-  "version": "0.3.3",
+  "version": "0.4.0",
   "description": "Analyze and optimize CLAUDE.md files using Anthropic's best practices for prompt engineering, XML tags, and memory patterns",
   "author": {
     "name": "juanmhidalgo"
   },
+  "keywords": ["claude-md", "memory-file", "prompt-engineering", "best-practices"],
+  "triggers": [
+    "optimize my CLAUDE.md",
+    "analyze CLAUDE.md",
+    "create CLAUDE.md",
+    "improve memory file"
+  ],
   "commands": [
     "./commands/analyze-claude-md.md",
     "./commands/optimize-claude-md.md",

@@ -3,6 +3,16 @@ allowed-tools:
   - Task
 argument-hint: [file-path | github-issue-url | "paste"]
 description: Improve existing PRD or convert vague issue to structured PRD
+keywords:
+  - prd-improvement
+  - issue-to-prd
+  - requirements-refinement
+  - prd-conversion
+triggers:
+  - "improve this PRD"
+  - "convert issue to PRD"
+  - "refine requirements"
+  - "make this PRD better"
 ---
 
 ## Input to Refine

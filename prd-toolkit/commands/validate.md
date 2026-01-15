@@ -3,6 +3,16 @@ allowed-tools:
   - Task
 argument-hint: [file-path | github-issue-url]
 description: Verify implementation matches PRD acceptance criteria
+keywords:
+  - prd-validation
+  - acceptance-criteria
+  - implementation-check
+  - requirements-verification
+triggers:
+  - "validate PRD implementation"
+  - "check acceptance criteria"
+  - "verify requirements met"
+  - "does code match PRD"
 ---
 
 ## PRD to Validate

@@ -5,6 +5,17 @@ All notable changes to this plugin will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.0] - 2026-01-15
+
+### Added
+- Added `keywords` and `triggers` fields to all commands and skills for improved discoverability
+- Commands now include semantic keywords for search and natural language triggers for intent matching
+- Skills updated with structured triggers (moved from prose descriptions)
+- Plugin-level triggers added to plugin.json
+
+### Changed
+- Skill descriptions simplified (triggers moved to dedicated field)
+
 ## [2.1.1] - 2026-01-08
 
 ### Fixed

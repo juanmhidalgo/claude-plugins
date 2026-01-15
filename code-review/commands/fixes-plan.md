@@ -9,6 +9,16 @@ allowed-tools:
   - Bash(grep *)
 argument-hint: [feature-name]
 description: Generate a code review fixes tracking document from recent review findings
+keywords:
+  - fixes-tracking
+  - review-fixes
+  - issue-tracking
+  - bug-tracking
+triggers:
+  - "create fixes plan"
+  - "track review fixes"
+  - "generate fixes document"
+  - "create fix tracking"
 ---
 
 ## Context

@@ -1,6 +1,16 @@
 ---
 description: Analyze a CLAUDE.md file against Anthropic's best practices and generate optimization recommendations
 argument-hint: "[path/to/CLAUDE.md]"
+keywords:
+  - claude-md-analysis
+  - best-practices-audit
+  - prompt-optimization
+  - memory-file
+triggers:
+  - "analyze my CLAUDE.md"
+  - "check CLAUDE.md quality"
+  - "audit memory file"
+  - "review CLAUDE.md"
 allowed-tools: [Read, Glob, Bash]
 ---
 

@@ -1,6 +1,29 @@
 ---
 name: pydantic
-description: Data validation and settings management using Python type hints with Pydantic v2. Use when creating data models, validating input data, parsing JSON, serializing objects, defining API schemas, handling configuration, or working with structured data. Triggers on BaseModel, Field, validators, model_validate, model_dump, TypeAdapter.
+description: Data validation and settings management using Python type hints with Pydantic v2.
+keywords:
+  - pydantic-v2
+  - data-validation
+  - type-hints
+  - json-parsing
+  - api-schemas
+  - settings-management
+triggers:
+  - "create data model"
+  - "validate input data"
+  - "parse JSON"
+  - "serialize objects"
+  - "define API schema"
+  - "handle configuration"
+code-triggers:
+  - "BaseModel"
+  - "Field"
+  - "field_validator"
+  - "model_validator"
+  - "model_validate"
+  - "model_dump"
+  - "TypeAdapter"
+  - "ConfigDict"
 ---
 
 # Pydantic v2
