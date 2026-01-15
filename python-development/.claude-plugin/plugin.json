@@ -1,16 +1,9 @@
 {
   "name": "python-development",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "description": "Python development skills: Pydantic v2 data validation, Django Ninja APIs, tech debt analysis, and modern Python patterns",
   "author": {
     "name": "Juan M. Hidalgo"
   },
-  "homepage": "https://github.com/juanmhidalgo/claude-plugins",
-  "keywords": ["python", "pydantic", "django-ninja", "api", "validation", "typing", "tech-debt", "code-quality"],
-  "triggers": [
-    "create data model",
-    "validate input data",
-    "build Django API",
-    "find tech debt"
-  ]
+  "homepage": "https://github.com/juanmhidalgo/claude-plugins"
 }

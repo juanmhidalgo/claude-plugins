@@ -1,16 +1,8 @@
 {
   "name": "code-review",
   "description": "Comprehensive code review workflow: branch reviews, PR triage, false positive dismissal, and fix tracking",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "author": {
     "name": "Juan M. Hidalgo"
-  },
-  "keywords": ["code-review", "pr", "github", "triage", "bug-detection", "security-review"],
-  "triggers": [
-    "review my code",
-    "code review",
-    "check for bugs",
-    "review this PR",
-    "triage AI feedback"
-  ]
+  }
 }
