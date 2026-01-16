@@ -5,6 +5,13 @@ All notable changes to this plugin will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.0] - 2026-01-16
+
+### Added
+- `/code-review:tech-debt [base]` - Analyze branch changes for technical debt before merging
+- `tech-debt-reviewer` agent - Specialized agent for identifying maintainability issues
+- Analyzes: complexity, duplication, debt markers (TODO/FIXME), test gaps, code smells
+
 ## [2.2.2] - 2026-01-16
 
 ### Fixed
