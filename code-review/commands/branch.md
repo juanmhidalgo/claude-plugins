@@ -27,17 +27,11 @@ hooks:
 
 ## Context
 - **Current branch**: !`git branch --show-current`
-- **Default base**: !`git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || echo "main"`
 - **Specified base**: $1
+- **Default base**: main (or master if main doesn't exist)
 
 ## Branch Configuration
-If `$1` is provided, use it as the base branch. Otherwise, use the detected default base.
-
-## Changes Summary
-!`BASE="${1:-$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || echo 'main')}"; git log --oneline $BASE..HEAD 2>/dev/null | head -20 || echo "No commits found"`
-
-## Files Changed
-!`BASE="${1:-$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || echo 'main')}"; git diff $BASE...HEAD --stat 2>/dev/null | tail -20 || echo "No changes found"`
+If `$1` is provided, use it as the base branch. Otherwise, use `main` or `master` as the default.
 
 ## Instructions
 
