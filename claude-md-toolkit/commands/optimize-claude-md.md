@@ -12,6 +12,13 @@ triggers:
   - "make CLAUDE.md better"
   - "reduce CLAUDE.md tokens"
 allowed-tools: [Read, Write, Bash]
+hooks:
+  - event: Stop
+    once: true
+    command: |
+      echo "Optimization complete."
+      echo "  - /claude-md-toolkit:analyze-claude-md to verify score"
+      echo "  - Test with Claude Code before committing"
 ---
 
 # Optimize CLAUDE.md

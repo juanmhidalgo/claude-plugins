@@ -4,6 +4,15 @@ description: "Validates that code implementation matches PRD acceptance criteria
 tools: bash, read, glob, grep
 model: sonnet
 permissionMode: default
+skills:
+  - prd-best-practices
+hooks:
+  - event: Stop
+    once: true
+    command: |
+      echo "Validation complete."
+      echo "  - Create issues for missing items"
+      echo "  - Update PRD if scope changed"
 ---
 
 You are a QA engineer validating that implementations match their PRDs.

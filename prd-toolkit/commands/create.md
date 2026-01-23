@@ -13,6 +13,13 @@ triggers:
   - "write product requirements"
   - "generate feature spec"
   - "new feature PRD"
+hooks:
+  - event: Stop
+    once: true
+    command: |
+      echo "Done. Next steps:"
+      echo "  - /prd:analyze to identify gaps before implementation"
+      echo "  - /prd:validate after implementation to verify criteria"
 ---
 
 ## Feature Request

@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.4.0] - 2026-01-23
+
+### Improved
+- Updated all skill descriptions with "when NOT to use" guidance for better trigger accuracy:
+  - `pydantic`: NOT for simple dataclasses without validation needs
+  - `django-ninja`: NOT for GraphQL, DRF, or simple Django views
+  - `tech-debt-finder`: NOT as primary code review tool (use linters instead)
+
+### Optimized
+- Trimmed `pydantic` skill from 300 to 175 lines (-42%) by removing generic content
+- Trimmed `django-ninja` skill from 244 to 183 lines (-25%) by condensing examples
+- Content moved to progressive disclosure via references directory
+
 ## [1.3.0] - 2026-01-15
 
 ### Added

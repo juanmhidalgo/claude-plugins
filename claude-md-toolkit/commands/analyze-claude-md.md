@@ -12,6 +12,13 @@ triggers:
   - "audit memory file"
   - "review CLAUDE.md"
 allowed-tools: [Read, Glob, Bash]
+hooks:
+  - event: Stop
+    once: true
+    command: |
+      echo "Analysis complete."
+      echo "  - /claude-md-toolkit:optimize-claude-md to apply optimizations"
+      echo "  - Review high-priority issues first"
 ---
 
 # Analyze CLAUDE.md

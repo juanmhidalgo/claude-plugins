@@ -18,6 +18,13 @@ triggers:
   - "check AI suggestions"
   - "verify AI review"
   - "handle copilot feedback"
+hooks:
+  - event: Stop
+    once: true
+    command: |
+      echo "Triage complete."
+      echo "  - /code-review:fixes-plan to track verified issues"
+      echo "  - /code-review:dismiss to dismiss false positives on GitHub"
 ---
 
 ## Context

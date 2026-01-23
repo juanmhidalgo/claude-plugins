@@ -1,6 +1,9 @@
 ---
 name: tech-debt-finder
-description: Find technical debt in Python projects with prioritized reports.
+description: |
+  Use when auditing Python codebases for technical debt and generating prioritized reports.
+  Provides debt marker scanning, complexity analysis, and framework-specific anti-patterns.
+  Do NOT use as primary code review tool (use linters instead) or for real-time CI checks.
 keywords:
   - tech-debt
   - code-quality

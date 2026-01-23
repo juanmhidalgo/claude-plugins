@@ -12,6 +12,13 @@ triggers:
   - "set up CLAUDE.md"
   - "start new CLAUDE.md"
 allowed-tools: [Read, Write, Bash, Glob, Grep]
+hooks:
+  - event: Stop
+    once: true
+    command: |
+      echo "CLAUDE.md initialized."
+      echo "  - /claude-md-toolkit:analyze-claude-md to verify quality"
+      echo "  - Review and customize for your project"
 ---
 
 # Initialize CLAUDE.md

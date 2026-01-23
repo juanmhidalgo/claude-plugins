@@ -5,6 +5,16 @@ All notable changes to this plugin will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.0] - 2026-01-23
+
+### Added
+- Added `hooks` to `/code-review:triage` command for next step guidance
+- Added shell embedding to `/code-review:pr` command for repository and branch context
+
+### Changed
+- Generalized `receiving-code-review` skill by replacing personalized "your human partner" with neutral "team lead"
+- Improved skill reusability across different team contexts
+
 ## [2.3.0] - 2026-01-16
 
 ### Added

@@ -1,6 +1,6 @@
 {
   "name": "prd-toolkit",
-  "version": "1.5.1",
+  "version": "1.6.0",
   "description": "Create and manage Product Requirements Documents (PRDs) with AI assistance. Generate structured mini-PRDs and publish to GitHub Issues or ClickUp.",
   "author": {
     "name": "Juan M. Hidalgo"

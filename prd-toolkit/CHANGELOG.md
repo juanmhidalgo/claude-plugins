@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.6.0] - 2026-01-23
+
+### Added
+- Added `hooks` to all commands (`create`, `refine`, `validate`, `analyze`) for next step guidance
+- Added `hooks` and `skills` fields to `prd-validator` agent
+
+### Improved
+- Updated `prd-best-practices` skill description with "when NOT to use" guidance for better trigger accuracy
+- Skill now explicitly states it should NOT be used for technical specs or architecture docs
+
 ## [1.5.0] - 2026-01-15
 
 ### Added

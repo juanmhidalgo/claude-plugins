@@ -13,6 +13,13 @@ triggers:
   - "check acceptance criteria"
   - "verify requirements met"
   - "does code match PRD"
+hooks:
+  - event: Stop
+    once: true
+    command: |
+      echo "Validation complete."
+      echo "  - Create GitHub issues for missing items if needed"
+      echo "  - Update PRD if scope changed"
 ---
 
 ## PRD to Validate

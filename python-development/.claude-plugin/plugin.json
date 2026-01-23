@@ -1,6 +1,6 @@
 {
   "name": "python-development",
-  "version": "1.3.1",
+  "version": "1.4.0",
   "description": "Python development skills: Pydantic v2 data validation, Django Ninja APIs, tech debt analysis, and modern Python patterns",
   "author": {
     "name": "Juan M. Hidalgo"

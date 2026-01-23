@@ -13,6 +13,13 @@ triggers:
   - "convert issue to PRD"
   - "refine requirements"
   - "make this PRD better"
+hooks:
+  - event: Stop
+    once: true
+    command: |
+      echo "Done. Next steps:"
+      echo "  - /prd:analyze to identify remaining gaps"
+      echo "  - /prd:validate after implementation to verify criteria"
 ---
 
 ## Input to Refine

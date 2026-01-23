@@ -33,6 +33,8 @@ hooks:
 ## Pull Request Code Review
 
 **Target PR**: $ARGUMENTS
+**Repository**: !`git remote get-url origin 2>/dev/null | sed 's/.*github.com[:/]\(.*\)\.git/\1/' | sed 's/.*github.com[:/]\(.*\)/\1/'`
+**Current branch**: !`git branch --show-current`
 
 Execute this multi-step code review workflow precisely:
 

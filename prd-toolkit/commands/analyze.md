@@ -13,6 +13,13 @@ triggers:
   - "find gaps in PRD"
   - "identify edge cases"
   - "check for ambiguities"
+hooks:
+  - event: Stop
+    once: true
+    command: |
+      echo "Analysis complete."
+      echo "  - /prd:refine to address identified gaps"
+      echo "  - Add answers to PRD before implementation"
 ---
 
 ## Input to Analyze
