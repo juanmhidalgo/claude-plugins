@@ -4,6 +4,10 @@
 This is a Claude Code plugins marketplace containing plugins for development workflows. The marketplace provides installable plugins that extend Claude Code with slash commands, agents, and skills.
 </project_context>
 
+<reference_docs>
+Plugin creation guidelines: @.claude/rules/plugin-creation.md
+</reference_docs>
+
 <architecture>
 
 ## Plugin Architecture
@@ -135,6 +139,15 @@ Create and manage Product Requirements Documents (PRDs):
 | `/prd:refine [file \| issue-url]` | Improve existing PRD or convert vague issue to PRD |
 | `/prd:validate [file \| issue-url]` | Verify implementation matches PRD criteria |
 | `/prd:analyze [file \| issue-url \| text]` | Identify gaps, edge cases, and ambiguities before implementation |
+
+## api-handoff Plugin
+
+Coordinate API changes between frontend and backend teams:
+
+| Command | Purpose |
+|---------|---------|
+| `/api-handoff:backend-to-frontend [file]` | Generate handoff prompt for frontend after API changes |
+| `/api-handoff:frontend-to-backend [feature]` | Generate handoff prompt for backend when frontend needs APIs |
 
 </available_plugins>
 
