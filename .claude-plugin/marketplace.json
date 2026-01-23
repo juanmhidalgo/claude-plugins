@@ -5,7 +5,7 @@
   },
   "metadata": {
     "description": "Personal Claude Code plugins for code review, development workflows, and prompt engineering",
-    "version": "1.1.0"
+    "version": "1.2.0"
   },
   "plugins": [
     {
@@ -61,6 +61,17 @@
         "name": "Juan M. Hidalgo"
       },
       "keywords": ["discussion", "feature-review", "critical-analysis", "idea-refinement"],
+      "category": "productivity"
+    },
+    {
+      "name": "api-handoff",
+      "source": "./api-handoff",
+      "description": "Coordinate API changes between frontend and backend teams with structured handoff prompts",
+      "version": "0.2.0",
+      "author": {
+        "name": "Juan M. Hidalgo"
+      },
+      "keywords": ["api", "handoff", "frontend", "backend", "coordination"],
       "category": "productivity"
     }
   ]
