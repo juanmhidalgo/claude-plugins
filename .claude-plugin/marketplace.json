@@ -51,6 +51,17 @@
       },
       "keywords": ["claude-md", "prompt-engineering", "xml-tags", "optimization", "memory", "best-practices"],
       "category": "productivity"
+    },
+    {
+      "name": "discussion-toolkit",
+      "source": "./discussion-toolkit",
+      "description": "Critical feature discussion and idea refinement with skeptical Staff Engineer perspective",
+      "version": "1.1.0",
+      "author": {
+        "name": "Juan M. Hidalgo"
+      },
+      "keywords": ["discussion", "feature-review", "critical-analysis", "idea-refinement"],
+      "category": "productivity"
     }
   ]
 }

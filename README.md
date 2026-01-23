@@ -48,6 +48,21 @@ Create and manage Product Requirements Documents (PRDs) with AI assistance.
 /plugin install prd-toolkit@juanmhidalgo-plugins
 ```
 
+### discussion-toolkit
+
+Critical feature discussion and idea refinement with a skeptical Staff Engineer perspective.
+
+**Commands:**
+- `/discuss [feature or idea]` - Critical analysis, identify gaps and risks
+- `/discuss:brainstorm [problem]` - Generate 4-6 alternative approaches
+- `/discuss:devils-advocate [proposal]` - Argue against to stress-test
+- `/discuss:tradeoffs [A vs B]` - Compare options with pros/cons matrix
+
+**Install:**
+```bash
+/plugin install discussion-toolkit@juanmhidalgo-plugins
+```
+
 ## Updating Plugins
 
 ```bash

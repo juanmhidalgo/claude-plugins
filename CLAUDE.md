@@ -149,6 +149,17 @@ Coordinate API changes between frontend and backend teams:
 | `/api-handoff:backend-to-frontend [file]` | Generate handoff prompt for frontend after API changes |
 | `/api-handoff:frontend-to-backend [feature]` | Generate handoff prompt for backend when frontend needs APIs |
 
+## discussion-toolkit Plugin
+
+Critical feature discussion and idea refinement:
+
+| Command | Purpose |
+|---------|---------|
+| `/discuss [feature or idea]` | Critical analysis with skeptical Staff Engineer perspective |
+| `/discuss:brainstorm [problem]` | Generate 4-6 alternative approaches |
+| `/discuss:devils-advocate [proposal]` | Argue against to stress-test decision |
+| `/discuss:tradeoffs [A vs B]` | Compare options with structured pros/cons matrix |
+
 </available_plugins>
 
 <environment_requirements>
