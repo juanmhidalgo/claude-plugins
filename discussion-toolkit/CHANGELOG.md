@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.4.0] - 2026-01-24
+
+### Changed
+- Open questions now use actionable table format with impact and suggested defaults
+- Simplified Stop hook - removed prescriptive next step suggestions
+
 ## [1.3.0] - 2026-01-24
 
 ### Changed

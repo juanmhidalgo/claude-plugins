@@ -21,10 +21,7 @@ hooks:
     once: true
     command: |
       echo ""
-      echo "Discussion complete. Next steps:"
-      echo "  - /prd:create to formalize as PRD"
-      echo "  - Create a GitHub issue with refined requirements"
-      echo "  - Enter plan mode to start implementation"
+      echo "Discussion complete."
 ---
 
 # Critical Feature Discussion
@@ -122,7 +119,13 @@ Do NOT ask more than 2 questions before providing value.
 After identifying problems, YOU MUST offer:
 1. **Alternatives or mitigations** for each issue raised
 2. **Complexity estimate**: Low / Medium / High
-3. **Open questions** that need answers before proceeding
+3. **Open questions** - use this format to make them actionable:
+
+| Question | Impact if unresolved | Suggested default |
+|----------|---------------------|-------------------|
+| OAuth or sessions? | Completely different architecture | Sessions (simpler) |
+| Include registration? | Scope creep risk | Login only first |
+
 4. **Red flags** that would make you push back harder
 </feedback_structure>
 
