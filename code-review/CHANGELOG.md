@@ -5,6 +5,15 @@ All notable changes to this plugin will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.6.0] - 2026-01-24
+
+### Removed
+- Removed `claudemd-discoverer` agent - redundant since Claude Code auto-loads CLAUDE.md files
+
+### Changed
+- `/code-review:pr` Step 2 now uses simple Glob instead of dedicated agent
+- Reduces latency and API calls in PR review workflow
+
 ## [2.5.0] - 2026-01-24
 
 ### Changed

@@ -26,7 +26,7 @@ Comprehensive code review workflow for Claude Code: branch reviews, PR feedback 
 
 **Workflow steps:**
 1. Eligibility check (skip drafts, bots, trivial PRs)
-2. CLAUDE.md discovery in affected directories
+2. CLAUDE.md discovery (via Glob)
 3. PR summary generation
 4. **5 parallel reviews**: CLAUDE.md compliance, bug scan, git history, previous PR comments, code comments
 5. Confidence scoring (0-100) for each issue
@@ -103,7 +103,6 @@ Output includes `resolved` and `outdated` status for inline comments, with stats
 | Agent | Model | Purpose |
 |-------|-------|---------|
 | `pr-eligibility-checker` | Haiku | Validates PR is reviewable |
-| `claudemd-discoverer` | Haiku | Finds CLAUDE.md in affected dirs |
 | `pr-summarizer` | Haiku | Generates change summary |
 | `claudemd-compliance-reviewer` | Sonnet | Audits CLAUDE.md compliance |
 | `bug-scanner` | Sonnet | Shallow scan for obvious bugs |

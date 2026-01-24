@@ -57,9 +57,9 @@ If not eligible, inform the user why and stop.
 
 ### Step 2: CLAUDE.md Discovery
 
-Use Task tool with `subagent_type="code-review:claudemd-discoverer"` and `model="haiku"` to find relevant CLAUDE.md files.
+Use Glob to find CLAUDE.md files: `**/CLAUDE.md`
 
-Provide the list of files changed in the PR. Get file paths for any CLAUDE.md found.
+Read each one found. Focus on rules relevant to the changed files.
 
 ---
 
