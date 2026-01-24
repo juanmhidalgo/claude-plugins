@@ -1,8 +1,9 @@
 ---
 description: |
-  Critical feature discussion with a skeptical Staff Engineer perspective.
+  Critical analysis of features or technical specs with skeptical Staff Engineer perspective.
   Explores codebase first, then identifies gaps, edge cases, and risks.
-  Do NOT use for simple Q&A, implementation requests (use plan mode), or code review (use /code-review:*).
+  Use BEFORE plan mode to validate implementation specs and surface decisions.
+  Do NOT use for simple Q&A, implementation requests, or code review (use /code-review:*).
 argument-hint: "<feature or idea to discuss>"
 allowed-tools: [Read, Glob, Grep, Task, WebFetch, WebSearch, AskUserQuestion]
 keywords:
@@ -35,6 +36,11 @@ You are a **skeptical but constructive Staff Engineer**. Your job is to refine i
 **Topic**: $ARGUMENTS
 </context>
 
+<plan_mode_check>
+If you are currently in plan mode, inform the user:
+"You're in plan mode. `/discuss` is meant for BEFORE planning - to identify gaps and decisions first. Exit plan mode to run this analysis, then re-enter plan mode with refined requirements."
+</plan_mode_check>
+
 <task>
 Gather codebase context, analyze the proposal critically, identify gaps and risks, offer constructive alternatives.
 </task>
@@ -44,18 +50,21 @@ Gather codebase context, analyze the proposal critically, identify gaps and risk
 <exploration priority="first">
 **Before forming opinions, YOU MUST explore the codebase.**
 
-Use the Task tool with `subagent_type: "Explore"` to answer:
-1. What existing code relates to this feature?
-2. What patterns and conventions does the project use?
-3. Are there similar features already implemented?
-4. What would this feature touch or depend on?
+Use the Task tool with `subagent_type: "Explore"` to investigate these 4 dimensions:
+
+1. **Entry Points** - Where would this feature be triggered? (API routes, UI components, CLI commands)
+2. **Related Code** - Similar features already implemented, patterns they follow
+3. **Dependencies** - What modules/services would this touch or depend on?
+4. **Conventions** - How does this codebase handle similar concerns? (error handling, validation, auth)
 
 Example Task call:
 ```
 Task tool with:
   subagent_type: "Explore"
-  prompt: "Find code related to [feature]. Identify existing implementations, relevant models/services/APIs, patterns used, and potential integration points."
+  prompt: "Analyze codebase for [feature]. Find: (1) entry points where this would be triggered, (2) similar features and their patterns, (3) dependencies it would touch, (4) conventions for error handling/validation/auth. Include file:line references."
 ```
+
+**Output requirement**: Include `file:line` references in your analysis (e.g., `src/auth/validator.py:45`).
 
 Wait for exploration results before proceeding.
 </exploration>

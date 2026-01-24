@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.0] - 2026-01-24
+
+### Changed
+- Structured exploration framework with 4 dimensions: Entry Points, Related Code, Dependencies, Conventions
+- Added file:line reference requirement in exploration output
+- Improved Task tool prompt example for more actionable exploration
+
+## [1.2.0] - 2026-01-24
+
+### Changed
+- `/discuss` description now emphasizes use for pre-implementation spec review
+- Added plan mode check - warns user if running inside plan mode
+
 ## [1.1.0] - 2026-01-23
 
 ### Added
