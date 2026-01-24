@@ -73,6 +73,28 @@
       },
       "keywords": ["api", "handoff", "frontend", "backend", "coordination"],
       "category": "productivity"
+    },
+    {
+      "name": "onboard",
+      "source": "./onboard",
+      "description": "Codebase exploration and onboarding tools for new developers",
+      "version": "1.0.0",
+      "author": {
+        "name": "Juan M. Hidalgo"
+      },
+      "keywords": ["onboarding", "exploration", "architecture", "codebase", "documentation"],
+      "category": "productivity"
+    },
+    {
+      "name": "refactor",
+      "source": "./refactor",
+      "description": "Structured refactoring workflow: analyze, plan, and extract code safely",
+      "version": "1.0.0",
+      "author": {
+        "name": "Juan M. Hidalgo"
+      },
+      "keywords": ["refactoring", "code-quality", "extraction", "complexity", "cleanup"],
+      "category": "development"
     }
   ]
 }
