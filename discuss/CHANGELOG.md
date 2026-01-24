@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.0] - 2026-01-24
+
+### Changed
+- **BREAKING**: Renamed plugin from `discussion-toolkit` to `discuss`
+- **BREAKING**: Renamed `/discuss` to `/discuss:feature`
+- **BREAKING**: Renamed `/discuss:devils-advocate` to `/discuss:challenge`
+- Commands now follow pattern: `/discuss:feature`, `/discuss:brainstorm`, `/discuss:tradeoffs`, `/discuss:challenge`
+
 ## [1.4.0] - 2026-01-24
 
 ### Changed

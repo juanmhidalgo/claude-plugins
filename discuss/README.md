@@ -1,4 +1,4 @@
-# discussion-toolkit
+# discuss
 
 Critical feature discussion and idea refinement tools for Claude Code.
 
@@ -9,18 +9,18 @@ Critical feature discussion and idea refinement tools for Claude Code.
 /plugin marketplace add juanmhidalgo/claude-plugins
 
 # Install plugin
-/plugin install discussion-toolkit@juanmhidalgo-plugins
+/plugin install discuss@juanmhidalgo-plugins
 ```
 
 ## Commands
 
-### `/discuss <feature or idea>`
+### `/discuss:feature <feature or idea>`
 
 Critical analysis with a skeptical Staff Engineer perspective. Explores codebase first, identifies gaps, risks, and offers alternatives.
 
 **Example:**
 ```
-/discuss add caching layer for API responses
+/discuss:feature add caching layer for API responses
 ```
 
 ---
@@ -36,13 +36,13 @@ Generate 4-6 distinct approaches to solve a problem. Covers different tradeoffs:
 
 ---
 
-### `/discuss:devils-advocate <proposal>`
+### `/discuss:challenge <proposal>`
 
 Argue AGAINST a proposal to stress-test it. Finds weaknesses before you commit. If your idea survives, proceed with confidence.
 
 **Example:**
 ```
-/discuss:devils-advocate migrate to microservices
+/discuss:challenge migrate to microservices
 ```
 
 ---
@@ -59,13 +59,13 @@ Compare 2-4 specific options with structured pros/cons matrix. Produces decision
 ## Typical Workflow
 
 ```
-/discuss "vague idea"           → Identify problems
+/discuss:feature "vague idea"   → Identify problems
     ↓
 /discuss:brainstorm             → Generate alternatives
     ↓
 /discuss:tradeoffs A vs B       → Compare top options
     ↓
-/discuss:devils-advocate        → Stress-test decision
+/discuss:challenge              → Stress-test decision
     ↓
 /prd:create                     → Formalize as PRD
 ```

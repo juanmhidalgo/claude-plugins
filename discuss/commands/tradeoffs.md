@@ -2,7 +2,7 @@
 description: |
   Compare 2-4 specific approaches with a structured pros/cons analysis.
   Produces a decision matrix to help choose between known options.
-  Do NOT use for open-ended exploration (use /discuss:brainstorm) or single-option analysis (use /discuss).
+  Do NOT use for open-ended exploration (use /discuss:brainstorm) or single-option analysis (use /discuss:feature).
 argument-hint: "<option1> vs <option2> [vs option3]"
 allowed-tools: [Read, Glob, Grep, Task, WebFetch, WebSearch, AskUserQuestion]
 keywords:
@@ -21,7 +21,7 @@ hooks:
     command: |
       echo ""
       echo "Comparison complete. Next steps:"
-      echo "  - /discuss <chosen option> for deeper analysis"
+      echo "  - /discuss:feature <chosen option> for deeper analysis"
       echo "  - /prd:create to document the decision"
       echo "  - Enter plan mode to start implementation"
 ---

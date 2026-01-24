@@ -1,6 +1,6 @@
 {
-  "name": "discussion-toolkit",
-  "version": "1.4.0",
+  "name": "discuss",
+  "version": "2.0.0",
   "description": "Critical feature discussion and idea refinement tools",
   "author": {
     "name": "Juan M. Hidalgo"

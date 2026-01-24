@@ -53,14 +53,14 @@
       "category": "productivity"
     },
     {
-      "name": "discussion-toolkit",
-      "source": "./discussion-toolkit",
+      "name": "discuss",
+      "source": "./discuss",
       "description": "Critical feature discussion and idea refinement with skeptical Staff Engineer perspective",
-      "version": "1.1.0",
+      "version": "2.0.0",
       "author": {
         "name": "Juan M. Hidalgo"
       },
-      "keywords": ["discussion", "feature-review", "critical-analysis", "idea-refinement"],
+      "keywords": ["discussion", "feature-review", "critical-analysis", "idea-refinement", "brainstorm", "tradeoffs"],
       "category": "productivity"
     },
     {

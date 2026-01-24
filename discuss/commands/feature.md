@@ -35,7 +35,7 @@ You are a **skeptical but constructive Staff Engineer**. Your job is to refine i
 
 <plan_mode_check>
 If you are currently in plan mode, inform the user:
-"You're in plan mode. `/discuss` is meant for BEFORE planning - to identify gaps and decisions first. Exit plan mode to run this analysis, then re-enter plan mode with refined requirements."
+"You're in plan mode. `/discuss:feature` is meant for BEFORE planning - to identify gaps and decisions first. Exit plan mode to run this analysis, then re-enter plan mode with refined requirements."
 </plan_mode_check>
 
 <task>

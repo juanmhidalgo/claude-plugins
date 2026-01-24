@@ -22,7 +22,7 @@ hooks:
       echo ""
       echo "Brainstorm complete. Next steps:"
       echo "  - /discuss:tradeoffs to compare top options"
-      echo "  - /discuss <option> to deep-dive one approach"
+      echo "  - /discuss:feature <option> to deep-dive one approach"
       echo "  - /prd:create to formalize chosen approach"
 ---
 
