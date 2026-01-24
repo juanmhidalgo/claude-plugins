@@ -5,6 +5,18 @@ All notable changes to this plugin will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.0] - 2026-01-24
+
+### Changed
+- Refactored 3 skills with progressive disclosure pattern:
+  - `receiving-code-review`: 220 → ~140 lines, examples moved to `references/examples.md`
+  - `technical-decisions`: 209 → ~135 lines, examples moved to `references/examples.md`
+  - `review-fixes-plan`: 205 → ~100 lines, template moved to `references/template.md`
+
+### Improved
+- Token efficiency: Core instructions load fast, detailed content on-demand
+- Follows Anthropic's recommended skill structure from Skills documentation update
+
 ## [2.4.0] - 2026-01-23
 
 ### Added

@@ -3,10 +3,19 @@
 Lessons learned from Anthropic's official documentation and practical experience.
 
 <sources>
+- https://code.claude.com/docs/en/skills (official documentation)
 - https://claude.com/blog/building-agents-with-skills-equipping-agents-for-specialized-work
 - https://claude.com/blog/building-skills-for-claude-code
-- https://claude.com/blog/how-to-create-skills-key-steps-limitations-and-examples
 </sources>
+
+## Skills and Commands: Now Unified
+
+**Commands have been merged into Skills.** A file at `.claude/commands/review.md` and a skill at `.claude/skills/review/SKILL.md` both create `/review` and work the same way.
+
+**Going forward, prefer skills over commands** because they:
+- Support `references/` directory for progressive disclosure
+- Can use `context: fork` for isolated execution
+- Can specify `agent:` for subagent type
 
 ## Skill Best Practices
 
@@ -57,7 +66,7 @@ Skills should contain knowledge Claude doesn't have from training:
 
 ### Progressive Disclosure Pattern
 
-Keep skills lean (~100 lines). Use three tiers:
+Keep skills lean (~100-150 lines). Use three tiers:
 
 1. **Metadata** (~50 tokens): Name + description - always loaded
 2. **SKILL.md** (~500 tokens): Core instructions - loaded when needed
@@ -65,76 +74,221 @@ Keep skills lean (~100 lines). Use three tiers:
 
 ```
 skill-name/
-├── SKILL.md           # Lean core instructions
+├── SKILL.md           # Lean core instructions (~100 lines)
 └── references/
-    ├── examples.md    # Detailed examples (loaded via @)
-    └── templates.md   # Full templates (loaded via @)
+    ├── examples.md    # Detailed examples
+    ├── templates.md   # Full templates
+    └── patterns.md    # Extended patterns
+```
+
+Reference files in SKILL.md:
+```markdown
+For detailed examples, see [examples.md](references/examples.md).
 ```
 
 </progressive_disclosure>
 
-## Command Best Practices
+## Subagent Execution
 
-<command_structure>
+<subagent_patterns>
 
-### Required Frontmatter
+### When to Use `context: fork`
+
+Use `context: fork` when the skill:
+- Performs a complete task that should run in isolation
+- Doesn't need to interact with the user during execution
+- Should not pollute the main conversation context
+- Is doing parallel/background work
 
 ```yaml
 ---
-allowed-tools:
+name: memory-summarizer
+description: Summarize conversation and save to memory file
+context: fork
+agent: general-purpose
+---
+
+Summarize the current conversation and save key insights to .claude/memory.md
+```
+
+**Do NOT use `context: fork` when:**
+- The skill needs to use AskUserQuestion interactively
+- The skill is multi-phase with user decisions between phases
+- You need the results immediately in the main context
+
+### Agent Types
+
+When using `context: fork`, specify the agent type:
+
+| Agent | Use For |
+|-------|---------|
+| `Explore` | Codebase research, finding files, understanding patterns |
+| `Plan` | Designing implementation approaches |
+| `general-purpose` | Full capabilities, default if not specified |
+
+```yaml
+---
+name: deep-research
+description: Research a topic thoroughly
+context: fork
+agent: Explore
+---
+
+Research $ARGUMENTS thoroughly:
+1. Find relevant files using Glob and Grep
+2. Read and analyze the code
+3. Summarize findings with specific file references
+```
+
+</subagent_patterns>
+
+## Invocation Control
+
+<invocation_control>
+
+### Who Can Invoke a Skill
+
+Two frontmatter fields control invocation:
+
+| Field | Effect |
+|-------|--------|
+| `disable-model-invocation: true` | Only user can invoke (via `/skill-name`) |
+| `user-invocable: false` | Only Claude can invoke (background knowledge) |
+
+**Use `disable-model-invocation: true` for:**
+- Side effects (deploy, commit, send notifications)
+- Destructive actions (dismiss comments, resolve threads)
+- Actions you want explicit user control over
+
+```yaml
+---
+name: deploy
+description: Deploy the application to production
+disable-model-invocation: true
+---
+```
+
+**Use `user-invocable: false` for:**
+- Background knowledge skills
+- Reference material Claude should know but users shouldn't invoke directly
+
+```yaml
+---
+name: legacy-system-context
+description: Context about the legacy system architecture
+user-invocable: false
+---
+```
+
+### Invocation Matrix
+
+| Frontmatter | User can invoke | Claude can invoke |
+|-------------|-----------------|-------------------|
+| (default) | Yes | Yes |
+| `disable-model-invocation: true` | Yes | No |
+| `user-invocable: false` | No | Yes |
+
+</invocation_control>
+
+## Required Frontmatter
+
+<frontmatter_reference>
+
+### Complete Frontmatter Reference
+
+```yaml
+---
+name: skill-name                    # Display name, becomes /skill-name
+description: |                      # CRITICAL: when to use, what it does
+  Use when [context]. Provides [output].
+  Do NOT use for [boundaries].
+argument-hint: "[file-path]"        # Shown in autocomplete
+allowed-tools:                      # Tools allowed without asking
   - Read
   - Glob
-  - Bash(git diff *)      # Scoped bash commands
-argument-hint: "[description]"
-description: One-line purpose
-keywords:
+  - Bash(git diff *)
+keywords:                           # For search/taxonomy
   - kebab-case-terms
-triggers:
-  - "natural language phrases"
+triggers:                           # Natural language activation
+  - "review this PR"
+  - "check my code"
+
+# Invocation control
+disable-model-invocation: true      # Only user can invoke
+user-invocable: false               # Only Claude can invoke (pick one)
+
+# Subagent execution
+context: fork                       # Run in isolated subagent
+agent: Explore                      # Which subagent type
+
+# Model selection
+model: haiku                        # haiku, sonnet, opus
+
+# Hooks
 hooks:
   - event: Stop
     once: true
     command: |
-      echo "Next steps:"
-      echo "  - Actionable suggestion"
+      echo "Next: /another-command"
 ---
 ```
 
-</command_structure>
+### Available Substitutions
 
-<command_patterns>
+| Variable | Description |
+|----------|-------------|
+| `$ARGUMENTS` | All arguments passed to the skill |
+| `${CLAUDE_SESSION_ID}` | Current session ID |
+| `!`command`` | Shell output (preprocessed before Claude sees it) |
 
-### Patterns to Use
+</frontmatter_reference>
 
-1. **Shell embedding** for context:
-   ```markdown
-   ## Context
-   - **Current branch**: !`git branch --show-current`
-   - **Recent commits**: !`git log --oneline -5`
-   ```
+## Patterns to Use
 
-2. **Skill import** via `@` reference:
-   ```markdown
-   <best_practices>
-   @plugin-name/skills/skill-name/SKILL.md
-   </best_practices>
-   ```
+<patterns>
 
-3. **Hooks** for next step guidance:
-   ```yaml
-   hooks:
-     - event: Stop
-       once: true
-       command: |
-         echo "Done. Next: /command:next-step"
-   ```
+### Shell Embedding for Context
 
-4. **Arguments** via `$ARGUMENTS` or `$1`:
-   ```markdown
-   **Target**: $ARGUMENTS
-   ```
+```markdown
+## Context
+- **Current branch**: !`git branch --show-current`
+- **Recent commits**: !`git log --oneline -5`
+- **Staged files**: !`git diff --cached --name-only`
+```
 
-</command_patterns>
+### Skill Import via @ Reference
+
+```markdown
+<best_practices>
+@plugin-name/skills/skill-name/SKILL.md
+</best_practices>
+```
+
+### Hooks for Next Step Guidance
+
+```yaml
+hooks:
+  - event: Stop
+    once: true
+    command: |
+      echo "Done. Next steps:"
+      echo "  - /command:next-step"
+      echo "  - Create a PR with the changes"
+```
+
+### Delegating to Subagents
+
+For complex exploration, use Task tool in skill content:
+
+```markdown
+## Phase 1: Explore
+
+Use the Task tool with `subagent_type: "Explore"` to understand:
+1. What existing code relates to this feature?
+2. What patterns does the project use?
+```
+
+</patterns>
 
 ## Common Mistakes to Avoid
 
@@ -144,10 +298,11 @@ hooks:
 |---------|--------------|-----|
 | Generic skill description | Won't trigger correctly | Be specific about when/what |
 | Skill has generic knowledge | Wastes context tokens | Only include institutional knowledge |
-| Command doesn't import skill | Skill never loaded | Use `@path/to/SKILL.md` |
+| Long skill (200+ lines) | Context bloat | Use progressive disclosure |
 | No hooks | Poor UX, no next steps | Add Stop hooks |
 | Missing shell context | Less useful output | Use `!` backticks |
-| Long skill (200+ lines) | Context bloat | Use progressive disclosure |
+| `context: fork` on interactive skill | Subagent can't ask user questions | Only fork complete tasks |
+| No `disable-model-invocation` on destructive | Claude might auto-trigger | Add to deploy, commit, delete actions |
 
 </anti_patterns>
 
@@ -166,14 +321,16 @@ hooks:
 - [ ] Description states when to use AND when NOT to use
 - [ ] Content is ~100 lines or uses progressive disclosure
 - [ ] No generic knowledge Claude already has
-- [ ] `user-invocable` set correctly (true/false)
+- [ ] Invocation control set correctly:
+  - [ ] `disable-model-invocation: true` for side effects
+  - [ ] `user-invocable: false` for background knowledge
+- [ ] `context: fork` only for complete, non-interactive tasks
 
-### Command Review
+### Command Review (Legacy)
 
 - [ ] `allowed-tools` includes all needed tools
 - [ ] `hooks` provide next step guidance
 - [ ] Shell embedding for relevant context
-- [ ] Skill imported via `@` if needed
 - [ ] `keywords` and `triggers` for discoverability
 
 ### Final Steps

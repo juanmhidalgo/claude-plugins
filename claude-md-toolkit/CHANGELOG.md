@@ -5,6 +5,23 @@ All notable changes to the claude-md-toolkit plugin will be documented in this f
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-01-24
+
+### Changed
+- Refactored `claude-md-best-practices` skill with progressive disclosure pattern
+  - Reduced SKILL.md from 349 lines to ~120 lines (65% reduction)
+  - Moved detailed examples to `references/` directory:
+    - `references/patterns.md` - XML patterns and examples
+    - `references/persuasion.md` - Persuasion principles with examples
+    - `references/optimization.md` - CLAUDE.md optimization patterns
+    - `references/anti-patterns.md` - Anti-pattern table and checklist
+  - Core instructions now load fast, detailed content loads on-demand
+  - Follows Anthropic's recommended skill structure
+
+### Improved
+- Token efficiency: Full skill only loaded when references are needed
+- Better context management for large skills
+
 ## [0.5.0] - 2026-01-23
 
 ### Added
