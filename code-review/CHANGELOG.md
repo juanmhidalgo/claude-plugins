@@ -5,6 +5,15 @@ All notable changes to this plugin will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.7.0] - 2026-01-26
+
+### Optimized
+- Reduced `branch-review` skill from 162 to 75 lines (-54%)
+  - Removed generic git commands section (Claude already knows these)
+  - Condensed checklists into compact "Focus Areas" section
+  - Improved description with "when to use" and "when NOT to use"
+  - Kept institutional content: severity classification, feedback format, anti-patterns
+
 ## [2.6.1] - 2026-01-26
 
 ### Fixed
