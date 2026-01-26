@@ -28,13 +28,15 @@ skills:
 ## Context
 - **Branch:** !`git branch --show-current`
 - **Date:** !`date +%Y-%m-%d`
-- **Fixes file:** !`grep -l "type: review-fixes" *.md docs/*.md 2>/dev/null | head -1 || (test -f REVIEW_FIXES.md && echo "REVIEW_FIXES.md") || echo "not found"`
 
 ## Instructions
 
 ### Step 1: Load Fixes File
 
-Read the review fixes file found above. If not found, inform user to run `/code-review:fixes-plan` first.
+Find and read the review fixes file:
+1. First, check for `REVIEW_FIXES.md` in the project root
+2. If not found, use Grep to search for files containing `type: review-fixes` in `*.md` files
+3. If no fixes file exists, inform user to run `/code-review:fixes-plan` first
 
 ### Step 2: Determine Scope
 
