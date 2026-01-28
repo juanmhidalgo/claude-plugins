@@ -140,14 +140,15 @@ Create and manage Product Requirements Documents (PRDs):
 | `/prd:validate [file \| issue-url]` | Verify implementation matches PRD criteria |
 | `/prd:analyze [file \| issue-url \| text]` | Identify gaps, edge cases, and ambiguities before implementation |
 
-## api-handoff Plugin
+## handoff Plugin
 
-Coordinate API changes between frontend and backend teams:
+Generate prompts for use in other repositories, including API handoffs:
 
 | Command | Purpose |
 |---------|---------|
-| `/api-handoff:backend-to-frontend [file]` | Generate handoff prompt for frontend after API changes |
-| `/api-handoff:frontend-to-backend [feature]` | Generate handoff prompt for backend when frontend needs APIs |
+| `/handoff:prompt [context]` | Generate a prompt from the current conversation for another repo |
+| `/handoff:backend-to-frontend [file]` | Generate handoff prompt for frontend after API changes |
+| `/handoff:frontend-to-backend [feature]` | Generate handoff prompt for backend when frontend needs APIs |
 
 ## discussion-toolkit Plugin
 

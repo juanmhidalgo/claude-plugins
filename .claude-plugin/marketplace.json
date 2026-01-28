@@ -53,14 +53,14 @@
       "category": "productivity"
     },
     {
-      "name": "api-handoff",
-      "source": "./api-handoff",
-      "description": "Coordinate API changes between frontend and backend teams with structured handoff prompts",
-      "version": "0.2.0",
+      "name": "handoff",
+      "source": "./handoff",
+      "description": "Generate self-contained prompts for use in other repositories, including API handoffs between frontend and backend teams",
+      "version": "1.0.0",
       "author": {
         "name": "Juan M. Hidalgo"
       },
-      "keywords": ["api", "handoff", "frontend", "backend", "coordination"],
+      "keywords": ["handoff", "cross-repo", "prompt", "api", "frontend", "backend", "coordination"],
       "category": "productivity"
     },
     {

@@ -1,8 +1,0 @@
-{
-  "name": "api-handoff",
-  "description": "Coordinate API changes between frontend and backend teams with structured handoff prompts",
-  "version": "0.2.0",
-  "author": {
-    "name": "Juan M. Hidalgo"
-  }
-}

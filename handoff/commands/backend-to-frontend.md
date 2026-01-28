@@ -42,7 +42,7 @@ Generate a structured prompt that a frontend agent can use to implement changes 
 ---
 
 <best_practices>
-@api-handoff/skills/api-change-documentation/SKILL.md
+@handoff/skills/api-change-documentation/SKILL.md
 </best_practices>
 
 ## Instructions

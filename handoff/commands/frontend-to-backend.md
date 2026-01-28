@@ -40,7 +40,7 @@ Generate a structured prompt that a backend agent can use to implement API chang
 ---
 
 <best_practices>
-@api-handoff/skills/api-change-documentation/SKILL.md
+@handoff/skills/api-change-documentation/SKILL.md
 </best_practices>
 
 ## Instructions

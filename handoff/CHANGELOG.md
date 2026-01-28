@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.0] - 2026-01-28
+
+### Changed
+
+- **BREAKING**: Renamed plugin from `api-handoff` to `handoff`
+- Updated plugin description to reflect broader scope
+- Updated internal skill references to new plugin name
+
+### Added
+
+- `prompt` command: Generate a self-contained prompt from the current conversation for use in another repository
+
 ## [0.2.0] - 2026-01-23
 
 ### Changed
