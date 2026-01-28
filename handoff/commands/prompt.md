@@ -34,6 +34,11 @@ Review the conversation history and generate a prompt that:
 3. **States the objective clearly** - what action needs to be taken in the other repository
 4. **Provides decision context** - any decisions made or options considered that the other agent should know about
 
+## Formatting
+
+- Use fenced code blocks with language identifier for any code, JSON, config, or shell commands (e.g., ```json, ```bash)
+- Use inline code backticks for endpoints, paths, variable names, and short identifiers (e.g., `POST /api/v2/users`)
+
 ## Output
 
 Output a single prompt block ready to copy-paste. Do not include preamble or explanation outside the prompt itself.

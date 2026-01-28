@@ -156,6 +156,11 @@ Output the following structured prompt that can be given to a backend agent:
 
 ---
 
+## Formatting
+
+- Use fenced code blocks with language identifier for any code, JSON, config, or shell commands (e.g., ```json, ```bash)
+- Use inline code backticks for endpoints, paths, variable names, and short identifiers (e.g., `POST /api/v2/users`)
+
 ## Guidelines
 
 - Keep the request **language-agnostic** - don't assume Python, Go, Node, etc.

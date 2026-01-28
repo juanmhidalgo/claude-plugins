@@ -1,7 +1,7 @@
 {
   "name": "handoff",
   "description": "Generate self-contained prompts for use in other repositories, including API handoffs between frontend and backend teams",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": {
     "name": "Juan M. Hidalgo"
   }

@@ -139,6 +139,11 @@ interface ResponseType {
 
 ---
 
+## Formatting
+
+- Use fenced code blocks with language identifier for any code, JSON, config, or shell commands (e.g., ```json, ```bash, ```typescript)
+- Use inline code backticks for endpoints, paths, variable names, and short identifiers (e.g., `POST /api/v2/users`)
+
 ## Guidelines
 
 - Focus on **what changed**, not implementation details of the backend
