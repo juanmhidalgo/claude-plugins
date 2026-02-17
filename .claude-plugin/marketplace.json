@@ -84,6 +84,17 @@
       },
       "keywords": ["refactoring", "code-quality", "extraction", "complexity", "cleanup"],
       "category": "development"
+    },
+    {
+      "name": "second-opinion",
+      "source": "./second-opinion",
+      "description": "Get second opinions from external AIs (Codex, Gemini, Copilot, Claude) on code reviews, architecture decisions, and implementation approaches",
+      "version": "1.0.0",
+      "author": {
+        "name": "Juan M. Hidalgo"
+      },
+      "keywords": ["second-opinion", "code-review", "codex", "gemini", "copilot", "external-ai"],
+      "category": "productivity"
     }
   ]
 }

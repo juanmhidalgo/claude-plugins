@@ -161,6 +161,17 @@ Critical feature discussion and idea refinement:
 | `/discuss:devils-advocate [proposal]` | Argue against to stress-test decision |
 | `/discuss:tradeoffs [A vs B]` | Compare options with structured pros/cons matrix |
 
+## second-opinion Plugin
+
+Get second opinions from external AIs on code, architecture, and implementation:
+
+| Command | Purpose |
+|---------|---------|
+| `/second-opinion review staged` | Review staged changes with external AI |
+| `/second-opinion review <file>` | Review a specific file |
+| `/second-opinion review branch` | Review current branch vs base |
+| `/second-opinion --backend <name> <query>` | Ask a specific backend (codex, gemini, copilot, claude) |
+
 </available_plugins>
 
 <environment_requirements>
