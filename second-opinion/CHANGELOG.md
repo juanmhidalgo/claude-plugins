@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.1] - 2026-02-17
+
+### Fixed
+
+- Eliminate temp file usage (`/tmp/second-opinion-*`) — prompts are now passed via heredoc directly to scripts, removing 2 unnecessary permission prompts per invocation
+
 ## [1.0.0] - 2026-02-17
 
 ### Added

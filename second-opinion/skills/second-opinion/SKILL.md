@@ -12,15 +12,10 @@ allowed-tools:
   - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/ask-gemini.sh *)
   - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/ask-copilot.sh *)
   - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/ask-claude.sh *)
-  - Bash(cat /tmp/second-opinion-* | ${CLAUDE_PLUGIN_ROOT}/scripts/ask-codex.sh *)
-  - Bash(cat /tmp/second-opinion-* | ${CLAUDE_PLUGIN_ROOT}/scripts/ask-gemini.sh *)
-  - Bash(cat /tmp/second-opinion-* | ${CLAUDE_PLUGIN_ROOT}/scripts/ask-copilot.sh *)
-  - Bash(cat /tmp/second-opinion-* | ${CLAUDE_PLUGIN_ROOT}/scripts/ask-claude.sh *)
   - Bash(git diff *)
   - Bash(git log *)
   - Bash(git branch --show-current)
   - Bash(git rev-parse *)
-  - Bash(rm /tmp/second-opinion-*)
   - Read
   - Glob
   - Grep
@@ -96,15 +91,15 @@ If secrets are detected, redact them with `[REDACTED]` and warn the user.
 
 ## Step 3: Construct and send the prompt
 
-Write the prompt to a temp file, then pipe it to the selected script:
+Pass the prompt directly to the script using a heredoc via stdin:
 
 ```bash
-# Write prompt to temp file using the Write tool at /tmp/second-opinion-XXXXX
-# Then call:
-cat /tmp/second-opinion-XXXXX | ${CLAUDE_PLUGIN_ROOT}/scripts/ask-{backend}.sh - --timeout 300
-# Clean up:
-rm /tmp/second-opinion-XXXXX
+${CLAUDE_PLUGIN_ROOT}/scripts/ask-{backend}.sh - --timeout 300 <<'PROMPT'
+... constructed prompt here ...
+PROMPT
 ```
+
+Do NOT use temp files. Always use heredoc to pipe the prompt directly.
 
 ### Prompt template
 

@@ -1,7 +1,7 @@
 {
   "name": "second-opinion",
   "description": "Get second opinions from external AIs (Codex, Gemini, Copilot, Claude) on code reviews, architecture decisions, and implementation approaches",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": {
     "name": "Juan M. Hidalgo"
   }
