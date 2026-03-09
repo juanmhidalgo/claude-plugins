@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.0] - 2026-03-09
+
+### Added
+
+- `receive` command: Process handoff prompts from other repos with a research-first protocol — explores local codebase, verifies claims against actual code, and enters plan mode before implementation
+
 ## [1.0.1] - 2026-01-28
 
 ### Fixed

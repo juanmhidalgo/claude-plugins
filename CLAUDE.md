@@ -149,6 +149,7 @@ Generate prompts for use in other repositories, including API handoffs:
 | `/handoff:prompt [context]` | Generate a prompt from the current conversation for another repo |
 | `/handoff:backend-to-frontend [file]` | Generate handoff prompt for frontend after API changes |
 | `/handoff:frontend-to-backend [feature]` | Generate handoff prompt for backend when frontend needs APIs |
+| `/handoff:receive <prompt>` | Process received handoff with research-first verification and plan mode |
 
 ## discussion-toolkit Plugin
 
