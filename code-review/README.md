@@ -9,6 +9,7 @@ Comprehensive code review workflow for Claude Code: branch reviews, PR feedback 
 | `/code-review:pr <PR>` | **Multi-agent PR review** with confidence scoring |
 | `/code-review:branch [base]` | Review current branch vs base (default: main) |
 | `/code-review:staged` | Review staged changes before commit |
+| `/code-review:receive <report>` | Process review feedback from another session with verification |
 | `/code-review:triage PR#` | Triage AI feedback (Copilot, Gemini) with skeptical verification |
 | `/code-review:dismiss PR#` | Dismiss false positives on GitHub with justification |
 | `/code-review:fixes-plan [name]` | Generate/update REVIEW_FIXES.md tracking document |
@@ -61,6 +62,19 @@ Comprehensive code review workflow for Claude Code: branch reviews, PR feedback 
     git push                → Push fixes to PR
         ↓
 /code-review/resolve-fixed 42 → Resolve GitHub threads
+```
+
+### Cross-Session Review
+```
+Session B:
+/code-review/staged         → Run review, copy output
+
+Session A:
+/code-review/receive <paste> → Verify findings against code
+        ↓
+/code-review/fixes-plan X   → Track confirmed issues
+        ↓
+/code-review/implement-fix  → Implement fixes
 ```
 
 ### Pre-commit Review

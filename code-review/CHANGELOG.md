@@ -5,6 +5,16 @@ All notable changes to this plugin will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.8.0] - 2026-03-10
+
+### Added
+- `/code-review:receive` - Process code review feedback from another session with verification
+  - Parses findings from pasted review reports
+  - Verifies each finding against actual code (confirmed / stale / incorrect / disputed)
+  - Enters plan mode before any implementation
+  - Connects to existing `/code-review:fixes-plan` → `/code-review:implement-fix` pipeline
+  - Uses `receiving-code-review` skill for verification principles
+
 ## [2.7.0] - 2026-01-26
 
 ### Optimized
