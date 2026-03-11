@@ -2,7 +2,7 @@
 allowed-tools:
   - Bash(gh *)
   - Bash(git *)
-  - Task
+  - Agent
   - Read
   - Glob
   - Grep
@@ -42,7 +42,7 @@ Execute this multi-step code review workflow precisely:
 
 ### Step 1: Eligibility Check
 
-Use Task tool with `subagent_type="code-review:pr-eligibility-checker"` and `model="haiku"` to check if the PR is eligible for review.
+Use Agent tool with `subagent_type="code-review:pr-eligibility-checker"` and `model="haiku"` to check if the PR is eligible for review.
 
 **Stop conditions** (do not proceed if any are true):
 - PR is closed or merged
@@ -65,7 +65,7 @@ Read each one found. Focus on rules relevant to the changed files.
 
 ### Step 3: PR Summary
 
-Use Task tool with `subagent_type="code-review:pr-summarizer"` and `model="haiku"` to get a summary of the PR changes.
+Use Agent tool with `subagent_type="code-review:pr-summarizer"` and `model="haiku"` to get a summary of the PR changes.
 
 Store this summary for context in the parallel reviews.
 
@@ -73,7 +73,7 @@ Store this summary for context in the parallel reviews.
 
 ### Step 4: Parallel Code Review (5 Agents)
 
-Launch these 5 agents **in parallel** using multiple Task tool calls in a single message:
+Launch these 5 agents **in parallel** using multiple Agent tool calls in a single message:
 
 1. **CLAUDE.md Compliance** - `subagent_type="code-review:claudemd-compliance-reviewer"` (Sonnet)
    - Provide: PR number, CLAUDE.md files from Step 2, PR summary
@@ -96,7 +96,7 @@ Collect all issues from all agents.
 
 ### Step 5: Confidence Scoring
 
-For **each issue** found in Step 4, launch a parallel Haiku agent using Task tool with `subagent_type="code-review:confidence-scorer"` and `model="haiku"`.
+For **each issue** found in Step 4, launch a parallel Haiku agent using Agent tool with `subagent_type="code-review:confidence-scorer"` and `model="haiku"`.
 
 Provide each agent:
 - PR number
@@ -122,7 +122,7 @@ If no issues remain, proceed to Step 8 with "no issues found".
 
 ### Step 7: Re-verify Eligibility
 
-Use Task tool with `subagent_type="code-review:pr-eligibility-checker"` and `model="haiku"` to confirm PR is still eligible (not closed/merged while reviewing).
+Use Agent tool with `subagent_type="code-review:pr-eligibility-checker"` and `model="haiku"` to confirm PR is still eligible (not closed/merged while reviewing).
 
 If no longer eligible, inform user and stop.
 

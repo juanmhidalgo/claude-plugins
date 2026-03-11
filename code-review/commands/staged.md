@@ -1,7 +1,7 @@
 ---
 allowed-tools:
   - Bash(git *)
-  - Task
+  - Agent
   - Read
 description: Code review of staged changes before committing
 keywords:
@@ -32,7 +32,7 @@ hooks:
 
 ## Instructions
 
-Use Task tool with subagent_type="code-review:branch-reviewer" to perform a comprehensive code review of staged changes.
+Use Agent tool with subagent_type="code-review:branch-reviewer" to perform a comprehensive code review of staged changes.
 
 **Review process:**
 1. Get staged diff: `git diff --cached`

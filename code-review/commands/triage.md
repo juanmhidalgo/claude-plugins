@@ -2,7 +2,7 @@
 allowed-tools:
   - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/*)
   - Bash(git *)
-  - Task
+  - Agent
   - Read
 argument-hint: PR#
 description: Triage PR feedback from AI reviewers - verify validity before implementing

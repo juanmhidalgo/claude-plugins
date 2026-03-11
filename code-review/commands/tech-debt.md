@@ -1,7 +1,7 @@
 ---
 allowed-tools:
   - Bash(git *)
-  - Task
+  - Agent
   - Read
 argument-hint: [base-branch]
 description: Analyze branch changes for technical debt before merging
@@ -35,7 +35,7 @@ If `$1` is provided, use it as the base branch. Otherwise, use `main` or `master
 
 ## Instructions
 
-Use Task tool with subagent_type="code-review:tech-debt-reviewer" to analyze technical debt in the branch changes.
+Use Agent tool with subagent_type="code-review:tech-debt-reviewer" to analyze technical debt in the branch changes.
 
 **Analysis focus:**
 

@@ -1,7 +1,7 @@
 ---
 allowed-tools:
   - Bash(git *)
-  - Task
+  - Agent
   - Read
 argument-hint: [base-branch]
 description: Code review of current branch changes compared to a base branch (default: main/master)
@@ -20,9 +20,10 @@ hooks:
   - event: Stop
     once: true
     command: |
-      echo "📝 Branch review complete."
-      echo "  • Track fixes with /code-review:fixes-plan"
-      echo "  • Or create PR with gh pr create"
+      echo "Branch review complete."
+      echo "  - /code-review:fixes-plan to create fix tracking"
+      echo "  - /code-review:pipeline PR# for autonomous fix pipeline"
+      echo "  - Or create a PR with gh pr create"
 ---
 
 ## Context
@@ -35,7 +36,7 @@ If `$1` is provided, use it as the base branch. Otherwise, use `main` or `master
 
 ## Instructions
 
-Use Task tool with subagent_type="code-review:branch-reviewer" to perform a comprehensive code review.
+Use Agent tool with subagent_type="code-review:branch-reviewer" to perform a comprehensive code review.
 
 **Review process:**
 1. Get the full diff: `git diff <base>...HEAD`
