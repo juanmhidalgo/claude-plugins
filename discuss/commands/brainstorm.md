@@ -4,7 +4,7 @@ description: |
   Explores the solution space before committing to one approach.
   Do NOT use when you already have a clear solution (use plan mode) or need to compare specific options (use /discuss:tradeoffs).
 argument-hint: "<problem or feature to brainstorm>"
-allowed-tools: [Read, Glob, Grep, Task, WebFetch, WebSearch, AskUserQuestion]
+allowed-tools: [Read, Glob, Grep, Agent, WebFetch, WebSearch, AskUserQuestion]
 keywords:
   - brainstorm
   - alternatives
@@ -19,11 +19,9 @@ hooks:
   - event: Stop
     once: true
     command: |
-      echo ""
       echo "Brainstorm complete. Next steps:"
-      echo "  - /discuss:tradeoffs to compare top options"
-      echo "  - /discuss:feature <option> to deep-dive one approach"
-      echo "  - /prd:create to formalize chosen approach"
+      echo "  - /discuss:tradeoffs to compare top approaches"
+      echo "  - /feature-dev:explore-plan to explore chosen approach"
 ---
 
 # Solution Brainstorming
@@ -42,7 +40,7 @@ Generate 4-6 distinct approaches to solve this problem, covering different trade
 ## Phase 1: Understand the Context
 
 <exploration priority="first">
-Use the Task tool with `subagent_type: "Explore"` to understand:
+Use the Agent tool with `agent_type: "Explore"` to understand:
 1. What tech stack is this project using?
 2. What patterns are already established?
 3. Are there existing solutions to similar problems?

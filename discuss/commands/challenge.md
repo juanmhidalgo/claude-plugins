@@ -4,7 +4,7 @@ description: |
   Takes the opposing position to find weaknesses you might have missed.
   Do NOT use for neutral analysis (use /discuss:feature) or comparing options (use /discuss:tradeoffs).
 argument-hint: "<proposal or decision to challenge>"
-allowed-tools: [Read, Glob, Grep, Task, WebFetch, WebSearch, AskUserQuestion]
+allowed-tools: [Read, Glob, Grep, Agent, WebFetch, WebSearch, AskUserQuestion]
 keywords:
   - devils-advocate
   - challenge
@@ -19,11 +19,9 @@ hooks:
   - event: Stop
     once: true
     command: |
-      echo ""
       echo "Challenge complete. Next steps:"
-      echo "  - Address the strongest counter-arguments"
-      echo "  - /discuss:brainstorm if you want alternatives"
-      echo "  - Proceed with confidence if arguments didn't hold"
+      echo "  - /discuss:tradeoffs if comparing alternatives"
+      echo "  - /feature-dev:explore-plan to proceed with implementation"
 ---
 
 # Devil's Advocate
@@ -42,7 +40,7 @@ Build the strongest possible case AGAINST this proposal. Find every reason it co
 ## Phase 1: Understand What You're Attacking
 
 <exploration priority="first">
-Use the Task tool with `subagent_type: "Explore"` to understand:
+Use the Agent tool with `agent_type: "Explore"` to understand:
 1. What would this proposal change in the codebase?
 2. What exists today that works?
 3. What similar attempts exist (that might have failed)?

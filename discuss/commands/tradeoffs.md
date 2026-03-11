@@ -4,7 +4,7 @@ description: |
   Produces a decision matrix to help choose between known options.
   Do NOT use for open-ended exploration (use /discuss:brainstorm) or single-option analysis (use /discuss:feature).
 argument-hint: "<option1> vs <option2> [vs option3]"
-allowed-tools: [Read, Glob, Grep, Task, WebFetch, WebSearch, AskUserQuestion]
+allowed-tools: [Read, Glob, Grep, Agent, WebFetch, WebSearch, AskUserQuestion]
 keywords:
   - tradeoffs
   - comparison
@@ -19,11 +19,9 @@ hooks:
   - event: Stop
     once: true
     command: |
-      echo ""
-      echo "Comparison complete. Next steps:"
-      echo "  - /discuss:feature <chosen option> for deeper analysis"
-      echo "  - /prd:create to document the decision"
-      echo "  - Enter plan mode to start implementation"
+      echo "Tradeoff analysis complete. Next steps:"
+      echo "  - /feature-dev:explore-plan to implement chosen approach"
+      echo "  - /prd:create to formalize the decision"
 ---
 
 # Tradeoff Analysis
@@ -42,7 +40,7 @@ Produce a structured comparison of the given options, tailored to this project's
 ## Phase 1: Understand the Context
 
 <exploration priority="first">
-Use the Task tool with `subagent_type: "Explore"` to understand:
+Use the Agent tool with `agent_type: "Explore"` to understand:
 1. What's the current tech stack and patterns?
 2. What constraints exist (team skills, infrastructure, timeline)?
 3. How would each option integrate with existing code?

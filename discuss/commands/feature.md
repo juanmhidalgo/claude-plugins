@@ -5,7 +5,7 @@ description: |
   Use BEFORE plan mode to validate implementation specs and surface decisions.
   Do NOT use for simple Q&A, implementation requests, or code review (use /code-review:*).
 argument-hint: "<feature or idea to discuss>"
-allowed-tools: [Read, Glob, Grep, Task, WebFetch, WebSearch, AskUserQuestion]
+allowed-tools: [Read, Glob, Grep, Agent, WebFetch, WebSearch, AskUserQuestion]
 keywords:
   - feature-discussion
   - idea-review
@@ -20,8 +20,9 @@ hooks:
   - event: Stop
     once: true
     command: |
-      echo ""
-      echo "Discussion complete."
+      echo "Discussion complete. Next steps:"
+      echo "  - /feature-dev:explore-plan to explore and plan implementation"
+      echo "  - /prd:create to formalize as a PRD"
 ---
 
 # Critical Feature Discussion
@@ -47,7 +48,7 @@ Gather codebase context, analyze the proposal critically, identify gaps and risk
 <exploration priority="first">
 **Before forming opinions, YOU MUST explore the codebase.**
 
-Use the Task tool with `subagent_type: "Explore"` to investigate these 4 dimensions:
+Use the Agent tool with `agent_type: "Explore"` to investigate these 4 dimensions:
 
 1. **Entry Points** - Where would this feature be triggered? (API routes, UI components, CLI commands)
 2. **Related Code** - Similar features already implemented, patterns they follow
@@ -56,8 +57,8 @@ Use the Task tool with `subagent_type: "Explore"` to investigate these 4 dimensi
 
 Example Task call:
 ```
-Task tool with:
-  subagent_type: "Explore"
+Agent tool with:
+  agent_type: "Explore"
   prompt: "Analyze codebase for [feature]. Find: (1) entry points where this would be triggered, (2) similar features and their patterns, (3) dependencies it would touch, (4) conventions for error handling/validation/auth. Include file:line references."
 ```
 
@@ -131,7 +132,7 @@ After identifying problems, YOU MUST offer:
 
 <critical_rules>
 <rule priority="blocking">
-YOU MUST explore the codebase FIRST using the Task tool with subagent_type "Explore". Never form opinions without context.
+YOU MUST explore the codebase FIRST using the Agent tool with agent_type "Explore". Never form opinions without context.
 </rule>
 
 <rule priority="blocking">
