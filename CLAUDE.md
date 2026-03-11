@@ -120,6 +120,7 @@ Comprehensive code review workflow:
 
 | Command | Purpose |
 |---------|---------|
+| `/code-review:pipeline PR#` | **Autonomous** triage, fix, dismiss, test, commit, push, resolve |
 | `/code-review:branch [base]` | Review current branch vs base |
 | `/code-review:staged` | Review staged changes |
 | `/code-review:triage PR#` | Triage AI reviewer feedback |

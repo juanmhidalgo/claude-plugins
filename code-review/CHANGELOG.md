@@ -5,6 +5,27 @@ All notable changes to this plugin will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.9.0] - 2026-03-11
+
+### Added
+- `/code-review:pipeline PR#` - Autonomous PR review-fix-ship pipeline
+  - Triages all bot/reviewer comments against actual code
+  - Dismisses false positives with one-line justifications
+  - Implements valid fixes with parallel subagents (independent fixes run concurrently)
+  - Runs full test suite with up to 2 retry attempts on failure
+  - Commits with structured message referencing each resolved comment
+  - Pushes and resolves all GitHub threads in one pass
+  - Fully autonomous: only stops if tests fail after retries
+- `comment-verifier` agent - Haiku agent for parallel comment verification during triage
+  - Read-only tools (Read, Grep, Glob) — cannot modify code
+  - Background execution with 15-turn cap
+  - Preloads `receiving-code-review` skill for skeptical verification
+  - Returns structured verdict: VALID BUG or FALSE POSITIVE with evidence
+- `fix-implementer` agent - Dedicated Sonnet agent for parallel fix implementation
+  - Background execution with 25-turn cap to prevent runaway agents
+  - Focused tool access (Read, Write, Edit, Grep, Glob, Bash)
+  - Minimal-diff approach: fixes only the described issue
+
 ## [2.8.0] - 2026-03-10
 
 ### Added

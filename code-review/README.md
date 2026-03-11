@@ -6,6 +6,7 @@ Comprehensive code review workflow for Claude Code: branch reviews, PR feedback 
 
 | Command | Description |
 |---------|-------------|
+| `/code-review:pipeline PR#` | **Autonomous pipeline**: triage, fix, dismiss, test, commit, push, resolve |
 | `/code-review:pr <PR>` | **Multi-agent PR review** with confidence scoring |
 | `/code-review:branch [base]` | Review current branch vs base (default: main) |
 | `/code-review:staged` | Review staged changes before commit |
@@ -18,6 +19,22 @@ Comprehensive code review workflow for Claude Code: branch reviews, PR feedback 
 | `/code-review:resolve-fixed PR#` | Resolve GitHub threads for issues marked as fixed |
 
 ## Workflows
+
+### Autonomous Pipeline (fastest)
+
+```
+/code-review:pipeline 42   → Triage → fix → dismiss → test → commit → push → resolve
+```
+
+**What it does in one pass:**
+1. Fetches and triages all bot/reviewer comments
+2. Dismisses false positives with justifications
+3. Implements valid fixes (parallel subagents for independent fixes)
+4. Runs full test suite (retries up to 2x on failure)
+5. Commits with structured message, pushes
+6. Resolves all GitHub threads
+
+Fully autonomous - only stops if tests fail after retries.
 
 ### Multi-Agent PR Review (recommended)
 
@@ -127,6 +144,8 @@ Output includes `resolved` and `outdated` status for inline comments, with stats
 
 ### Other Agents
 
+- **comment-verifier** - Haiku agent for parallel comment verification (used by pipeline triage)
+- **fix-implementer** - Focused Sonnet agent for implementing individual fixes (used by pipeline)
 - **branch-reviewer** - Code review specialist for branch comparisons
 - **pr-feedback-analyst** - Skeptical AI feedback analyst
 
