@@ -7,7 +7,7 @@ allowed-tools:
   - Read
   - Glob
   - Grep
-  - Task
+  - Agent
 hooks:
   - event: Stop
     once: true
@@ -24,7 +24,7 @@ Generate a high-level architecture map of this project.
 ## Phase 1: Discovery
 
 <exploration>
-Use the Task tool with `subagent_type: "Explore"` to investigate:
+Use the Agent tool with `subagent_type: "onboard:architecture-mapper"` to investigate:
 
 1. **Layers** - What are the main layers? (UI, API, services, data)
 2. **Components** - Major modules or packages

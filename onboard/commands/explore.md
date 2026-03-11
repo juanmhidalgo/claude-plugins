@@ -8,7 +8,7 @@ allowed-tools:
   - Read
   - Glob
   - Grep
-  - Task
+  - Agent
 hooks:
   - event: Stop
     once: true
@@ -26,7 +26,7 @@ Deep dive into a specific topic in this codebase.
 ## Exploration Strategy
 
 <exploration>
-Use the Task tool with `subagent_type: "Explore"` to investigate:
+Use the Agent tool with `subagent_type: "Explore"` to investigate:
 
 1. **Entry points** - Where does this topic get triggered/used?
 2. **Core implementation** - Main files that implement this functionality

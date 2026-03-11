@@ -48,6 +48,18 @@ Generate a high-level architecture overview with component diagram, data flows, 
 /onboard:architecture
 ```
 
+## Agents
+
+### `onboard-discoverer`
+
+Dedicated agent spawned by `/onboard:start`. Discovers project structure, tech stack, entry points, and configuration for thorough project onboarding analysis.
+
+### `architecture-mapper`
+
+Dedicated agent spawned by `/onboard:architecture`. Maps project layers, components, boundaries, communication patterns, and external dependencies.
+
+---
+
 ## Typical Workflow
 
 ```

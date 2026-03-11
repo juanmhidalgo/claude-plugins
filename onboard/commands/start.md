@@ -8,7 +8,7 @@ allowed-tools:
   - Read
   - Glob
   - Grep
-  - Task
+  - Agent
 hooks:
   - event: Stop
     once: true
@@ -28,7 +28,7 @@ Generate a comprehensive onboarding guide for this project.
 ## Phase 1: Project Discovery
 
 <exploration>
-Use the Task tool with `subagent_type: "Explore"` to investigate:
+Use the Agent tool with `subagent_type: "onboard:onboard-discoverer"` to investigate:
 
 1. **Project Type** - What kind of project is this? (web app, API, CLI, library)
 2. **Tech Stack** - Languages, frameworks, major dependencies

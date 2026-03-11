@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.1.0] - 2026-03-11
+
+### Added
+- `onboard-discoverer` agent for thorough project analysis (tech stack, entry points, configuration)
+- `architecture-mapper` agent for mapping project architecture (layers, components, boundaries, dependencies)
+
+### Changed
+- Commands now use Agent tool instead of Task tool
+- `start` command uses dedicated `onboard:onboard-discoverer` subagent
+- `architecture` command uses dedicated `onboard:architecture-mapper` subagent
+- `explore` command uses generic Explore agent via Agent tool
+
 ## [1.0.0] - 2026-01-24
 
 ### Added
