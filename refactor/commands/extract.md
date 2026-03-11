@@ -8,7 +8,7 @@ allowed-tools:
   - Read
   - Glob
   - Grep
-  - Task
+  - Agent
   - Edit
   - Write
   - Bash(git *)
@@ -20,6 +20,7 @@ hooks:
       echo ""
       echo "Extraction complete."
       echo "  - Run tests to verify"
+      echo "  - /code-review:staged to review your changes"
       echo "  - /commit when ready"
 ---
 
@@ -32,7 +33,7 @@ Safely extract code into a reusable unit.
 ## Phase 1: Understand the Context
 
 <exploration>
-Use the Task tool with `subagent_type: "Explore"` to find:
+Use the Agent tool with `subagent_type: "Explore"` to find:
 
 1. The code to extract (if not specified precisely)
 2. Where similar extractions live in this project

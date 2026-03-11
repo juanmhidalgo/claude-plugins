@@ -8,7 +8,7 @@ allowed-tools:
   - Read
   - Glob
   - Grep
-  - Task
+  - Agent
   - AskUserQuestion
 hooks:
   - event: Stop
@@ -17,6 +17,7 @@ hooks:
       echo ""
       echo "Plan created."
       echo "  - /refactor:extract to start implementing"
+      echo "  - /feature-dev:tdd to implement with test-driven development"
       echo "  - Enter plan mode to execute step by step"
 ---
 
@@ -29,7 +30,7 @@ Create a structured refactoring plan.
 ## Phase 1: Gather Context
 
 <exploration>
-If no recent analysis exists, use the Task tool with `subagent_type: "Explore"` to understand:
+If no recent analysis exists, use the Agent tool with `subagent_type: "refactor:refactor-planner"` to understand:
 
 1. What needs to be refactored and why
 2. Current test coverage

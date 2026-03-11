@@ -48,6 +48,18 @@ Safely extract code into a new function, class, or module. Guides you through na
 /refactor:extract "duplicate error handling to ErrorHandler class"
 ```
 
+## Agents
+
+### `refactor-analyzer`
+
+Dedicated agent spawned by `/refactor:analyze`. Explores the codebase for similar code patterns, existing abstractions, test coverage, and consumers/callers to provide context-aware refactoring analysis.
+
+### `refactor-planner`
+
+Dedicated agent spawned by `/refactor:plan`. Maps test coverage, dependency graphs, past refactoring patterns, and risk areas to produce safe, ordered refactoring plans.
+
+---
+
 ## Typical Workflow
 
 ```

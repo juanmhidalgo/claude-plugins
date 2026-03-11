@@ -8,7 +8,7 @@ allowed-tools:
   - Read
   - Glob
   - Grep
-  - Task
+  - Agent
 hooks:
   - event: Stop
     once: true
@@ -28,7 +28,7 @@ Analyze code for refactoring opportunities.
 ## Phase 1: Context Gathering
 
 <exploration>
-Use the Task tool with `subagent_type: "Explore"` to understand:
+Use the Agent tool with `subagent_type: "refactor:refactor-analyzer"` to understand:
 
 1. **Similar code** - Other files with similar patterns for comparison
 2. **Existing abstractions** - Utilities, helpers, base classes already in the project

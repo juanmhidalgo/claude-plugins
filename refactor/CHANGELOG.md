@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.1.0] - 2026-03-11
+
+### Added
+- `refactor-analyzer` agent for context-aware refactoring analysis (similar code, abstractions, tests, consumers)
+- `refactor-planner` agent for safe refactoring planning (test coverage, dependencies, past patterns)
+- Cross-plugin hooks: plan suggests `/feature-dev:tdd`, extract suggests `/code-review:staged`
+
+### Changed
+- Commands now use Agent tool instead of Task tool
+- `analyze` command uses dedicated `refactor:refactor-analyzer` subagent
+- `plan` command uses dedicated `refactor:refactor-planner` subagent
+- `extract` command uses generic Explore agent via Agent tool
+
 ## [1.0.0] - 2026-01-24
 
 ### Added
