@@ -86,6 +86,17 @@
       "category": "development"
     },
     {
+      "name": "feature-dev",
+      "source": "./feature-dev",
+      "description": "Feature development workflows: test-driven development with coverage gates and parallel codebase exploration before planning",
+      "version": "1.1.0",
+      "author": {
+        "name": "Juan M. Hidalgo"
+      },
+      "keywords": ["tdd", "test-driven", "feature-development", "exploration", "planning", "coverage"],
+      "category": "development"
+    },
+    {
       "name": "second-opinion",
       "source": "./second-opinion",
       "description": "Get second opinions from external AIs (Codex, Gemini, Copilot, Claude) on code reviews, architecture decisions, and implementation approaches",
