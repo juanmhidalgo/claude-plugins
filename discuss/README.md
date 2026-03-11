@@ -59,16 +59,20 @@ Compare 2-4 specific options with structured pros/cons matrix. Produces decision
 ## Typical Workflow
 
 ```
-/discuss:feature "vague idea"   → Identify problems
+/discuss:feature "vague idea"       → Identify problems
     ↓
-/discuss:brainstorm             → Generate alternatives
+/discuss:brainstorm                 → Generate alternatives
     ↓
-/discuss:tradeoffs A vs B       → Compare top options
+/discuss:tradeoffs A vs B           → Compare top options
     ↓
-/discuss:challenge              → Stress-test decision
+/discuss:challenge                  → Stress-test decision
     ↓
-/prd:create                     → Formalize as PRD
+/prd:create                         → Formalize as PRD
+    ↓
+/feature-dev:explore-plan           → Explore and plan implementation
 ```
+
+Each command suggests the next step via Stop hooks, including cross-plugin suggestions.
 
 ## Requirements
 

@@ -18,6 +18,7 @@ Create and manage Product Requirements Documents (PRDs) with AI assistance.
 |---------|-------------|
 | `/prd:create [feature]` | Generate a concise mini-PRD for a new feature |
 | `/prd:refine [file \| issue-url]` | Improve existing PRD or convert vague issue to PRD |
+| `/prd:analyze [file \| issue-url \| text]` | Identify gaps, edge cases, and ambiguities before implementation |
 | `/prd:validate [file \| issue-url]` | Verify implementation matches PRD criteria |
 
 ## Usage
@@ -84,6 +85,26 @@ The agent will:
 ## QA Checklist
 - [ ] [User scenario to validate]
 ```
+
+## Workflow
+
+```
+/prd:create [feature]       → Generate PRD
+    ↓
+/prd:analyze                → Find gaps before implementation
+    ↓
+/discuss:feature            → Critically analyze the PRD
+    ↓
+/feature-dev:explore-plan   → Explore codebase and plan
+    ↓
+... implement ...
+    ↓
+/prd:validate               → Verify implementation matches PRD
+    ↓
+/code-review:branch         → Review code quality
+```
+
+Each command suggests the next step via Stop hooks, including cross-plugin suggestions.
 
 ## Philosophy
 
