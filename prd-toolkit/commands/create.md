@@ -1,6 +1,6 @@
 ---
 allowed-tools:
-  - Task
+  - Agent
 argument-hint: [feature-name | short-description]
 description: Generate a concise product mini-PRD for a new feature
 keywords:
@@ -17,9 +17,10 @@ hooks:
   - event: Stop
     once: true
     command: |
-      echo "Done. Next steps:"
+      echo "PRD created. Next steps:"
       echo "  - /prd:analyze to identify gaps before implementation"
-      echo "  - /prd:validate after implementation to verify criteria"
+      echo "  - /discuss:feature to critically analyze the PRD"
+      echo "  - /feature-dev:explore-plan to explore codebase and plan"
 ---
 
 ## Feature Request
@@ -28,7 +29,7 @@ $ARGUMENTS
 
 ## Instructions
 
-Use the Task tool to invoke the `prd-specialist` agent with the feature request above.
+Use the Agent tool to invoke the `prd-specialist` agent with the feature request above.
 
 The agent will:
 1. Detect the project's technical stack automatically

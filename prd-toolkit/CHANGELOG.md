@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.7.0] - 2026-03-11
+
+### Changed
+- Renamed `Task` to `Agent` in `allowed-tools` across all 4 commands (`create`, `refine`, `analyze`, `validate`)
+- Replaced `Task tool` with `Agent tool` in all command body text
+- Updated cross-plugin hooks: `create` now suggests `/discuss:feature` and `/feature-dev:explore-plan`; `validate` now suggests `/code-review:branch` and `/commit`; `refine` and `analyze` now include cross-plugin suggestions
+
 ## [1.6.0] - 2026-01-23
 
 ### Added

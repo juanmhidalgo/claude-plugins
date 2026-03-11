@@ -1,6 +1,6 @@
 ---
 allowed-tools:
-  - Task
+  - Agent
 argument-hint: [file-path | github-issue-url | "paste"]
 description: Improve existing PRD or convert vague issue to structured PRD
 keywords:
@@ -17,9 +17,10 @@ hooks:
   - event: Stop
     once: true
     command: |
-      echo "Done. Next steps:"
+      echo "Refinement complete. Next steps:"
       echo "  - /prd:analyze to identify remaining gaps"
-      echo "  - /prd:validate after implementation to verify criteria"
+      echo "  - /discuss:feature to critically review the refined PRD"
+      echo "  - /feature-dev:explore-plan to explore and plan implementation"
 ---
 
 ## Input to Refine
@@ -28,7 +29,7 @@ $ARGUMENTS
 
 ## Instructions
 
-Use the Task tool to invoke the `prd-specialist` agent to refine or convert the input to a proper PRD.
+Use the Agent tool to invoke the `prd-specialist` agent to refine or convert the input to a proper PRD.
 
 The agent should:
 

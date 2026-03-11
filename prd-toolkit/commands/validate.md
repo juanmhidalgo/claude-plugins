@@ -1,6 +1,6 @@
 ---
 allowed-tools:
-  - Task
+  - Agent
 argument-hint: [file-path | github-issue-url]
 description: Verify implementation matches PRD acceptance criteria
 keywords:
@@ -17,9 +17,9 @@ hooks:
   - event: Stop
     once: true
     command: |
-      echo "Validation complete."
-      echo "  - Create GitHub issues for missing items if needed"
-      echo "  - Update PRD if scope changed"
+      echo "Validation complete. Next steps:"
+      echo "  - /code-review:branch to review code quality"
+      echo "  - /commit to commit if ready"
 ---
 
 ## PRD to Validate
@@ -28,7 +28,7 @@ $ARGUMENTS
 
 ## Instructions
 
-Use the Task tool to invoke the `prd-validator` agent to check if the implementation fulfills the PRD.
+Use the Agent tool to invoke the `prd-validator` agent to check if the implementation fulfills the PRD.
 
 The agent should:
 

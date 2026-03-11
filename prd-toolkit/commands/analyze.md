@@ -1,6 +1,6 @@
 ---
 allowed-tools:
-  - Task
+  - Agent
 argument-hint: [file-path | github-issue-url | text]
 description: Identify gaps, edge cases, and ambiguities in requirements before implementation
 keywords:
@@ -17,9 +17,10 @@ hooks:
   - event: Stop
     once: true
     command: |
-      echo "Analysis complete."
+      echo "Analysis complete. Next steps:"
       echo "  - /prd:refine to address identified gaps"
-      echo "  - Add answers to PRD before implementation"
+      echo "  - /discuss:feature to critically discuss findings"
+      echo "  - /feature-dev:explore-plan to proceed with implementation"
 ---
 
 ## Input to Analyze
@@ -28,7 +29,7 @@ $ARGUMENTS
 
 ## Instructions
 
-Use the Task tool to invoke the `prd-specialist` agent to analyze requirements and identify potential gaps.
+Use the Agent tool to invoke the `prd-specialist` agent to analyze requirements and identify potential gaps.
 
 The agent should:
 
