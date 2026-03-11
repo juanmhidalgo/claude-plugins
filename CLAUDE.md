@@ -163,6 +163,15 @@ Critical feature discussion and idea refinement:
 | `/discuss:devils-advocate [proposal]` | Argue against to stress-test decision |
 | `/discuss:tradeoffs [A vs B]` | Compare options with structured pros/cons matrix |
 
+## feature-dev Plugin
+
+Feature development workflows with quality gates:
+
+| Command | Purpose |
+|---------|---------|
+| `/feature-dev:tdd <spec>` | Test-driven development: failing tests → implement → coverage gate → refactor |
+| `/feature-dev:explore-plan <feature>` | Parallel 4-agent codebase exploration → synthesized implementation plan |
+
 ## second-opinion Plugin
 
 Get second opinions from external AIs on code, architecture, and implementation:

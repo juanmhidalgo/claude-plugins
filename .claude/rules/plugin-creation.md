@@ -278,12 +278,12 @@ hooks:
 
 ### Delegating to Subagents
 
-For complex exploration, use Task tool in skill content:
+For complex exploration, use Agent tool in skill content:
 
 ```markdown
 ## Phase 1: Explore
 
-Use the Task tool with `subagent_type: "Explore"` to understand:
+Use the Agent tool with `subagent_type: "Explore"` to understand:
 1. What existing code relates to this feature?
 2. What patterns does the project use?
 ```
