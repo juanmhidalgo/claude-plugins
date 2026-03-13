@@ -18,7 +18,7 @@ triggers:
 ---
 
 ## Context
-- **Repository:** !`git remote get-url origin 2>/dev/null | sed 's/.*github.com[:/]\(.*\)\.git/\1/' | sed 's/.*github.com[:/]\(.*\)/\1/'`
+- **Repository:** !`git remote get-url origin 2>/dev/null || echo "unknown"`
 - **Current branch:** !`git branch --show-current`
 - **PR Number:** $ARGUMENTS
 

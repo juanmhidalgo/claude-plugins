@@ -5,6 +5,11 @@ All notable changes to this plugin will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.10.1] - 2026-03-13
+
+### Fixed
+- Simplified `git remote` shell embedding in `triage`, `pr`, `pipeline`, `resolve-fixed`, and `dismiss` commands to avoid `bwrap` sandbox errors (removed piped `sed` commands)
+
 ## [2.10.0] - 2026-03-11
 
 ### Changed
