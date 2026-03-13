@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.3.0 (2026-03-13)
+
+### Changed
+- `explore-plan` now runs all exploration inside a forked general-purpose agent
+  - 4 explorer subagents run inside the fork, keeping main conversation context clean
+  - Fork writes `PLAN-<slug>.md` to disk, then its context is discarded
+  - Main context only reads the saved plan file for user review
+  - Eliminates context exhaustion that prevented running `tdd` after exploration
+- Removed Write/Edit/Bash tools from `explore-plan` frontmatter (only the forked agent needs them)
+
 ## 1.2.1 (2026-03-13)
 
 ### Fixed

@@ -1,14 +1,9 @@
 ---
 disable-model-invocation: true
 allowed-tools:
-  - Bash(git *)
-  - Bash(gh *)
   - Read
-  - Write
-  - Edit
   - Agent
   - Glob
-  - Grep
 argument-hint: "<feature description>"
 description: |
   Parallel codebase exploration before planning. Spawns multiple agents to
@@ -32,9 +27,9 @@ hooks:
   - event: Stop
     once: true
     command: |
-      echo "Exploration complete. Plan saved to PLAN-<feature-slug>.md"
-      echo "  - Start a NEW conversation and run /feature-dev:tdd to implement (maximizes context)"
-      echo "  - Or run /feature-dev:tdd now if context allows"
+      echo "Exploration complete."
+      echo "  - Review the plan above, then run /feature-dev:tdd to implement"
+      echo "  - Or start a NEW conversation and run /feature-dev:tdd (maximizes context)"
 ---
 
 ## Context
@@ -46,42 +41,45 @@ hooks:
 
 1. Feature description was provided (from $ARGUMENTS). If empty, **STOP** and ask user.
 2. Parse the feature into a one-line summary for agent prompts.
+3. Generate a plan filename: `PLAN-<slug>.md` (slug = lowercase, hyphenated, max 4 words from the feature name. E.g., `PLAN-scheduled-notifications.md`).
 
-## Phase 1: Parallel Exploration
+## Phase 1: Explore and Generate Plan (Forked)
 
-Launch **all four agents in a single response** using the Agent tool. They will run in parallel automatically.
+Launch a **single Agent** with `subagent_type: "general-purpose"` to do all exploration and plan generation in an isolated context.
 
-**IMPORTANT: Do NOT use `run_in_background: true`.** Background task outputs can expire before being read, causing data loss. Foreground parallel calls wait for all results.
+**CRITICAL: The agent MUST write the plan file to disk.** The agent's context is discarded after it completes — only the file persists.
 
-### Agent 1: Backend/API Layer
-Use `subagent_type: "feature-dev:backend-explorer"` with prompt:
+Agent prompt — include all of this:
+
 ```
-Explore the backend/API layer for: [feature summary]
-```
+You are generating an implementation plan for: [feature summary]
 
-### Agent 2: Frontend/UI Layer
-Use `subagent_type: "feature-dev:frontend-explorer"` with prompt:
-```
-Explore the frontend/UI layer for: [feature summary]
-```
+Repository: [repo URL]
+Branch: [current branch]
+Plan file: [PLAN-<slug>.md filename from Phase 0]
 
-### Agent 3: Test Suite
-Use `subagent_type: "feature-dev:test-explorer"` with prompt:
-```
-Explore the test suite for: [feature summary]
-```
+## Step 1: Parallel Exploration
 
-### Agent 4: Git History & Open PRs
-Use `subagent_type: "feature-dev:history-explorer"` with prompt:
-```
-Explore git history and open PRs for: [feature summary]
-```
+Launch all four agents in a single response. Do NOT use run_in_background.
 
-## Phase 2: Synthesis
+Agent 1 — subagent_type: "feature-dev:backend-explorer"
+Prompt: "Explore the backend/API layer for: [feature summary]"
 
-After all agents complete, combine findings into a structured plan following this template:
+Agent 2 — subagent_type: "feature-dev:frontend-explorer"
+Prompt: "Explore the frontend/UI layer for: [feature summary]"
 
-```markdown
+Agent 3 — subagent_type: "feature-dev:test-explorer"
+Prompt: "Explore the test suite for: [feature summary]"
+
+Agent 4 — subagent_type: "feature-dev:history-explorer"
+Prompt: "Explore git history and open PRs for: [feature summary]"
+
+## Step 2: Synthesize and Write Plan
+
+After all agents complete, synthesize findings into a plan and write it to [PLAN-<slug>.md] using the Write tool.
+
+The plan MUST follow this template:
+
 ---
 type: implementation-plan
 feature: [Feature Name]
@@ -134,21 +132,19 @@ branch: [current branch]
 
 ### Estimated Test Cases
 - [Category]: [count] tests ([brief description])
+
+## Step 3: Update .gitignore
+
+If PLAN-*.md is not in the project's .gitignore, add it.
 ```
 
-## Phase 3: Save Plan
+## Phase 2: Present Plan for Review
 
-**YOU MUST save the plan to a file:**
+After the agent completes:
 
-1. Generate a filename from the feature name: `PLAN-<slug>.md` (e.g., `PLAN-scheduled-notifications.md`). The slug should be lowercase, hyphenated, max 4 words.
-2. Write the plan to that file in the repository root using the Write tool.
-3. If `PLAN-*.md` is not in the project's `.gitignore`, add it so plan files are never committed accidentally.
-
-This file is used by `/feature-dev:tdd` to skip redundant exploration.
-
-## Phase 4: User Review
-
-Present the plan and ask:
-1. Does this look correct? Any files or areas I missed?
-2. Any decisions you'd like to override?
-3. Ready to start implementation? (Suggest `/feature-dev:tdd` for test-driven execution in a **new conversation** to maximize available context)
+1. Read the `PLAN-<slug>.md` file from disk
+2. Present the full plan to the user
+3. Ask:
+   - Does this look correct? Any files or areas I missed?
+   - Any decisions you'd like to override?
+   - Ready to implement? (Suggest `/feature-dev:tdd` to start)
