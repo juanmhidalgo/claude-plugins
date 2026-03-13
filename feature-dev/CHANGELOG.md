@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.1 (2026-03-13)
+
+### Fixed
+- `explore-plan` now explicitly prohibits `run_in_background` for parallel agents — background task outputs were expiring before being read, causing silent data loss
+
 ## 1.2.0 (2026-03-13)
 
 ### Added

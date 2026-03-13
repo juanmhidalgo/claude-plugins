@@ -49,7 +49,9 @@ hooks:
 
 ## Phase 1: Parallel Exploration
 
-Launch **all four agents in a single response** (parallel tool calls) using the Agent tool with dedicated exploration agents:
+Launch **all four agents in a single response** using the Agent tool. They will run in parallel automatically.
+
+**IMPORTANT: Do NOT use `run_in_background: true`.** Background task outputs can expire before being read, causing data loss. Foreground parallel calls wait for all results.
 
 ### Agent 1: Backend/API Layer
 Use `subagent_type: "feature-dev:backend-explorer"` with prompt:
