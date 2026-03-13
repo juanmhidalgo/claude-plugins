@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.2.0 (2026-03-13)
+
+### Added
+- `explore-plan` now saves the implementation plan to `PLAN-<feature-slug>.md` (Phase 3)
+- `tdd` now checks for `PLAN-*.md` and skips redundant exploration when a plan exists
+- Plan file includes frontmatter (`type`, `feature`, `date`, `branch`) for identification
+- `explore-plan` adds `PLAN-*.md` to `.gitignore` if not already present
+
+### Changed
+- `explore-plan` stop hook now suggests starting a new conversation for TDD to maximize context
+- `tdd` Phase 1 is now "Load Plan or Explore Codebase" — uses saved plan when available, only does minimal test-infrastructure exploration
+- `tdd` deletes the plan file after successful completion (cleanup)
+
 ## 1.1.1 (2026-03-13)
 
 ### Fixed

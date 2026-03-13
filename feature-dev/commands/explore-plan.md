@@ -32,9 +32,9 @@ hooks:
   - event: Stop
     once: true
     command: |
-      echo "Exploration complete."
-      echo "  - /feature-dev:tdd to implement with test-driven development"
-      echo "  - Enter plan mode to start implementation"
+      echo "Exploration complete. Plan saved to PLAN-<feature-slug>.md"
+      echo "  - Start a NEW conversation and run /feature-dev:tdd to implement (maximizes context)"
+      echo "  - Or run /feature-dev:tdd now if context allows"
 ---
 
 ## Context
@@ -77,9 +77,16 @@ Explore git history and open PRs for: [feature summary]
 
 ## Phase 2: Synthesis
 
-After all agents complete, combine findings into a structured plan:
+After all agents complete, combine findings into a structured plan following this template:
 
-```
+```markdown
+---
+type: implementation-plan
+feature: [Feature Name]
+date: [YYYY-MM-DD]
+branch: [current branch]
+---
+
 ## Implementation Plan: [Feature Name]
 
 ### Summary
@@ -127,9 +134,19 @@ After all agents complete, combine findings into a structured plan:
 - [Category]: [count] tests ([brief description])
 ```
 
-## Phase 3: User Review
+## Phase 3: Save Plan
+
+**YOU MUST save the plan to a file:**
+
+1. Generate a filename from the feature name: `PLAN-<slug>.md` (e.g., `PLAN-scheduled-notifications.md`). The slug should be lowercase, hyphenated, max 4 words.
+2. Write the plan to that file in the repository root using the Write tool.
+3. If `PLAN-*.md` is not in the project's `.gitignore`, add it so plan files are never committed accidentally.
+
+This file is used by `/feature-dev:tdd` to skip redundant exploration.
+
+## Phase 4: User Review
 
 Present the plan and ask:
 1. Does this look correct? Any files or areas I missed?
 2. Any decisions you'd like to override?
-3. Ready to start implementation? (Suggest `/feature-dev:tdd` for test-driven execution)
+3. Ready to start implementation? (Suggest `/feature-dev:tdd` for test-driven execution in a **new conversation** to maximize available context)

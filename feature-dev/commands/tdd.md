@@ -57,13 +57,25 @@ hooks:
 1. Feature spec was provided (from $ARGUMENTS). If empty, **STOP** and ask user for a feature description.
 2. Working tree is clean. If dirty, **STOP** and ask user to commit or stash.
 
-## Phase 1: Explore Codebase
+## Phase 1: Load Plan or Explore Codebase
 
-Use the Agent tool with `subagent_type: "Explore"` to understand:
+**First, check for an existing implementation plan:**
 
-1. **Existing patterns**: Test conventions, file structure, naming, frameworks (pytest/vitest/jest/etc.)
-2. **Related code**: Models, services, components, APIs relevant to the feature
-3. **Test infrastructure**: Fixtures, factories, mocks, helpers, config files
+Look for `PLAN-*.md` files in the repository root (created by `/feature-dev:explore-plan`). If multiple exist, pick the one most relevant to the feature spec.
+
+**If the plan file exists:**
+- Read it and use it as the source of truth for files to modify/create, implementation order, and key decisions
+- Only do a **minimal exploration** with the Agent tool (`subagent_type: "Explore"`) focused on:
+  - Test framework and runner command
+  - Coverage tool and current thresholds
+  - Existing test patterns (naming, structure, fixtures)
+- Skip general codebase exploration — the plan already has that context
+
+**If no plan file exists:**
+- Use the Agent tool with `subagent_type: "Explore"` to understand:
+  1. **Existing patterns**: Test conventions, file structure, naming, frameworks (pytest/vitest/jest/etc.)
+  2. **Related code**: Models, services, components, APIs relevant to the feature
+  3. **Test infrastructure**: Fixtures, factories, mocks, helpers, config files
 
 Summarize findings before proceeding. Include:
 - Test framework and runner command
@@ -157,4 +169,6 @@ Output a final summary:
 ### Ready to commit: Yes/No
 ```
 
-If all phases passed, suggest a commit message following the project's convention.
+If all phases passed:
+1. **Delete the `PLAN-*.md` file** that was used (it has served its purpose — the implementation is done)
+2. Suggest a commit message following the project's convention
