@@ -5,6 +5,18 @@ All notable changes to this plugin will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.11.0] - 2026-03-13
+
+### Added
+- `/code-review:staged-pipeline` — single-session review-verify-fix pipeline for staged changes
+  - Runs review in forked context (preserves main context for verification and fixes)
+  - Self-verifies findings against actual code (drops false positives)
+  - Enters plan mode for user approval before implementing
+  - Parallel `fix-implementer` agents for independent fixes
+  - Runs test suite with retry, stages fixed files
+  - No intermediate files — everything stays in conversation context
+  - Replaces 3-session workflow (`staged` → `receive` → implement) with a single command
+
 ## [2.10.1] - 2026-03-13
 
 ### Fixed
