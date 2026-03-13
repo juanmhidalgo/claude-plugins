@@ -22,7 +22,7 @@ triggers:
 ## Context
 - **Branch:** !`git branch --show-current`
 - **Date:** !`date +%Y-%m-%d`
-- **Fixes file:** !`grep -l "type: review-fixes" *.md docs/*.md 2>/dev/null | head -1 || (test -f REVIEW_FIXES.md && echo "REVIEW_FIXES.md") || echo "not found"`
+- **Fixes file:** REVIEW_FIXES.md (or find the file with `type: review-fixes` frontmatter)
 
 ## Instructions
 

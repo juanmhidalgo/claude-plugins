@@ -5,6 +5,12 @@ All notable changes to this plugin will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.11.1] - 2026-03-13
+
+### Fixed
+- Remove all compound shell operators (`||`, `|`, `&&`) from shell embeddings across commands (`dismiss`, `resolve-fixed`, `pipeline`, `pr`, `triage`, `staged`, `staged-pipeline`, `mark-fixed`, `fixes-plan`) to fix "Bash command permission check failed" errors
+- Replace compound grep/test file-finding embeddings with static text (agent can find files dynamically)
+
 ## [2.11.0] - 2026-03-13
 
 ### Added

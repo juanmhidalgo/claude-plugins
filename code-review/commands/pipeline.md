@@ -44,11 +44,11 @@ skills:
 ---
 
 ## Context
-- **Repository**: !`git remote get-url origin 2>/dev/null || echo "unknown"`
+- **Repository**: !`git remote get-url origin`
 - **Current branch**: !`git branch --show-current`
 - **PR Number**: $ARGUMENTS
 - **Date**: !`date +%Y-%m-%d`
-- **Working tree clean**: !`git status --porcelain | head -1 || echo "clean"`
+- **Working tree clean**: !`git status --short`
 
 ## Phase 0: Validate
 

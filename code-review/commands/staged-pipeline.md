@@ -50,7 +50,7 @@ hooks:
 
 ## Context
 - **Current branch**: !`git branch --show-current`
-- **Staged files**: !`git diff --cached --name-only | head -20`
+- **Staged files**: !`git diff --cached --name-only`
 - **Focus area**: $ARGUMENTS
 
 ## Phase 0: Validate

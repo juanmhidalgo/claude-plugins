@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.1 (2026-03-13)
+
+### Fixed
+- Remove all compound shell operators (`||`, `|`) from shell embeddings in `explore-plan` and `tdd` commands to fix "Bash command permission check failed" errors
+
 ## 1.3.0 (2026-03-13)
 
 ### Changed

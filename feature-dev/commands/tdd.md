@@ -47,9 +47,9 @@ hooks:
 ---
 
 ## Context
-- **Repository**: !`git remote get-url origin 2>/dev/null || echo "unknown"`
+- **Repository**: !`git remote get-url origin`
 - **Current branch**: !`git branch --show-current`
-- **Working tree clean**: !`git status --porcelain | head -1 || echo "clean"`
+- **Working tree clean**: !`git status --short`
 - **Feature spec**: $ARGUMENTS
 
 ## Phase 0: Validate

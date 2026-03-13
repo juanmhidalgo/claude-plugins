@@ -21,11 +21,11 @@ triggers:
 ---
 
 ## Context
-- **Repository**: !`git remote get-url origin 2>/dev/null || echo "unknown"`
+- **Repository**: !`git remote get-url origin`
 - **Branch:** !`git branch --show-current`
 - **Date:** !`date +%Y-%m-%d`
 - **PR Number**: $ARGUMENTS
-- **Fixes file:** !`grep -l "type: review-fixes" *.md docs/*.md 2>/dev/null | head -1 || (test -f REVIEW_FIXES.md && echo "REVIEW_FIXES.md") || echo "not found"`
+- **Fixes file:** REVIEW_FIXES.md (or run `/code-review:fixes-plan` to create one)
 
 ## Instructions
 

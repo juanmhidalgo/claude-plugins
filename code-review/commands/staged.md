@@ -25,10 +25,10 @@ hooks:
 
 ## Context
 - **Current branch**: !`git branch --show-current`
-- **Staged files**: !`git diff --cached --name-only | head -20`
+- **Staged files**: !`git diff --cached --name-only`
 
 ## Staged Changes Summary
-!`git diff --cached --stat | tail -20`
+!`git diff --cached --stat`
 
 ## Instructions
 

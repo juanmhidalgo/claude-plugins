@@ -27,9 +27,11 @@ triggers:
 - **Feature name:** $ARGUMENTS
 
 ## Existing Files Check
-- **REVIEW_FIXES.md:** !`test -f REVIEW_FIXES.md && head -1 REVIEW_FIXES.md 2>/dev/null || echo "not found"`
-- **docs/review-fixes-*.md:** !`ls docs/review-fixes-*.md 2>/dev/null | head -3 || echo "not found"`
-- **Files with frontmatter:** !`grep -l "type: review-fixes" *.md docs/*.md 2>/dev/null | head -3 || echo "none"`
+
+Check for existing review-fixes files before creating a new one:
+- Look for `REVIEW_FIXES.md` in the repo root
+- Look for `docs/review-fixes-*.md` files
+- Look for files with `type: review-fixes` in their frontmatter
 
 ## Instructions
 
