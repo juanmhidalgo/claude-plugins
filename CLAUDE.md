@@ -129,6 +129,7 @@ Comprehensive code review workflow:
 | `/code-review:implement-fix` | Implement fixes, asking for technical decisions |
 | `/code-review:mark-fixed` | Verify and mark issues fixed |
 | `/code-review:resolve-fixed PR#` | Resolve GitHub threads for fixed issues |
+| `/code-review:coverage-gate [base]` | Check coverage against CI thresholds before push |
 
 ## prd-toolkit Plugin
 

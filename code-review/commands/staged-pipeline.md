@@ -39,6 +39,7 @@ triggers:
 skills:
   - receiving-code-review
   - technical-decisions
+  - coverage-gate
 hooks:
   - event: Stop
     once: true
@@ -181,6 +182,27 @@ Discover and run the project test suite:
    - Analyze failures, fix, re-run (up to 2 retries)
    - If still failing after retries: **STOP** and report which tests fail
 
+## Phase 5b: Coverage Gate
+
+After tests pass, check if the repository has CI coverage thresholds:
+
+1. **Detect GHA coverage config**: Search `.github/workflows/*.yml` for coverage actions (`orgoro/coverage`, `CodeCoverageReport`, `cobertura-action`, `codecov`)
+2. **If no coverage config found**: Skip this phase, note "Coverage: SKIPPED (no CI config)" in report
+3. **If coverage config found**:
+   a. Extract thresholds and normalize to 0-100 percentages
+   b. Categorize staged files:
+      - New: `git diff --cached --name-only --diff-filter=A` (source files only)
+      - Modified: `git diff --cached --name-only --diff-filter=M` (source files only)
+   c. Run test suite with coverage report generation
+   d. Parse per-file coverage from the report
+   e. Check each file against its category threshold
+   f. **If all pass**: Continue to Phase 6
+   g. **If below threshold**:
+      - Identify uncovered lines in failing files
+      - Write additional tests targeting those lines
+      - Re-run coverage (up to 2 additional cycles)
+      - If still failing after 2 cycles: report which files are below threshold, continue to Phase 6
+
 ## Phase 6: Stage and Report
 
 1. Stage the fixed files: `git add <modified files>`
@@ -195,6 +217,9 @@ Discover and run the project test suite:
 - [file:line] — [brief description of fix]
 
 ### Tests: PASS/FAIL
+
+### Coverage: PASS/FAIL/SKIPPED
+- [If applicable: files below threshold with current % vs required %]
 
 ### Ready to commit: Yes/No
 ```

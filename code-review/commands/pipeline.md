@@ -41,6 +41,7 @@ triggers:
 skills:
   - technical-decisions
   - receiving-code-review
+  - coverage-gate
 ---
 
 ## Context
@@ -68,6 +69,8 @@ This pipeline runs **without asking for input**. Follow these decision rules:
 | Adding dependency | Prefer stdlib/existing deps over new ones |
 | Architectural decision | Choose the approach matching existing patterns |
 | Tests fail | Fix and retry (up to 2 attempts), then STOP |
+| Coverage below CI threshold | Write tests to improve coverage (up to 2 cycles), then STOP |
+| No CI coverage config found | Skip coverage gate, note in report |
 | Unclear if issue is valid | Default to false positive (conservative) |
 | No comments to triage | Report "no actionable feedback" and exit |
 | All comments are false positives | Dismiss all, skip fix phases, report |
@@ -150,6 +153,28 @@ Discover and run the project test suite:
    - If still failing: fix again and re-run (attempt 3)
    - If still failing after attempt 3: **STOP** and report which tests fail and why
 
+## Phase 5b: Coverage Gate
+
+After tests pass, check if the repository has CI coverage thresholds:
+
+1. **Detect GHA coverage config**: Search `.github/workflows/*.yml` for coverage actions (`orgoro/coverage`, `CodeCoverageReport`, `cobertura-action`, `codecov`)
+2. **If no coverage config found**: Skip this phase, add "Coverage: SKIPPED (no CI config)" to report
+3. **If coverage config found**:
+   a. Extract thresholds and normalize to 0-100 percentages
+   b. Get the PR base branch: `gh pr view $ARGUMENTS --json baseRefName -q '.baseRefName'`
+   c. Categorize files:
+      - New: `git diff --name-only --diff-filter=A <base>...HEAD` (source files only)
+      - Modified: `git diff --name-only --diff-filter=M <base>...HEAD` (source files only)
+   d. Run test suite with coverage report generation (use tool from GHA workflow or project config)
+   e. Parse per-file coverage from the report
+   f. Check each file against its category threshold
+   g. **If all pass**: Continue to Phase 6
+   h. **If below threshold**:
+      - Identify uncovered lines in failing files
+      - Write additional tests targeting those lines
+      - Re-run coverage (up to 2 additional cycles)
+      - If still failing after 2 cycles: **STOP** and report which files are below threshold with current % vs required %
+
 ## Phase 6: Commit and Push
 
 Create a structured commit:
@@ -195,6 +220,9 @@ Output a final summary:
 ### Threads Resolved ([count])
 
 ### Tests: PASS/FAIL
+
+### Coverage: PASS/FAIL/SKIPPED
+- [If applicable: files below threshold with current % vs required %]
 
 ### Commits: [commit hash] pushed to [branch]
 ```

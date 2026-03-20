@@ -10,6 +10,7 @@ Comprehensive code review workflow for Claude Code: branch reviews, PR feedback 
 | `/code-review:pr <PR>` | **Multi-agent PR review** with confidence scoring |
 | `/code-review:branch [base]` | Review current branch vs base (default: main) |
 | `/code-review:staged` | Review staged changes before commit |
+| `/code-review:coverage-gate [base]` | Check coverage against CI thresholds locally before push |
 | `/code-review:receive <report>` | Process review feedback from another session with verification |
 | `/code-review:triage PR#` | Triage AI feedback (Copilot, Gemini) with skeptical verification |
 | `/code-review:dismiss PR#` | Dismiss false positives on GitHub with justification |
@@ -34,7 +35,7 @@ Comprehensive code review workflow for Claude Code: branch reviews, PR feedback 
 5. Commits with structured message, pushes
 6. Resolves all GitHub threads
 
-Fully autonomous - only stops if tests fail after retries.
+Fully autonomous - only stops if tests fail after retries or coverage is below CI thresholds.
 
 ### Multi-Agent PR Review (recommended)
 
@@ -99,6 +100,14 @@ Session A:
 /code-review/staged         → Review before committing
 ```
 
+### Coverage Gate (pre-push)
+```
+/code-review:coverage-gate      → Detect GHA thresholds, run coverage, fix gaps
+/code-review:coverage-gate main  → Explicit base branch
+```
+
+Detects coverage thresholds from `.github/workflows/*.yml` (orgoro/coverage, codecov, etc.), categorizes files as new/modified, runs coverage locally, and writes tests to fix gaps.
+
 ## Core Principle
 
 **AI feedback is NOT valid by default.** Every comment from AI reviewers (Copilot, Gemini, etc.) must be verified against actual code behavior before acting on it.
@@ -155,6 +164,7 @@ Output includes `resolved` and `outdated` status for inline comments, with stats
 - **review-fixes-plan** - Template for REVIEW_FIXES.md tracking documents
 - **receiving-code-review** - Guidelines for evaluating received feedback
 - **technical-decisions** - When and how to ask for technical decisions before implementing fixes
+- **coverage-gate** - GHA coverage threshold detection and local verification patterns
 
 ## Requirements
 

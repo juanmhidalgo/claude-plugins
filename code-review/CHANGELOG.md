@@ -5,6 +5,28 @@ All notable changes to this plugin will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.12.0] - 2026-03-20
+
+### Added
+- **Coverage gate** — detect CI coverage thresholds locally and prevent push failures
+  - `/code-review:coverage-gate [base]` — standalone command to check coverage against GHA-configured thresholds before pushing
+  - Supports `orgoro/coverage`, `irongut/CodeCoverageReport`, `5monkeys/cobertura-action`, and `codecov/codecov-action`
+  - Detects per-category thresholds (new files, modified files, overall) from `.github/workflows/*.yml`
+  - Runs coverage locally, categorizes changed files, checks against thresholds
+  - Writes additional tests to fix coverage gaps (up to 2 cycles)
+- `coverage-gate` skill — institutional knowledge for GHA coverage detection and threshold verification
+  - Progressive disclosure: core patterns in SKILL.md, detailed action patterns in `references/gha-patterns.md`
+
+### Changed
+- `/code-review:pipeline` now includes **Phase 5b: Coverage Gate** between test and commit phases
+  - Detects GHA coverage config and checks per-file coverage before pushing
+  - Writes tests to fix coverage gaps (up to 2 cycles), stops if still below threshold
+  - Added coverage status to final report (PASS/FAIL/SKIPPED)
+  - Added autonomous rules: "Coverage below threshold → write tests, then STOP"
+- `/code-review:staged-pipeline` now includes **Phase 5b: Coverage Gate** between test and stage phases
+  - Same detection and verification logic adapted for staged changes context
+  - Added coverage status to final report
+
 ## [2.11.1] - 2026-03-13
 
 ### Fixed
