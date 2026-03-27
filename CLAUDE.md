@@ -184,6 +184,17 @@ Get second opinions from external AIs on code, architecture, and implementation:
 | `/second-opinion review branch` | Review current branch vs base |
 | `/second-opinion --backend <name> <query>` | Ask a specific backend (codex, gemini, copilot, claude) |
 
+## ship Plugin
+
+End-to-end shipping workflow with smart staging:
+
+| Command | Purpose |
+|---------|---------|
+| `/ship` | Full workflow: smart stage → commit → test → push → optional PR |
+| `/ship --skip-tests` | Ship without running tests |
+| `/ship --no-pr` | Ship without offering to create a PR |
+| `/ship --draft` | Create PR as draft |
+
 </available_plugins>
 
 <environment_requirements>

@@ -106,6 +106,17 @@
       },
       "keywords": ["second-opinion", "code-review", "codex", "gemini", "copilot", "external-ai"],
       "category": "productivity"
+    },
+    {
+      "name": "ship",
+      "source": "./ship",
+      "description": "End-to-end shipping workflow: smart staging with change cohesion analysis, conventional commits, test gates, push, and optional PR creation",
+      "version": "1.0.0",
+      "author": {
+        "name": "Juan M. Hidalgo"
+      },
+      "keywords": ["ship", "commit", "push", "pull-request", "smart-staging", "conventional-commit"],
+      "category": "productivity"
     }
   ]
 }

@@ -1,0 +1,8 @@
+{
+  "name": "ship",
+  "description": "End-to-end shipping workflow: smart staging with change cohesion analysis, conventional commits, test gates, push, and optional PR creation",
+  "version": "1.0.0",
+  "author": {
+    "name": "Juan M. Hidalgo"
+  }
+}
