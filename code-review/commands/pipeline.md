@@ -73,7 +73,8 @@ This pipeline runs **without asking for input**. Follow these decision rules:
 | No CI coverage config found | Skip coverage gate, note in report |
 | Unclear if issue is valid | Default to false positive (conservative) |
 | No comments to triage | Report "no actionable feedback" and exit |
-| All comments are false positives | Dismiss all, skip fix phases, report |
+| All comments are false positives | Dismiss all, skip to Phase 8 (report) |
+| No code changes made (all dismissed or no valid bugs) | Skip Phases 5-7, go to Phase 8 |
 | No test suite found | Skip test phase, warn in report |
 
 **NEVER ask for input.** Only stop if tests fail after 2 retry attempts or if validation fails.
@@ -141,6 +142,8 @@ Read each modified file to verify no syntax errors were introduced.
 
 ## Phase 5: Run Tests
 
+**Skip this phase if no code changes were made** (all comments dismissed as false positives or no valid bugs found). Go directly to Phase 8.
+
 Discover and run the project test suite:
 
 1. Check for test commands: `package.json` scripts (`test`), `Makefile` targets, `pytest.ini`/`pyproject.toml`, `Cargo.toml`, `go.mod`
@@ -177,6 +180,8 @@ After tests pass, check if the repository has CI coverage thresholds:
 
 ## Phase 6: Commit and Push
 
+**Skip this phase if no code changes were made.** Go directly to Phase 8.
+
 Create a structured commit:
 
 ```
@@ -197,6 +202,8 @@ git push
 ```
 
 ## Phase 7: Resolve GitHub Threads
+
+**Skip this phase if no fixes were implemented.**
 
 For each VALID BUG that was fixed, resolve the thread:
 

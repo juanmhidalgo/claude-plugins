@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.1] - 2026-03-30
+
+### Fixed
+- Skip test phase when only non-code files are staged (docs, config, markdown, etc.)
+- Prevents unnecessary test suite runs for documentation-only changes
+
 ## [1.0.0] - 2026-03-27
 
 ### Added

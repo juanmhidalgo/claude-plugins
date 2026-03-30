@@ -141,7 +141,11 @@ If there are unstaged changes:
 
 ## Phase 4: Run Tests
 
-Unless `$ARGUMENTS` contains `--skip-tests`:
+**Skip this phase if:**
+- `$ARGUMENTS` contains `--skip-tests`, OR
+- **Only non-code files were staged** — check `git diff --cached --name-only` and skip if all files are docs, config, or non-source files (e.g., `*.md`, `*.txt`, `*.json`, `*.yaml`, `*.yml`, `*.toml`, `*.cfg`, `*.ini`, `*.lock`, `LICENSE`, `*.rst`, `.gitignore`). Log "Tests skipped: only non-code files changed" and continue to Phase 5.
+
+Otherwise:
 
 1. **Detect test runner** by checking (in order):
    - `package.json` → `scripts.test` → `npm test`

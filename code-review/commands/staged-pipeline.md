@@ -126,6 +126,8 @@ After the forked agent returns, process its findings:
 
 Drop INCORRECT findings silently.
 
+**If no CONFIRMED or DISPUTED findings remain** (all were incorrect), report clean review and stop — skip Phases 3-5.
+
 ## Phase 3: Present & Approve (Plan Mode)
 
 Enter plan mode using the EnterPlanMode tool.
@@ -172,6 +174,8 @@ For fixes touching the **same file**, implement them sequentially to avoid confl
 Read each modified file to verify no syntax errors were introduced.
 
 ## Phase 5: Test
+
+**Skip this phase if no code changes were made** (no fixes implemented). Go directly to Phase 6 report.
 
 Discover and run the project test suite:
 

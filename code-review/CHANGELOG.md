@@ -5,6 +5,13 @@ All notable changes to this plugin will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.12.1] - 2026-03-30
+
+### Fixed
+- `/code-review:pipeline` now skips Phases 5-7 (tests, commit, push, resolve) when all comments are false positives and no code changes were made
+- `/code-review:staged-pipeline` now skips Phases 3-5 (approve, fix, test) when all findings are dropped as incorrect
+- Added explicit early-exit guards at each phase boundary to prevent unnecessary test runs on unchanged code
+
 ## [2.12.0] - 2026-03-20
 
 ### Added
