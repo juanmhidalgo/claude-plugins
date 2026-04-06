@@ -2,6 +2,8 @@
 
 Personal Claude Code plugins for development workflows.
 
+See [WORKFLOW.md](WORKFLOW.md) for how to use these plugins together across the development lifecycle.
+
 ## Installation
 
 ```bash
