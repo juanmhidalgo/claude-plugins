@@ -1,0 +1,8 @@
+{
+  "name": "security",
+  "description": "Security auditing workflow: vulnerability scanning, OWASP Top 10 verification, dependency audit, and hardening recommendations",
+  "version": "1.0.0",
+  "author": {
+    "name": "Juan M. Hidalgo"
+  }
+}

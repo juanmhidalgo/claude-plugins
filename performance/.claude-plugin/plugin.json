@@ -1,0 +1,8 @@
+{
+  "name": "performance",
+  "description": "Performance optimization workflow: measure-first profiling, bottleneck identification, Core Web Vitals, and anti-pattern detection",
+  "version": "1.0.0",
+  "author": {
+    "name": "Juan M. Hidalgo"
+  }
+}

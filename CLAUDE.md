@@ -170,6 +170,7 @@ Feature development workflows with quality gates:
 
 | Command | Purpose |
 |---------|---------|
+| `/feature-dev:spec <feature>` | Create a structured specification with gated review workflow |
 | `/feature-dev:tdd <spec>` | Test-driven development: failing tests → implement → coverage gate → refactor |
 | `/feature-dev:explore-plan <feature>` | Parallel 4-agent codebase exploration → synthesized implementation plan |
 
@@ -194,6 +195,33 @@ End-to-end shipping workflow with smart staging:
 | `/ship --skip-tests` | Ship without running tests |
 | `/ship --no-pr` | Ship without offering to create a PR |
 | `/ship --draft` | Create PR as draft |
+
+## security Plugin
+
+Security auditing workflow with OWASP Top 10 and dependency scanning:
+
+| Command | Purpose |
+|---------|---------|
+| `/security:audit [path]` | Comprehensive security audit with vulnerability scanning and code pattern analysis |
+| `/security:checklist [area]` | Quick security checklist verification (auth, input, data, infra, deps) |
+
+## debug Plugin
+
+Systematic debugging with structured triage:
+
+| Command | Purpose |
+|---------|---------|
+| `/debug:debug <error>` | 6-step debugging: reproduce → localize → reduce → root cause → guard → verify |
+| `/debug:triage <error>` | Quick error classification with targeted investigation steps |
+
+## performance Plugin
+
+Performance optimization with measure-first approach:
+
+| Command | Purpose |
+|---------|---------|
+| `/performance:audit [path]` | Performance audit with anti-pattern scanning and bottleneck identification |
+| `/performance:profile <target>` | Focused profiling of a specific function, endpoint, or component |
 
 </available_plugins>
 

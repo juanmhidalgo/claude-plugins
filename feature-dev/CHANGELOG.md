@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.4.0 (2026-04-04)
+
+### Added
+- `spec` command: Spec-driven development with gated workflow (Specify → Plan → Tasks → Implement), assumption surfacing, and success criteria reframing
+- `spec-driven-development` skill: Structured specification methodology with six-area spec template, anti-rationalization table, and living document practices
+
 ## 1.3.1 (2026-03-13)
 
 ### Fixed

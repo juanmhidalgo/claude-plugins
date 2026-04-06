@@ -6,6 +6,7 @@ Feature development workflows with structured phases and quality gates.
 
 | Command | Purpose |
 |---------|---------|
+| `/feature-dev:spec <feature>` | Create a structured specification before coding with gated review workflow |
 | `/feature-dev:tdd <spec>` | Test-driven feature development: write failing tests, implement, coverage gate, refactor |
 | `/feature-dev:explore-plan <feature>` | Parallel codebase exploration with 4 agents, synthesized implementation plan |
 
@@ -24,14 +25,16 @@ Dedicated exploration agents spawned by `explore-plan` for parallel codebase ana
 
 | Skill | Purpose |
 |-------|---------|
+| `spec-driven-development` | Gated specification workflow: assumption surfacing, success criteria, six-area spec template |
 | `tdd-patterns` | Institutional TDD knowledge: iteration limits, coverage gates, phase constraints |
 
 ## Workflow
 
 The commands are designed to chain:
 
-1. **`/feature-dev:explore-plan`** — Understand the codebase and create a plan
-2. **`/feature-dev:tdd`** — Execute the plan with test-driven development
+1. **`/feature-dev:spec`** — Define requirements and create a specification
+2. **`/feature-dev:explore-plan`** — Understand the codebase and create a plan
+3. **`/feature-dev:tdd`** — Execute the plan with test-driven development
 
 Each command can also be used independently.
 

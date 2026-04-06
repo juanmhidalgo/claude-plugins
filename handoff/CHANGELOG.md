@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.0] - 2026-04-04
+
+### Added
+
+- `api-design` skill: Contract-first API design with Hyrum's Law awareness, error semantics, naming conventions, and anti-rationalization table
+- Reference: API patterns with TypeScript examples for contracts, pagination, validation, extension, and discriminated unions
+
 ## [1.1.0] - 2026-03-09
 
 ### Added

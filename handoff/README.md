@@ -55,6 +55,16 @@ When the frontend needs new data or API modifications, generate a request with p
 
 ## Skills
 
+### api-design
+
+Contract-first API design guidance including:
+
+- Hyrum's Law awareness (every observable behavior becomes a commitment)
+- Error semantics (consistent error format across endpoints)
+- Naming conventions (REST, query params, response fields)
+- Boundary validation patterns (validate at edges, trust internal code)
+- Anti-rationalization table for common API design shortcuts
+
 ### api-change-documentation
 
 Best practices for documenting API changes including:
