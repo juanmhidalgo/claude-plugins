@@ -76,6 +76,7 @@ This pipeline runs **without asking for input**. Follow these decision rules:
 | All comments are false positives | Dismiss all, skip to Phase 8 (report) |
 | No code changes made (all dismissed or no valid bugs) | Skip Phases 5-7, go to Phase 8 |
 | No test suite found | Skip test phase, warn in report |
+| Linter/formatter changed unrelated files | Reset them with `git checkout -- <file>`, log in report |
 
 **NEVER ask for input.** Only stop if tests fail after 2 retry attempts or if validation fails.
 
@@ -139,6 +140,17 @@ For fixes touching the same file, implement them sequentially using the same `fi
 ### After all fixes
 
 Read each modified file to verify no syntax errors were introduced.
+
+### Scope check: reset unrelated changes
+
+Pre-commit hooks and linters may auto-format files beyond the fix scope. Before proceeding:
+
+1. Run `git diff --name-only` to list all modified files
+2. Compare against the fix plan from Phase 3 — only files listed there should be modified
+3. For any file NOT in the fix plan:
+   - Run `git checkout -- <file>` to discard the unrelated changes
+   - Log in Phase 8 report: "Reset [count] unrelated files modified by auto-formatters"
+4. Run `git diff --stat` to confirm only fix-related files remain modified
 
 ## Phase 5: Run Tests
 

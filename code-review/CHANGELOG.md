@@ -5,6 +5,24 @@ All notable changes to this plugin will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.13.0] - 2026-04-08
+
+### Added
+- **Enhanced tech debt analysis** with new verdict system and expanded coverage
+  - New verdict levels: CLEAN / MINOR DEBT / SIGNIFICANT DEBT / BLOCKING DEBT (replaces simple HIGH/MEDIUM/LOW)
+  - New analysis category: **Dependencies & Infrastructure** — flags new deps, unpinned versions, ad-hoc reimplementation of shared patterns, undocumented config changes
+  - **Positive Patterns** section in output — highlights what's done well, not just problems
+  - **Staged scope support** — `/code-review:tech-debt staged` analyzes staged changes; auto-detects scope when no argument is provided
+  - Verdict decision rules for consistent classification across reviews
+- Discoverability hooks: `/code-review:staged` and `/code-review:branch` now suggest `/code-review:tech-debt` in their Stop hooks
+
+## [2.12.2] - 2026-04-08
+
+### Added
+- Lint scoping guard in `/code-review:pipeline` Phase 4 — after fixes are applied, detects and resets unrelated files modified by pre-commit hooks or auto-formatters
+- Added autonomous rule: "Linter changed unrelated files → reset them, log in report"
+- Prevents cascading lint changes from polluting fix commits (addresses recurring friction from 4+ sessions)
+
 ## [2.12.1] - 2026-03-30
 
 ### Fixed

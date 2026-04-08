@@ -161,6 +161,17 @@ Output the following structured prompt that can be given to a backend agent:
 - Use fenced code blocks with language identifier for any code, JSON, config, or shell commands (e.g., ```json, ```bash)
 - Use inline code backticks for endpoints, paths, variable names, and short identifiers (e.g., `POST /api/v2/users`)
 
+## Step 5: Verify Completeness
+
+Before outputting the handoff, cross-reference against the frontend code:
+
+1. **Re-read the frontend code** — every data need identified in Step 1 must appear in the proposed endpoints
+2. **Check authorization** — if the UI has role-based visibility or permission checks, the handoff must specify which roles/permissions are required
+3. **Check all data fields** — compare what the frontend component renders/uses against what the proposed response includes. Missing fields cause blocked frontend work.
+4. **Check user actions** — every user interaction that triggers an API call must have a corresponding endpoint or parameter
+
+If anything is missing, add it. Do NOT present an incomplete handoff.
+
 ## Guidelines
 
 - Keep the request **language-agnostic** - don't assume Python, Go, Node, etc.

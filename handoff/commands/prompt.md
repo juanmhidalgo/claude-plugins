@@ -39,6 +39,17 @@ Review the conversation history and generate a prompt that:
 - Use fenced code blocks with language identifier for any code, JSON, config, or shell commands (e.g., ```json, ```bash)
 - Use inline code backticks for endpoints, paths, variable names, and short identifiers (e.g., `POST /api/v2/users`)
 
+## Verification (before presenting)
+
+Before outputting the prompt, cross-reference it against the conversation:
+
+1. **Re-read the user's original request** and any follow-up messages
+2. **Check every requirement** — roles, permissions, constants, schema fields, endpoints, config values mentioned in the conversation
+3. **Check every decision** — if the conversation discussed tradeoffs or made choices, verify the prompt includes the chosen approach and why
+4. **Check specifics** — IDs, error codes, field names, migration steps. Vague summaries lose critical details.
+
+If anything is missing, add it before presenting. Do NOT ask the user — just include it.
+
 ## Output
 
 Output a single prompt block ready to copy-paste. Do not include preamble or explanation outside the prompt itself.

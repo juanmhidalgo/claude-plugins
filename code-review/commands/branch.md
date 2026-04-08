@@ -22,6 +22,7 @@ hooks:
     command: |
       echo "Branch review complete."
       echo "  - /code-review:fixes-plan to create fix tracking"
+      echo "  - /code-review:tech-debt for maintainability analysis"
       echo "  - /code-review:pipeline PR# for autonomous fix pipeline"
       echo "  - Or create a PR with gh pr create"
 ---

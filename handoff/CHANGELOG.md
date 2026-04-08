@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.0] - 2026-04-08
+
+### Added
+
+- Verification step in `prompt`, `backend-to-frontend`, and `frontend-to-backend` commands that cross-references the generated handoff against source material (conversation, git diff, frontend code) before presenting it
+- Prevents omitted details (roles, permissions, schema fields) that were causing incomplete handoffs
+
 ## [1.2.0] - 2026-04-04
 
 ### Added

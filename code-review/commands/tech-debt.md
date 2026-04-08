@@ -3,8 +3,12 @@ allowed-tools:
   - Bash(git *)
   - Agent
   - Read
-argument-hint: [base-branch]
-description: Analyze branch changes for technical debt before merging
+argument-hint: "[staged | base-branch]"
+description: |
+  Analyze changes for technical debt before committing or merging.
+  Supports two scopes: "staged" for staged changes, or a base branch for branch comparison.
+  Use when you want to check if changes introduce maintainability issues.
+  Do NOT use for bug detection or security review.
 keywords:
   - tech-debt
   - technical-debt
@@ -16,73 +20,55 @@ triggers:
   - "analyze technical debt"
   - "review code quality"
   - "check maintainability"
+  - "tech debt on staged"
 hooks:
   - event: Stop
     once: true
     command: |
       echo "Technical debt analysis complete."
-      echo "  • Address critical items before merge"
-      echo "  • Track others in backlog for future refactoring"
+      echo "  - Address BLOCKING/SIGNIFICANT items before merge"
+      echo "  - Create tickets for MINOR items"
+      echo "  - /code-review:branch for full code review"
 ---
 
 ## Context
 - **Current branch**: !`git branch --show-current`
-- **Specified base**: $1
-- **Default base**: main (or master if main doesn't exist)
+- **Argument**: $ARGUMENTS
+- **Staged files**: !`git diff --cached --name-only`
 
-## Branch Configuration
-If `$1` is provided, use it as the base branch. Otherwise, use `main` or `master` as the default.
+## Scope Detection
+
+Determine the scope based on the argument:
+
+- If `$ARGUMENTS` is `staged` → analyze staged changes only
+- If `$ARGUMENTS` is a branch name → use it as the base branch
+- If `$ARGUMENTS` is empty → check if there are staged files:
+  - If staged files exist → analyze staged changes
+  - Otherwise → default to branch comparison against `main` (or `master`)
 
 ## Instructions
 
-Use Agent tool with subagent_type="code-review:tech-debt-reviewer" to analyze technical debt in the branch changes.
+Use Agent tool with subagent_type="code-review:tech-debt-reviewer" to analyze technical debt.
 
-**Analysis focus:**
+**Pass the scope clearly in the agent prompt:**
 
-1. **Complexity**
-   - Functions longer than 30 lines
-   - Deep nesting (>3 levels)
-   - High cyclomatic complexity
-   - God classes/functions doing too much
+- For staged scope: Tell the agent to use `git diff --cached` and mention "staged" explicitly
+- For branch scope: Tell the agent the base branch to compare against
 
-2. **Duplication**
-   - Copy-pasted code blocks
-   - Similar logic that could be abstracted
-   - Repeated patterns across files
+**Analysis categories:**
 
-3. **Debt Markers**
-   - New TODO/FIXME/HACK/XXX comments
-   - Temporary workarounds
-   - "Will fix later" patterns
+1. **Complexity** — Functions >30 lines, deep nesting, god classes
+2. **Duplication** — Copy-pasted blocks, similar logic that could be abstracted
+3. **Debt Markers** — New TODO/FIXME/HACK/XXX/TEMP comments
+4. **Test Gaps** — New code without tests, weakened assertions
+5. **Code Smells** — Magic numbers, poor naming, long parameter lists, dead code
+6. **Dependencies & Infrastructure** — New deps, version pinning, ad-hoc reimplementation of shared patterns, undocumented config
+7. **Maintainability** — Missing docs on public APIs, implicit dependencies, tight coupling
 
-4. **Test Coverage**
-   - New code without corresponding tests
-   - Complex logic paths untested
-   - Missing edge case coverage
+**Output requirements:**
 
-5. **Code Smells**
-   - Magic numbers/strings
-   - Poor naming (single letters, abbreviations)
-   - Long parameter lists
-   - Feature envy (excessive use of other class's data)
-
-6. **Maintainability**
-   - Missing or outdated documentation for public APIs
-   - Implicit dependencies
-   - Tight coupling between modules
-
-**Output format:**
-
-Organize findings by impact:
-
-- **HIGH**: Will cause maintenance problems soon
-- **MEDIUM**: Should be addressed but not blocking
-- **LOW**: Nice to fix when time permits
-
-For each item include:
-- File and line number
-- What the debt is
-- Why it matters
-- Suggested improvement
-
-**Important:** Only flag issues in the changed code, not pre-existing debt.
+- Verdict: CLEAN / MINOR DEBT / SIGNIFICANT DEBT / BLOCKING DEBT
+- Findings organized by severity with file:line references
+- Each item includes: what the debt is, why it matters, suggested fix
+- Positive Patterns section highlighting what's done well
+- Only flag issues in the changed code, not pre-existing debt

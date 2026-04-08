@@ -18,9 +18,10 @@ hooks:
   - event: Stop
     once: true
     command: |
-      echo "📝 Staged changes review complete."
-      echo "  • Fix issues, then commit with /commit"
-      echo "  • Or track fixes with /code-review:fixes-plan"
+      echo "Staged changes review complete."
+      echo "  - Fix issues, then commit with /commit"
+      echo "  - /code-review:fixes-plan to create fix tracking"
+      echo "  - /code-review:tech-debt staged for deeper maintainability analysis"
 ---
 
 ## Context

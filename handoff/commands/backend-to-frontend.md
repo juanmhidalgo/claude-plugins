@@ -144,6 +144,17 @@ interface ResponseType {
 - Use fenced code blocks with language identifier for any code, JSON, config, or shell commands (e.g., ```json, ```bash, ```typescript)
 - Use inline code backticks for endpoints, paths, variable names, and short identifiers (e.g., `POST /api/v2/users`)
 
+## Step 5: Verify Completeness
+
+Before outputting the handoff, cross-reference against the actual changes:
+
+1. **Re-read the git diff** — every changed endpoint, field, or validation rule must appear in the handoff
+2. **Check roles and permissions** — if any endpoint has auth/permission changes, they must be in the handoff (this is the most commonly omitted detail)
+3. **Check schema completeness** — compare generated TypeScript interfaces against the actual response serializers/schemas. Missing fields cause silent frontend bugs.
+4. **Check error scenarios** — new error codes or changed status codes must be listed
+
+If anything is missing, add it. Do NOT present an incomplete handoff.
+
 ## Guidelines
 
 - Focus on **what changed**, not implementation details of the backend
