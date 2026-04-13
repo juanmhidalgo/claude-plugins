@@ -2,7 +2,7 @@
 name: architecture-mapper
 description: "Maps project architecture: layers, components, boundaries, communication patterns, and external dependencies. Spawned by onboard:architecture."
 tools: Read, Grep, Glob
-model: haiku
+model: sonnet
 maxTurns: 15
 background: true
 ---

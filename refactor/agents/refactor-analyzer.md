@@ -2,7 +2,7 @@
 name: refactor-analyzer
 description: "Analyzes code for refactoring opportunities. Explores similar code, existing abstractions, tests, and consumers to provide context-aware analysis. Spawned by refactor:analyze."
 tools: Read, Grep, Glob
-model: haiku
+model: sonnet
 maxTurns: 15
 background: true
 ---

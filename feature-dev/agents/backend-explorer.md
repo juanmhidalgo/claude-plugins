@@ -2,7 +2,7 @@
 name: backend-explorer
 description: "Explores backend/API layer for a feature. Finds models, views, serializers, endpoints, services, and database patterns. Spawned by explore-plan for parallel exploration."
 tools: Read, Grep, Glob
-model: haiku
+model: sonnet
 maxTurns: 15
 background: true
 ---

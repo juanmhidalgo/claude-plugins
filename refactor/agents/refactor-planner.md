@@ -2,7 +2,7 @@
 name: refactor-planner
 description: "Explores codebase to plan a safe refactoring sequence. Understands test coverage, dependencies, and similar past refactorings. Spawned by refactor:plan."
 tools: Read, Grep, Glob
-model: haiku
+model: sonnet
 maxTurns: 15
 background: true
 ---

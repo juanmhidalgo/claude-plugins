@@ -2,7 +2,7 @@
 name: onboard-discoverer
 description: "Discovers project structure, tech stack, entry points, and configuration for onboarding. Spawned by onboard:start for thorough project analysis."
 tools: Read, Grep, Glob
-model: haiku
+model: sonnet
 maxTurns: 15
 background: true
 ---

@@ -2,7 +2,7 @@
 name: frontend-explorer
 description: "Explores frontend/UI layer for a feature. Finds components, views, hooks, API clients, routing, and state management. Spawned by explore-plan for parallel exploration."
 tools: Read, Grep, Glob
-model: haiku
+model: sonnet
 maxTurns: 15
 background: true
 ---

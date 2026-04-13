@@ -2,7 +2,7 @@
 name: test-explorer
 description: "Explores the test suite for a feature. Finds test files, fixtures, factories, patterns, and coverage config. Spawned by explore-plan for parallel exploration."
 tools: Read, Grep, Glob
-model: haiku
+model: sonnet
 maxTurns: 15
 background: true
 ---

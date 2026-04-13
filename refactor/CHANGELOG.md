@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.1.1] - 2026-04-13
+
+### Changed
+- Upgrade `refactor-analyzer` and `refactor-planner` agents from haiku to sonnet for better code analysis quality
+
 ## [1.1.0] - 2026-03-11
 
 ### Added

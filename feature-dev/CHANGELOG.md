@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.4.1 (2026-04-13)
+
+### Changed
+- Upgrade `backend-explorer`, `frontend-explorer`, and `test-explorer` agents from haiku to sonnet for better codebase exploration quality
+
 ## 1.4.0 (2026-04-04)
 
 ### Added
