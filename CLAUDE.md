@@ -223,6 +223,14 @@ Performance optimization with measure-first approach:
 | `/performance:audit [path]` | Performance audit with anti-pattern scanning and bottleneck identification |
 | `/performance:profile <target>` | Focused profiling of a specific function, endpoint, or component |
 
+## github-issues Plugin
+
+Fix GitHub Issues directly from Claude Code with multi-repo handoff:
+
+| Skill | Purpose |
+|-------|---------|
+| `/github-issues:fix <url>` | Fetch a GitHub Issue, explore the codebase, plan and implement the fix |
+
 </available_plugins>
 
 <environment_requirements>
