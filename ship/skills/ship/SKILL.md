@@ -7,7 +7,7 @@ description: |
   Do NOT use for: partial workflows like just committing (use /commit), just pushing,
   or code review before committing (use /code-review:staged first).
 disable-model-invocation: true
-argument-hint: "[--skip-tests] [--no-pr] [--draft]"
+argument-hint: "[--skip-tests] [--no-pr] [--draft] [--skip-copilot-review]"
 keywords:
   - ship
   - commit-push-pr
@@ -202,7 +202,12 @@ If on a feature branch:
    )"
    ```
    - If `$ARGUMENTS` contains `--draft`, add the `--draft` flag to `gh pr create`
-4. Report the PR URL
+4. **Request Copilot review** (unless `$ARGUMENTS` contains `--skip-copilot-review`):
+   ```bash
+   gh pr edit --add-reviewer @copilot
+   ```
+   If this fails (e.g., Copilot review not available on the repo's plan), warn the user and continue — do not fail the workflow.
+5. Report the PR URL
 
 ## Error Recovery
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0] - 2026-04-14
+
+### Added
+- Request Copilot code review by default when creating PRs (`gh pr edit --add-reviewer @copilot`)
+- `--skip-copilot-review` flag to opt out of automatic Copilot review
+- Graceful fallback: warns if Copilot review is unavailable on the repo's plan
+
 ## [1.0.1] - 2026-03-30
 
 ### Fixed
