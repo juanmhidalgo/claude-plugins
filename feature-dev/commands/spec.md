@@ -1,5 +1,7 @@
 ---
-description: Create a structured specification before coding — surfaces assumptions, defines success criteria, and produces an implementation-ready spec
+description: |
+  Use before writing code when requirements are ambiguous or a feature has non-obvious scope.
+  Do NOT use for simple, self-evident changes.
 argument-hint: "<feature or project description>"
 keywords:
   - spec
@@ -25,6 +27,10 @@ hooks:
       echo "  - /feature-dev:explore-plan to explore the codebase"
       echo "  - /feature-dev:tdd to start test-driven implementation"
 ---
+
+<SUBAGENT-STOP>
+If you were dispatched as a subagent to execute a specific task, skip this command and proceed with your assigned task.
+</SUBAGENT-STOP>
 
 ## Context
 

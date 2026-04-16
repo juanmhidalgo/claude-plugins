@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.5.0 (2026-04-16)
+
+### Changed
+- Rewrote skill/command descriptions to contain only triggering conditions and boundaries, removing workflow step summaries that caused the model to shortcut skill bodies
+- Added rationalization defense table to `tdd-patterns` skill
+- Added SUBAGENT-STOP tags to `explore-plan`, `tdd`, and `spec` commands to prevent premature termination
+
 ## 1.4.1 (2026-04-13)
 
 ### Changed

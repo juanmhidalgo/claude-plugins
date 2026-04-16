@@ -1,5 +1,7 @@
 ---
-description: Systematic debugging workflow with structured triage for any error or unexpected behavior
+description: |
+  Use when facing any error or unexpected behavior that requires diagnosis before fixing.
+  Do NOT use for quick classification only — use /debug:triage for that.
 argument-hint: "<error description or failing test>"
 keywords:
   - debug

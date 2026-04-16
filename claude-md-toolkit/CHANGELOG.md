@@ -5,6 +5,11 @@ All notable changes to the claude-md-toolkit plugin will be documented in this f
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2026-04-16
+
+### Changed
+- Rewrote skill/command descriptions to contain only triggering conditions and boundaries, removing workflow step summaries that caused the model to shortcut skill bodies
+
 ## [0.6.0] - 2026-01-24
 
 ### Changed

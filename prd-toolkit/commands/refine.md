@@ -2,7 +2,9 @@
 allowed-tools:
   - Agent
 argument-hint: [file-path | github-issue-url | "paste"]
-description: Improve existing PRD or convert vague issue to structured PRD
+description: |
+  Use when you have an existing PRD or GitHub issue that needs improvement or conversion to structured requirements.
+  Do NOT use to create a PRD from scratch — use /prd:create instead.
 keywords:
   - prd-improvement
   - issue-to-prd

@@ -1,5 +1,7 @@
 ---
-description: Initialize or enhance a CLAUDE.md file with Anthropic's best practices
+description: |
+  Use when creating a new CLAUDE.md or bootstrapping one for a project that doesn't have one yet.
+  Do NOT use to improve an existing CLAUDE.md — use /claude-md-toolkit:optimize-claude-md instead.
 argument-hint: "[--standalone]"
 keywords:
   - claude-md-init

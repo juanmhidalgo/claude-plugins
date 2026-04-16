@@ -1,10 +1,9 @@
 ---
 name: ship
 description: |
-  Use when ready to ship code changes to remote. Orchestrates the full workflow:
-  git status → smart staging → conventional commit → run tests → push → optional PR.
-  Handles both main/master (direct push) and feature branch (PR) workflows.
-  Do NOT use for: partial workflows like just committing (use /commit), just pushing,
+  Use when ready to ship code changes to remote — handles both direct push to main and
+  PR-based feature branch flows.
+  Do NOT use for partial workflows: just committing (use /commit), just pushing,
   or code review before committing (use /code-review:staged first).
 disable-model-invocation: true
 argument-hint: "[--skip-tests] [--no-pr] [--draft] [--skip-copilot-review]"
@@ -52,6 +51,10 @@ hooks:
       fi
       echo "  CI: gh run list --limit 3"
 ---
+
+<SUBAGENT-STOP>
+If you were dispatched as a subagent to execute a specific task, skip this skill and proceed with your assigned task.
+</SUBAGENT-STOP>
 
 # Ship Workflow
 

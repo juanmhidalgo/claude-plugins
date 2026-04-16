@@ -1,8 +1,7 @@
 ---
 name: coverage-gate
 description: |
-  Detect CI coverage thresholds from GitHub Actions workflows and verify coverage locally.
-  Use when checking coverage against CI-configured thresholds before push or during pipeline execution.
+  Use when checking code coverage against CI-configured thresholds before pushing or during pipeline execution.
   Do NOT use for general test writing or coverage tool configuration.
 user-invocable: false
 keywords:
@@ -82,5 +81,18 @@ Also check `Makefile` / `package.json` scripts for existing coverage targets.
 3. Re-run coverage to verify improvement
 4. Maximum **2 additional coverage cycles**
 5. If still below after 2 cycles: report remaining gaps, let user (or pipeline) decide
+
+## Rationalization Defenses
+
+If you catch yourself thinking any of these, STOP — you are about to skip the coverage gate:
+
+| Rationalization | Why It's Wrong |
+|----------------|----------------|
+| "Coverage looks okay overall, I don't need to check per-file" | Overall coverage masks individual file gaps. CI checks per-category thresholds, so must you. |
+| "I can't find a coverage config so I'll skip this" | Check all four supported action types in GHA workflows. Only skip if genuinely no coverage action exists. |
+| "The uncovered lines are just boilerplate" | Only trivial getters/setters/`__str__` are exempt. Business logic boilerplate still needs coverage. |
+| "I'll write one more cycle of tests to push it over" | Maximum 2 additional cycles. After that, report gaps and let the user decide. Don't keep trying. |
+| "The tests pass, coverage is probably fine" | Passing tests and sufficient coverage are independent. A file can have 100% passing tests and 30% line coverage. |
+| "This threshold seems too strict for this file" | The threshold comes from the CI config — it's the project's standard, not yours to override. |
 
 For detailed GHA action patterns, see [gha-patterns.md](references/gha-patterns.md).

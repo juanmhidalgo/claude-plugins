@@ -1,6 +1,8 @@
 ---
 name: receiving-code-review
-description: Guidelines for receiving and processing code review feedback with technical rigor.
+description: |
+  Use when receiving code review feedback to verify suggestions before accepting or pushing back.
+  Do NOT use for running a review (use /code-review:staged or :branch) or for PR triage (use /code-review:triage).
 keywords:
   - code-review-feedback
   - review-reception
@@ -111,6 +113,19 @@ When feedback IS correct:
 ```
 
 **Why no thanks:** Actions speak. Just fix it.
+
+## Rationalization Defenses
+
+If you catch yourself thinking any of these, STOP — you are about to skip verification:
+
+| Rationalization | Why It's Wrong |
+|----------------|----------------|
+| "The reviewer is clearly right, verifying would waste time" | Reviewers lack your codebase context. "Clearly right" suggestions break things 30% of the time. |
+| "I understand items 1-4, let me implement those while clarifying 5" | Items may be related. Partial implementation before full understanding leads to rework. |
+| "I'll just acknowledge naturally — saying 'great point' is polite" | Performative agreement is an explicit violation. Politeness = just fixing it. Actions > words. |
+| "This reviewer is the team lead, I should just implement it" | Still verify. Still ask if scope is unclear. Authority doesn't change technical correctness. |
+| "The suggestion is simple, verification isn't needed" | Simple suggestions break things too. A one-line change can have cascading effects. Always verify. |
+| "I'll implement first and verify the result" | That's backwards. Verify the suggestion against the codebase BEFORE changing anything. |
 
 ## Common Mistakes
 

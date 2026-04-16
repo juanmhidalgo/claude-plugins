@@ -21,11 +21,8 @@ allowed-tools:
   - Grep
 argument-hint: PR#
 description: |
-  Autonomous PR review-fix-ship pipeline. Triages all bot/reviewer comments,
-  implements valid fixes with parallel subagents, dismisses false positives,
-  runs tests, commits, pushes, and resolves GitHub threads in one pass.
-  Use when you want to resolve all PR feedback autonomously.
-  Do NOT use for draft PRs or when you need manual control over each fix.
+  Use when you want to resolve all PR feedback autonomously in a single pass.
+  Do NOT use for draft PRs or when you need manual control over individual fixes.
 keywords:
   - autonomous-pipeline
   - review-fix-ship
@@ -43,6 +40,10 @@ skills:
   - receiving-code-review
   - coverage-gate
 ---
+
+<SUBAGENT-STOP>
+If you were dispatched as a subagent to execute a specific task, skip this command and proceed with your assigned task.
+</SUBAGENT-STOP>
 
 ## Context
 - **Repository**: !`git remote get-url origin`

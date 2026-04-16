@@ -5,6 +5,13 @@ All notable changes to this plugin will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.14.0] - 2026-04-16
+
+### Changed
+- Rewrote skill/command descriptions to contain only triggering conditions and boundaries, removing workflow step summaries that caused the model to shortcut skill bodies
+- Added rationalization defense tables to `receiving-code-review`, `technical-decisions`, and `coverage-gate` skills, and to the `triage` command
+- Added SUBAGENT-STOP tags to `pipeline`, `staged-pipeline`, `implement-fix`, and `receive` commands to prevent premature termination
+
 ## [2.13.0] - 2026-04-08
 
 ### Added

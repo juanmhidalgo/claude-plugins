@@ -1,5 +1,7 @@
 ---
-description: Performance audit with measure-first approach — identifies bottlenecks, anti-patterns, and recommends targeted fixes
+description: |
+  Use when you need to audit the codebase for performance bottlenecks and anti-patterns.
+  Do NOT use without evidence of a problem — use /performance:profile to gather evidence first.
 argument-hint: "[path, endpoint, or scope]"
 keywords:
   - performance

@@ -21,10 +21,7 @@ skills:
   - tdd-patterns
 argument-hint: "<feature spec or description>"
 description: |
-  Test-driven feature development with coverage gates. Writes failing tests
-  from a spec first, then iterates implementation until all tests pass and
-  coverage meets thresholds. Use when implementing a new feature or fixing
-  a bug where you want tests to lead, not follow.
+  Use when implementing a new feature or fixing a bug where you want tests to lead, not follow.
   Do NOT use for quick one-line fixes or refactors without behavioral change.
 keywords:
   - tdd
@@ -45,6 +42,10 @@ hooks:
       echo "  - /code-review:branch to review before merge"
       echo "  - /commit to commit changes"
 ---
+
+<SUBAGENT-STOP>
+If you were dispatched as a subagent to execute a specific task, skip this command and proceed with your assigned task.
+</SUBAGENT-STOP>
 
 ## Context
 - **Repository**: !`git remote get-url origin`

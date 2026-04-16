@@ -1,8 +1,7 @@
 ---
 description: |
-  Extract code into a new function, class, or module.
-  Guides you through the extraction with proper naming and placement.
-  Use when you know what to extract but want help doing it safely.
+  Use when you know what to extract but want to perform the extraction safely with proper naming and placement.
+  Do NOT use when you're still discovering what needs refactoring — use /refactor:analyze first.
 argument-hint: "<what-to-extract>"
 allowed-tools:
   - Read

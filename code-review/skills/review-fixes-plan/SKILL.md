@@ -1,6 +1,8 @@
 ---
 name: review-fixes-plan
-description: Template and guidelines for creating code review fix tracking documents.
+description: |
+  Use when generating or managing a REVIEW_FIXES.md tracking document after a code review session.
+  Do NOT use for tracking issues outside of code review workflows.
 keywords:
   - fix-tracking
   - issue-management

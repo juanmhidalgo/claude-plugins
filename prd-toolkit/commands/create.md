@@ -2,7 +2,9 @@
 allowed-tools:
   - Agent
 argument-hint: [feature-name | short-description]
-description: Generate a concise product mini-PRD for a new feature
+description: |
+  Use when starting a new feature and no PRD exists yet.
+  Do NOT use to improve an existing PRD — use /prd:refine instead.
 keywords:
   - prd
   - product-requirements

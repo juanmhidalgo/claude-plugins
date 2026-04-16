@@ -1,8 +1,7 @@
 ---
 description: |
-  Generate an onboarding guide for a new developer joining this project.
-  Explores the codebase and produces a structured overview of architecture, patterns, and key files.
-  Use when joining a new project or helping someone else get started.
+  Use when joining a new project or onboarding another developer and no existing guide exists.
+  Do NOT use for deep dives into a specific area — use /onboard:explore for that.
 argument-hint: "[focus-area]"
 allowed-tools:
   - Read

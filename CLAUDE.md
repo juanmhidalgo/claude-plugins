@@ -6,6 +6,7 @@ This is a Claude Code plugins marketplace containing plugins for development wor
 
 <reference_docs>
 Plugin creation guidelines: @.claude/rules/plugin-creation.md
+Skill testing methodology: @.claude/rules/skill-testing.md
 </reference_docs>
 
 <architecture>

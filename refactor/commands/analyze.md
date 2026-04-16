@@ -1,8 +1,7 @@
 ---
 description: |
-  Analyze a file or directory for refactoring opportunities.
-  Identifies complexity, duplication, extraction candidates, and code smells.
-  Use before refactoring to understand what needs attention.
+  Use before starting a refactor to understand what needs attention in a file or directory.
+  Do NOT use to make changes — use /refactor:plan or :extract for that.
 argument-hint: "<file-or-directory>"
 allowed-tools:
   - Read

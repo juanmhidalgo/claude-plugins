@@ -20,10 +20,7 @@ allowed-tools:
   - Grep
 argument-hint: "[base-branch]"
 description: |
-  Check code coverage against CI-configured thresholds locally before pushing.
-  Detects coverage thresholds from GitHub Actions workflows and verifies
-  changed files meet the required coverage levels. Writes tests to fix gaps.
-  Use to prevent CI coverage failures before pushing.
+  Use to prevent CI coverage failures before pushing by checking coverage against CI-configured thresholds.
   Do NOT use as a replacement for running tests (use your test command directly).
 keywords:
   - coverage

@@ -9,7 +9,9 @@ allowed-tools:
   - Glob
   - AskUserQuestion
 argument-hint: [issue-number | "all"]
-description: Implement fixes from REVIEW_FIXES.md, asking for technical decisions when needed
+description: |
+  Use when REVIEW_FIXES.md exists and you want to implement tracked issues.
+  Do NOT use without a REVIEW_FIXES.md — run /code-review:fixes-plan first.
 keywords:
   - implement-fix
   - code-fix
@@ -24,6 +26,10 @@ skills:
   - technical-decisions
   - receiving-code-review
 ---
+
+<SUBAGENT-STOP>
+If you were dispatched as a subagent to execute a specific task, skip this command and proceed with your assigned task.
+</SUBAGENT-STOP>
 
 ## Context
 - **Branch:** !`git branch --show-current`

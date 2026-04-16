@@ -6,10 +6,8 @@ allowed-tools:
   - Glob
 argument-hint: "<feature description>"
 description: |
-  Parallel codebase exploration before planning. Spawns multiple agents to
-  explore different layers (backend, frontend, tests, git history) simultaneously,
-  then synthesizes findings into a structured implementation plan.
-  Use when starting a feature that touches multiple parts of the codebase.
+  Use when starting a feature that touches multiple parts of the codebase and you need a
+  structured implementation plan before coding.
   Do NOT use for simple bug fixes or single-file changes.
 keywords:
   - exploration
@@ -31,6 +29,10 @@ hooks:
       echo "  - Review the plan above, then run /feature-dev:tdd to implement"
       echo "  - Or start a NEW conversation and run /feature-dev:tdd (maximizes context)"
 ---
+
+<SUBAGENT-STOP>
+If you were dispatched as a subagent to execute a specific task, skip this command and proceed with your assigned task.
+</SUBAGENT-STOP>
 
 ## Context
 - **Repository**: !`git remote get-url origin`

@@ -1,10 +1,8 @@
 ---
 argument-hint: "<paste review report>"
 description: |
-  Process code review feedback received from another session or tool.
-  Verifies each finding against actual code before proposing fixes.
-  Use when pasting review output from /code-review:staged, /code-review:branch, or similar.
-  Do NOT use for PR triage (use /code-review:triage) or for reviews you want to run (use /code-review:staged or /code-review:branch).
+  Use when pasting review output from /code-review:staged, /code-review:branch, or similar tools.
+  Do NOT use for PR triage (use /code-review:triage) or to run a new review (use /code-review:staged or :branch).
 keywords:
   - code-review
   - receive-feedback
@@ -35,6 +33,10 @@ hooks:
       echo "  - To track fixes: /code-review:fixes-plan"
       echo "  - To implement directly: /code-review:implement-fix"
 ---
+
+<SUBAGENT-STOP>
+If you were dispatched as a subagent to execute a specific task, skip this command and proceed with your assigned task.
+</SUBAGENT-STOP>
 
 # Receive Code Review
 

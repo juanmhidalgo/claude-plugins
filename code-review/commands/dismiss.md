@@ -4,7 +4,9 @@ allowed-tools:
   - Bash(git *)
   - Read
 argument-hint: PR#
-description: Dismiss false positive comments on a PR with justification
+description: |
+  Use when PR comments are false positives that should be closed with justification.
+  Do NOT use for valid findings that need fixes — use /code-review:implement-fix instead.
 keywords:
   - false-positive
   - dismiss-comment

@@ -1,7 +1,6 @@
 ---
 name: tdd-patterns
 description: |
-  Institutional patterns for test-driven development workflows.
   Use when executing TDD cycles with coverage gates and quality checks.
   Do NOT use for general testing advice or test writing without the full TDD cycle.
 user-invocable: false
@@ -58,3 +57,18 @@ Detect the project's lint/format tools in this order:
 4. If no tool found, skip lint phase with a note — do not install tools.
 
 Run lint/format **after** all tests pass and coverage is met. Fix lint issues, then re-run tests to confirm nothing broke.
+
+## Rationalization Defenses
+
+If you catch yourself thinking any of these, STOP — you are about to violate the TDD cycle:
+
+| Rationalization | Why It's Wrong |
+|----------------|----------------|
+| "I already know the implementation, let me write tests after" | That's testing after, not TDD. The test must fail first to prove it tests the right thing. |
+| "The test passes immediately — the code already handles this" | A passing test on first run means it tests existing behavior, not new behavior. Remove or rewrite it. |
+| "This test is wrong, let me fix the assertion" | Default action is fix the implementation, not the test. Only fix tests with actual bugs (wrong setup, wrong assertion). |
+| "I'll add coverage tests at the end" | Coverage is checked per-cycle, not batched. Below-threshold files need tests NOW, not later. |
+| "I'm on cycle 4, one more try should work" | After 5 cycles, you STOP. After 3 identical failures, you STOP immediately. These limits exist because continuing wastes time. |
+| "I'll clean up this code while making the test green" | GREEN phase = minimum code only. Refactoring belongs in the REFACTOR phase. Mixing them hides what broke what. |
+| "The project doesn't have a linter, so I'll skip that phase" | Check all three detection paths (package.json, config files, Makefile) first. Only skip with a note after exhausting all paths. |
+| "Coverage looks fine overall" | Overall coverage masks per-file gaps. Check CHANGED files against thresholds, not aggregate numbers. |

@@ -1,5 +1,7 @@
 ---
-description: Analyze a CLAUDE.md file against Anthropic's best practices and generate optimization recommendations
+description: |
+  Use when you need to audit a CLAUDE.md file against Anthropic's best practices.
+  Do NOT use to apply changes — use /claude-md-toolkit:optimize-claude-md for that.
 argument-hint: "[path/to/CLAUDE.md]"
 keywords:
   - claude-md-analysis

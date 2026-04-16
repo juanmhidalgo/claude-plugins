@@ -1,6 +1,8 @@
 ---
 name: technical-decisions
-description: Guidelines for handling technical decisions during code review implementation.
+description: |
+  Use when multiple implementation approaches exist during code review and a decision must be made.
+  Do NOT use for general architecture planning outside of code review context.
 keywords:
   - technical-decisions
   - implementation-choices
@@ -109,6 +111,19 @@ IF multiple fixes require decisions:
 2. Present as a cohesive set
 3. Show how choices interact
 ```
+
+## Rationalization Defenses
+
+If you catch yourself thinking any of these, STOP — you are about to make a decision that belongs to your human partner:
+
+| Rationalization | Why It's Wrong |
+|----------------|----------------|
+| "The most obvious approach is clearly correct" | Your human partner may have context you don't — business constraints, upcoming changes, team preferences. |
+| "Asking about this would interrupt the flow" | 30 seconds to ask vs. hours to undo. Interrupted flow is cheaper than wrong architecture. |
+| "I'll implement it and explain the approach in the summary" | That's implementing then informing, not asking. The decision was already made without consent. |
+| "This is a bug fix, not an architectural decision" | Bug fixes can have architectural implications — new dependencies, pattern changes, API surface changes. Check the When to Ask list. |
+| "The user said to fix it, so they chose this approach" | "Fix it" is a goal, not an implementation decision. Multiple valid approaches still require a choice. |
+| "I'll go with the simpler option to avoid over-engineering" | Simplicity is a valid recommendation, not an autonomous decision. Present both and let your human partner choose. |
 
 ## Common Mistakes
 

@@ -8,7 +8,9 @@ allowed-tools:
   - Bash(head *)
   - Bash(grep *)
 argument-hint: [feature-name]
-description: Generate a code review fixes tracking document from recent review findings
+description: |
+  Use when a code review session has produced findings that need tracking before implementation.
+  Do NOT use without prior review output — run /code-review:staged or :branch first.
 keywords:
   - fixes-tracking
   - review-fixes

@@ -1,8 +1,7 @@
 ---
 description: |
-  Generate an architecture overview of the project.
-  Produces a high-level map of components, their responsibilities, and relationships.
-  Use to understand the big picture before diving into details.
+  Use when you need to understand the big picture of a project's structure before diving into details.
+  Do NOT use for exploring a specific area — use /onboard:explore for that.
 allowed-tools:
   - Read
   - Glob

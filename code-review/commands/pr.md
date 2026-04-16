@@ -7,7 +7,9 @@ allowed-tools:
   - Glob
   - Grep
 argument-hint: <PR number or URL>
-description: Comprehensive code review for a pull request using multi-agent workflow
+description: |
+  Use when you need a thorough code review of a pull request.
+  Do NOT use for staged or branch-only reviews (use /code-review:staged or :branch).
 keywords:
   - pull-request
   - code-review

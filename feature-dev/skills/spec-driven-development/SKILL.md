@@ -2,7 +2,6 @@
 name: spec-driven-development
 description: |
   Use when starting a new feature or significant change and no specification exists yet.
-  Provides gated workflow (Specify → Plan → Tasks → Implement) with assumption surfacing.
   Do NOT use for single-line fixes, typos, or unambiguous self-contained changes.
 keywords:
   - spec

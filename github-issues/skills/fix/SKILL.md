@@ -2,7 +2,6 @@
 name: fix
 description: |
   Use when the user provides a GitHub Issue URL and wants to fix it in the current repo.
-  Provides phased workflow: fetch issue, create branch, explore codebase, plan fix, implement, and multi-repo handoff.
   Do NOT use for feature requests without a clear bug, issues in repos the user hasn't cloned,
   or PRs (use /code-review instead).
 argument-hint: "<github-issue-url>"
@@ -51,6 +50,10 @@ hooks:
       echo "  - /ship to commit, push, and open a PR"
       echo "  - If this fix requires changes in another repo, check the handoff prompt above"
 ---
+
+<SUBAGENT-STOP>
+If you were dispatched as a subagent to execute a specific task, skip this skill and proceed with your assigned task.
+</SUBAGENT-STOP>
 
 ## Context
 

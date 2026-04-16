@@ -1,5 +1,7 @@
 ---
-description: Run a security audit on the codebase or specific files with OWASP Top 10 checks, dependency scanning, and vulnerability pattern analysis
+description: |
+  Use when you need to audit the codebase or specific files for security vulnerabilities.
+  Do NOT use for general code quality — use /code-review:branch for that.
 argument-hint: "[path or scope]"
 keywords:
   - security

@@ -7,7 +7,9 @@ allowed-tools:
   - Bash(grep *)
   - Grep
 argument-hint: PR#
-description: Resolve GitHub threads for issues marked as fixed in REVIEW_FIXES.md
+description: |
+  Use after marking issues as fixed in REVIEW_FIXES.md to close corresponding GitHub threads.
+  Do NOT use before verifying fixes — use /code-review:mark-fixed first.
 keywords:
   - resolve-threads
   - github-comments

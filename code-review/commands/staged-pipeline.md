@@ -21,9 +21,7 @@ allowed-tools:
   - ExitPlanMode
 argument-hint: "[focus area]"
 description: |
-  Review staged changes, verify findings, and fix confirmed issues — all in one session.
-  Runs the review in a forked context to preserve main context for verification and fixes.
-  Use when you want to review and fix staged changes before committing.
+  Use when you want to review and fix staged changes in a single session before committing.
   Do NOT use for PR reviews (use /code-review:pipeline) or read-only reviews (use /code-review:staged).
 keywords:
   - staged-pipeline
@@ -48,6 +46,10 @@ hooks:
       echo "  - /commit to commit the changes"
       echo "  - git diff to review what was changed"
 ---
+
+<SUBAGENT-STOP>
+If you were dispatched as a subagent to execute a specific task, skip this command and proceed with your assigned task.
+</SUBAGENT-STOP>
 
 ## Context
 - **Current branch**: !`git branch --show-current`

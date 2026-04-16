@@ -1,8 +1,7 @@
 ---
 description: |
-  Create a step-by-step refactoring plan from analysis findings.
-  Produces an ordered list of changes with dependencies and checkpoints.
-  Use after /refactor:analyze to organize the work.
+  Use after /refactor:analyze when you need an ordered plan before executing changes.
+  Do NOT use to make code changes directly — use /refactor:extract for that.
 argument-hint: "[file-or-topic]"
 allowed-tools:
   - Read

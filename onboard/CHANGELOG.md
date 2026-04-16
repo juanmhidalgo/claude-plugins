@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.2.0] - 2026-04-16
+
+### Changed
+- Rewrote skill/command descriptions to contain only triggering conditions and boundaries, removing workflow step summaries that caused the model to shortcut skill bodies
+
 ## [1.1.1] - 2026-04-13
 
 ### Changed

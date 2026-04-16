@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.4.0] - 2026-04-16
+
+### Changed
+- Rewrote skill/command descriptions to contain only triggering conditions and boundaries, removing workflow step summaries that caused the model to shortcut skill bodies
+- Added SUBAGENT-STOP tag to the `receive` command to prevent premature termination
+
 ## [1.3.0] - 2026-04-08
 
 ### Added

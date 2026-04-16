@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.2.0] - 2026-04-16
+
+### Changed
+- Rewrote skill/command descriptions to contain only triggering conditions and boundaries, removing workflow step summaries that caused the model to shortcut skill bodies
+- Added SUBAGENT-STOP tag to the `ship` skill to prevent premature termination
+
 ## [1.1.0] - 2026-04-14
 
 ### Added

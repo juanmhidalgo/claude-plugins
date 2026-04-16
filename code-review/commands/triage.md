@@ -104,6 +104,19 @@ External AI reviewers (Copilot, Gemini, etc.) lack full context. Their suggestio
 **Dismiss reason:** YAGNI | Already handled | Context | Style | Breaking
 ```
 
+## Rationalization Defenses
+
+If you catch yourself thinking any of these, STOP — you are about to accept unverified AI feedback:
+
+| Rationalization | Why It's Wrong |
+|----------------|----------------|
+| "Copilot flagged a real-looking issue, I'll fix it without checking" | AI reviewers lack full context. "Real-looking" is not "verified." Check the actual code first. |
+| "This is clearly a false positive, I don't need to document why" | Every dismissal needs evidence. "Clearly" without documentation is just an assumption. |
+| "The AI reviewer has access to the same code I do" | AI reviewers see limited context — often just the diff, not the full codebase, test suite, or intent. |
+| "I'll mark things VERIFIED VALID unless I can prove them wrong" | Default stance is skeptical, not accepting. Unverified = FALSE POSITIVE until you confirm with evidence. |
+| "This best-practice suggestion can't hurt" | Unnecessary changes increase risk, review burden, and merge conflicts. YAGNI applies to AI suggestions too. |
+| "I'll batch-fix all the valid ones at once" | Each fix needs individual verification. Batching hides which fix broke what. |
+
 ## Remember
 
 - Start skeptical, not accepting

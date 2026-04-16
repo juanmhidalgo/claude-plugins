@@ -1,5 +1,7 @@
 ---
-description: Quick security checklist verification against current code, focused on a specific area or full review
+description: |
+  Use when you need a fast pass over auth, input handling, data, infra, or dependency security in the current code.
+  Do NOT use for deep vulnerability analysis — use /security:audit for that.
 argument-hint: "[area: auth|input|data|infra|deps]"
 keywords:
   - security

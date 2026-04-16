@@ -1,7 +1,6 @@
 ---
 description: |
-  Argue against a proposal or decision to stress-test it before committing.
-  Takes the opposing position to find weaknesses you might have missed.
+  Use when you want to stress-test a proposal or decision by hearing the strongest counter-arguments.
   Do NOT use for neutral analysis (use /discuss:feature) or comparing options (use /discuss:tradeoffs).
 argument-hint: "<proposal or decision to challenge>"
 allowed-tools: [Read, Glob, Grep, Agent, WebFetch, WebSearch, AskUserQuestion]

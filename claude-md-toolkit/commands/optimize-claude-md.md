@@ -1,5 +1,7 @@
 ---
-description: Optimize a CLAUDE.md file by applying Anthropic's best practices automatically
+description: |
+  Use when you want to apply best-practice improvements to an existing CLAUDE.md file.
+  Do NOT use to create one from scratch — use /claude-md-toolkit:init instead.
 argument-hint: "[path/to/CLAUDE.md] [--level=conservative|moderate|aggressive]"
 keywords:
   - claude-md-optimization

@@ -1,8 +1,7 @@
 ---
 description: |
-  Deep exploration of a specific topic or area in the codebase.
-  Use when you need to understand how something works: auth, API, database, etc.
-  Returns file references and explanations of the relevant code.
+  Use when you need to understand how a specific area of the codebase works (auth, API, database, etc.).
+  Do NOT use for a full project overview — use /onboard:start or :architecture for that.
 argument-hint: "<topic to explore>"
 allowed-tools:
   - Read

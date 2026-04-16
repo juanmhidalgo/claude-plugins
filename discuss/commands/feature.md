@@ -1,8 +1,6 @@
 ---
 description: |
-  Critical analysis of features or technical specs with skeptical Staff Engineer perspective.
-  Explores codebase first, then identifies gaps, edge cases, and risks.
-  Use BEFORE plan mode to validate implementation specs and surface decisions.
+  Use before entering plan mode to critically analyze a feature spec or proposal for gaps, edge cases, and risks.
   Do NOT use for simple Q&A, implementation requests, or code review (use /code-review:*).
 argument-hint: "<feature or idea to discuss>"
 allowed-tools: [Read, Glob, Grep, Agent, WebFetch, WebSearch, AskUserQuestion]
