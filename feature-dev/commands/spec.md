@@ -61,7 +61,20 @@ Follow the gated workflow. Each phase requires user review before advancing.
    - **Testing Strategy**: Framework, test location, coverage expectations
    - **Boundaries**: Always do / Ask first / Never do
 
-4. **Save the spec** to `SPEC-<feature-slug>.md` in the project root.
+4. **Save the spec** to `SPEC-<feature-slug>.md` in the project root. The file MUST begin with this frontmatter block so downstream commands (`/feature-dev:explore-plan`, `/feature-dev:tdd`) can auto-discover it:
+
+   ```markdown
+   ---
+   type: specification
+   feature: [Human-readable Feature Name]
+   slug: [feature-slug]
+   date: [YYYY-MM-DD]
+   branch: [current branch]
+   status: draft  # draft | approved | implemented
+   ---
+   ```
+
+   Update `status:` to `approved` after the user validates the spec in step 5.
 
 5. **Present to user** for review. Do NOT proceed until they approve.
 

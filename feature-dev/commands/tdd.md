@@ -19,7 +19,7 @@ allowed-tools:
   - Grep
 skills:
   - tdd-patterns
-argument-hint: "<feature spec or description>"
+argument-hint: "[feature spec — optional; auto-discovers PLAN-*.md if omitted]"
 description: |
   Use when implementing a new feature or fixing a bug where you want tests to lead, not follow.
   Do NOT use for quick one-line fixes or refactors without behavioral change.
@@ -53,19 +53,26 @@ If you were dispatched as a subagent to execute a specific task, skip this comma
 - **Working tree clean**: !`git status --short`
 - **Feature spec**: $ARGUMENTS
 
-## Phase 0: Validate
+## Phase 0: Resolve Spec and Validate
 
-1. Feature spec was provided (from $ARGUMENTS). If empty, **STOP** and ask user for a feature description.
-2. Working tree is clean. If dirty, **STOP** and ask user to commit or stash.
+1. **Resolve the feature spec:**
+   - **If `$ARGUMENTS` is provided** → use it as the feature spec. Continue to step 2.
+   - **If `$ARGUMENTS` is empty** → auto-discover plan files. Use Glob with pattern `PLAN-*.md` in the repo root:
+     - **0 plans found** → **STOP** and ask the user for a feature description.
+     - **1 plan found** → read it, extract the `feature:` value from its frontmatter, and use that as the spec. Record the plan path as the **pre-selected plan** for Phase 1. Inform the user: "Auto-selected plan: `PLAN-<slug>.md` (feature: <name>)".
+     - **2+ plans found** → read each plan's frontmatter to extract the `feature:` value. Use AskUserQuestion to let the user pick one (label = feature name, description = filename). The chosen plan's `feature:` becomes the spec and its path is the **pre-selected plan** for Phase 1.
+2. **Working tree is clean.** If dirty, **STOP** and ask the user to commit or stash.
 
 ## Phase 1: Load Plan or Explore Codebase
 
-**First, check for an existing implementation plan:**
+**First, determine the plan:**
 
-Look for `PLAN-*.md` files in the repository root (created by `/feature-dev:explore-plan`). If multiple exist, pick the one most relevant to the feature spec.
+- **If a pre-selected plan was set in Phase 0** → use it directly; skip the search below.
+- **Otherwise** (spec came from `$ARGUMENTS`), look for `PLAN-*.md` files in the repo root (created by `/feature-dev:explore-plan`). If multiple exist, pick the one whose `feature:` frontmatter best matches the spec; if none clearly matches, ask the user which to use.
 
-**If the plan file exists:**
+**If a plan file is in use:**
 - Read it and use it as the source of truth for files to modify/create, implementation order, and key decisions
+- **Drift check**: if the plan's frontmatter has `source_spec:` pointing to a `SPEC-*.md` file, compare modification times (`stat -c %Y <spec>` and `stat -c %Y <plan>`, or `git log -1 --format=%ct -- <file>` as a fallback). If the spec is newer than the plan, **warn the user**: "The source spec `<path>` was modified after the plan was generated. The plan may be stale. Proceed with the current plan, or re-run `/feature-dev:explore-plan` first?" and wait for confirmation.
 - Only do a **minimal exploration** with the Agent tool (`subagent_type: "Explore"`) focused on:
   - Test framework and runner command
   - Coverage tool and current thresholds
@@ -171,5 +178,6 @@ Output a final summary:
 ```
 
 If all phases passed:
-1. **Delete the `PLAN-*.md` file** that was used (it has served its purpose — the implementation is done)
-2. Suggest a commit message following the project's convention
+1. **Close the loop on the source spec (if any):** if the plan's frontmatter had a `source_spec:` pointing to a `SPEC-*.md` file, use Edit to set that spec's `status:` field to `implemented`. This prevents auto-discovery from re-surfacing a completed feature on future runs.
+2. **Delete the `PLAN-*.md` file** that was used (it has served its purpose — the implementation is done).
+3. Suggest a commit message following the project's convention.

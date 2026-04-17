@@ -1,5 +1,25 @@
 # Changelog
 
+## 1.7.0 (2026-04-17)
+
+### Added
+- `/feature-dev:spec` now emits required YAML frontmatter (`type`, `feature`, `slug`, `date`, `branch`, `status`) on `SPEC-*.md` files so downstream commands can auto-discover them
+- `/feature-dev:explore-plan` auto-discovers `SPEC-*.md` files when called without arguments (same 0/1/2+ pattern as tdd)
+  - Filters out specs with `status: implemented` so shipped features don't re-surface
+  - Warns when the only candidate is `status: draft` (not yet approved) before proceeding
+  - Generated `PLAN-*.md` now records the `source_spec:` path and `slug:` for traceability from SPEC → PLAN → implementation
+- `/feature-dev:tdd` closes the loop: on successful completion, updates the linked SPEC's `status:` to `implemented` before deleting the PLAN
+- `/feature-dev:tdd` drift detection: warns when the source spec was modified after the plan was generated, so stale plans don't silently drive implementation
+
+## 1.6.0 (2026-04-17)
+
+### Added
+- `/feature-dev:tdd` auto-discovers `PLAN-*.md` files when called without arguments
+  - 0 plans → stop and ask for a feature description
+  - 1 plan → auto-select and use its `feature:` frontmatter as the spec
+  - 2+ plans → prompt user to pick one via AskUserQuestion
+  - Supports the common workflow `/feature-dev:explore-plan` → clear context → `/feature-dev:tdd` without having to re-type the feature name
+
 ## 1.5.0 (2026-04-16)
 
 ### Changed

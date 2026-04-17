@@ -4,7 +4,7 @@ allowed-tools:
   - Read
   - Agent
   - Glob
-argument-hint: "<feature description>"
+argument-hint: "[feature description — optional; auto-discovers SPEC-*.md if omitted]"
 description: |
   Use when starting a feature that touches multiple parts of the codebase and you need a
   structured implementation plan before coding.
@@ -39,11 +39,16 @@ If you were dispatched as a subagent to execute a specific task, skip this comma
 - **Current branch**: !`git branch --show-current`
 - **Feature**: $ARGUMENTS
 
-## Phase 0: Validate
+## Phase 0: Resolve Feature and Validate
 
-1. Feature description was provided (from $ARGUMENTS). If empty, **STOP** and ask user.
+1. **Resolve the feature:**
+   - **If `$ARGUMENTS` is provided** → use it as the feature description. Record `source_spec: null`.
+   - **If `$ARGUMENTS` is empty** → auto-discover spec files. Use Glob with pattern `SPEC-*.md` in the repo root, then read each file's frontmatter and **filter out any spec with `status: implemented`** (those features are already shipped). From the remaining candidates:
+     - **0 specs** → **STOP** and ask the user for a feature description.
+     - **1 spec** → use it. Read its frontmatter, use `feature:` as the feature description, record the spec path as `source_spec`. Inform the user: "Auto-selected spec: `SPEC-<slug>.md` (feature: <name>, status: <status>)". If `status: draft`, also warn: "This spec is still in draft — the user may not have approved it yet. Proceed anyway?" and wait for confirmation.
+     - **2+ specs** → use AskUserQuestion to let the user pick (label = `feature:` value, description = `<filename> — status: <status>`). Use the chosen spec's `feature:` as the feature description and record its path as `source_spec`.
 2. Parse the feature into a one-line summary for agent prompts.
-3. Generate a plan filename: `PLAN-<slug>.md` (slug = lowercase, hyphenated, max 4 words from the feature name. E.g., `PLAN-scheduled-notifications.md`).
+3. Generate a plan filename: `PLAN-<slug>.md` (slug = lowercase, hyphenated, max 4 words from the feature name. E.g., `PLAN-scheduled-notifications.md`). If `source_spec` is set, reuse its `slug:` value for consistency.
 
 ## Phase 1: Explore and Generate Plan (Forked)
 
@@ -59,6 +64,7 @@ You are generating an implementation plan for: [feature summary]
 Repository: [repo URL]
 Branch: [current branch]
 Plan file: [PLAN-<slug>.md filename from Phase 0]
+Source spec: [source_spec path from Phase 0, or "none"]
 
 ## Step 1: Parallel Exploration
 
@@ -85,8 +91,10 @@ The plan MUST follow this template:
 ---
 type: implementation-plan
 feature: [Feature Name]
+slug: [feature-slug]
 date: [YYYY-MM-DD]
 branch: [current branch]
+source_spec: [source_spec path, or null if none]
 ---
 
 ## Implementation Plan: [Feature Name]
