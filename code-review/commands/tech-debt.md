@@ -46,6 +46,27 @@ Determine the scope based on the argument:
   - If staged files exist → analyze staged changes
   - Otherwise → default to branch comparison against `main` (or `master`)
 
+## Pre-flight: Base Branch Staleness Check
+
+**Only for branch scope.** Skip entirely for staged scope.
+
+Before running the analysis, check if the local base branch is behind its remote. A stale base produces false findings by including already-merged commits in the diff.
+
+1. Resolve the remote tracking ref: `git rev-parse --abbrev-ref <base>@{upstream}` (falls back to `origin/<base>` if no upstream is configured)
+2. If a remote ref exists, run `git rev-list --count <base>..<remote-ref>` to count commits the local base is behind
+3. If the count is `0` → proceed silently
+4. If the count is `>0` → **stop and warn the user**:
+
+   > Your local `<base>` is N commits behind `<remote-ref>`. The tech-debt analysis may include commits already merged upstream, producing false findings.
+   >
+   > Suggested: `git fetch origin <base>:<base>` (or pull if checked out), then re-run.
+   >
+   > Proceed anyway? (yes / no)
+
+5. If the remote ref cannot be resolved (no upstream, no `origin/<base>`) → proceed silently; do not fail the command
+
+Never auto-fetch or auto-pull — the user decides.
+
 ## Instructions
 
 Use Agent tool with subagent_type="code-review:tech-debt-reviewer" to analyze technical debt.

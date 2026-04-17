@@ -5,6 +5,14 @@ All notable changes to this plugin will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.15.0] - 2026-04-17
+
+### Added
+- `/code-review:tech-debt` pre-flight check for base branch staleness in branch-comparison scope
+  - Detects when the local base branch is behind its remote tracking ref and warns the user before analyzing
+  - Prevents false tech-debt findings from already-merged upstream commits appearing in the diff
+  - Never auto-fetches or auto-pulls — user is prompted to decide
+
 ## [2.14.0] - 2026-04-16
 
 ### Changed
