@@ -1,8 +1,8 @@
 ---
 name: spec-driven-development
 description: |
-  Use when starting a new feature or significant change and no specification exists yet.
-  Do NOT use for single-line fixes, typos, or unambiguous self-contained changes.
+  Use when starting a new feature or significant change and no specification exists yet. Covers both single-repo and multi-repo (cross-repository) features.
+  Do NOT use for single-line fixes, typos, unambiguous self-contained changes, or post-hoc documentation of already-implemented work.
 keywords:
   - spec
   - specification
@@ -98,10 +98,29 @@ Break into discrete, implementable tasks:
 
 Execute tasks using `tdd` patterns. One task at a time, verify before advancing.
 
+## Multi-Repo Features
+
+A feature is multi-repo when a single change must land in two or more repositories to be useful (e.g., backend exposes a new field, frontend renders it). Detect this in Phase 1 using **description intent plus at least one infrastructure signal**:
+
+- **A (required)**: The feature description spans concerns owned by different repos ("API + UI", "service + worker").
+- **B**: `additionalDirectories` in `.claude/settings.local.json` lists sibling repos as accessible.
+- **C**: A parent `CLAUDE.md` (one level up from cwd) catalogs sibling repos with their purpose.
+
+Trigger multi-repo mode only when **A AND (B OR C)**. `additionalDirectories` alone is a false positive — sibling access is often granted for reference, not feature scope.
+
+When detected, the spec gains:
+
+- A `repos:` block in frontmatter listing each in-scope repo with `name`, `path` (relative to spec's repo), and `role` (`owns-contract` | `consumes-contract`).
+- A **Cross-Repo Contracts** section: endpoint(s), request/response shape, error codes, breaking-change flag. This is the artifact every repo commits to.
+- Per-repo subsections under Commands, Project Structure, Code Style, and Testing Strategy.
+- Tasks tagged with `Repo:` and ordered so contract-owners ship before consumers.
+
+Single-repo features omit all of the above — no behavior change.
+
 ## Keeping the Spec Alive
 
 - Update when decisions or scope change
-- Commit alongside code
+- Keep as a local working artifact; do not commit
 - Reference spec sections in PRs
 
 ## Anti-Rationalizations
@@ -121,4 +140,5 @@ Before proceeding to implementation:
 - [ ] User has reviewed and approved the spec
 - [ ] Success criteria are specific and testable
 - [ ] Boundaries (Always / Ask First / Never) are defined
-- [ ] Spec is saved to a file in the repository
+- [ ] Spec is saved as a local working artifact (`SPEC-<slug>.md`, not committed)
+- [ ] **Multi-repo only**: `repos:` frontmatter, Cross-Repo Contracts section, and `Repo:` task tags are present and confirmed by user
