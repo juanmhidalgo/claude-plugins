@@ -109,8 +109,9 @@ Add tasks to the spec file. Present for review.
 ### Phase 4: Handoff
 
 After all phases are approved:
-- Spec file is committed to the repo
-- User can proceed with `/feature-dev:tdd` or `/feature-dev:explore-plan`
+- The `SPEC-<slug>.md` file is a **local working artifact**, not a repo deliverable. Do NOT commit it, and do NOT run any git commands. Downstream commands read it directly from the working tree.
+- Confirm the spec's frontmatter `status:` is `approved` (it will be flipped to `implemented` automatically when `/feature-dev:tdd` finishes).
+- Stop here. The Stop hook will surface the next-step options (`/feature-dev:explore-plan` or `/feature-dev:tdd`) — let the user choose.
 
 ## Rules
 

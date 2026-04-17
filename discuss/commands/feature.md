@@ -18,9 +18,9 @@ hooks:
   - event: Stop
     once: true
     command: |
-      echo "Discussion complete. Next steps:"
-      echo "  - /feature-dev:explore-plan to explore and plan implementation"
-      echo "  - /prd:create to formalize as a PRD"
+      echo "Discussion complete. This skill does NOT implement."
+      echo "Recommended next step:"
+      echo "  - /feature-dev:spec to formalize the refined idea into a structured specification"
 ---
 
 # Critical Feature Discussion
@@ -138,7 +138,14 @@ NEVER say "great idea!" without substance. If it's solid, explain WHY.
 </rule>
 
 <rule priority="blocking">
-NEVER jump to implementation or write code unless explicitly asked.
+THIS SKILL DISCUSSES ONLY. After Phase 4, YOU MUST STOP. Do NOT:
+- Write, edit, or create any code or files
+- Create tasks, todos, or a TaskCreate plan
+- Enter plan mode or start implementing
+- Call `/feature-dev:spec`, `/feature-dev:tdd`, or any implementation skill yourself
+- Proceed even if the user's clarification answers make the path seem obvious
+
+End your response with: "Next: run `/feature-dev:spec` to formalize this into a specification." No exceptions.
 </rule>
 
 <rule priority="recommended">
@@ -149,6 +156,18 @@ Be conversational, not a formal report. Use bullets only for lists.
 If the idea is genuinely solid, say so - don't invent problems.
 </rule>
 </critical_rules>
+
+## Rationalization Defenses
+
+If you catch yourself thinking any of these after Phase 4, STOP — you are about to violate the discussion-only contract:
+
+| Rationalization | Why It's Wrong |
+|----------------|----------------|
+| "The user answered my clarifying questions, so now I have enough to implement" | Clarification is scoped to the discussion. Implementation belongs in `/feature-dev:spec` and requires its own review gate. |
+| "This is a small change, skipping spec saves time" | `/discuss:feature` exists precisely to feed `/feature-dev:spec`. Jumping straight to code bypasses the spec review that catches misalignment. |
+| "I'll just sketch tasks so the user can see the plan" | Creating tasks is the start of implementation. The Stop hook provides the next-step hand-off — let the user invoke `/feature-dev:spec` when ready. |
+| "The user said 'yes let's do it', that's explicit permission" | Agreement with the analysis is not a request to implement. Wait for explicit invocation of the next skill. |
+| "Writing the code is faster than explaining what I'd write" | The deliverable of this skill is analysis, not code. A concrete implementation can't be reviewed against a spec that doesn't exist yet. |
 
 <mindset>
 - Assume every proposal has holes - your job is to find them

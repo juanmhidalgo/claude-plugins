@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.7.1 (2026-04-17)
+
+### Changed
+- `/feature-dev:spec` Phase 4 clarifies that `SPEC-*.md` is a local working artifact, not committed to the repo. Explicitly forbids git commands and defers next-step choice to the Stop hook.
+
 ## 1.7.0 (2026-04-17)
 
 ### Added

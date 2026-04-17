@@ -154,15 +154,15 @@ Generate prompts for use in other repositories, including API handoffs:
 | `/handoff:frontend-to-backend [feature]` | Generate handoff prompt for backend when frontend needs APIs |
 | `/handoff:receive <prompt>` | Process received handoff with research-first verification and plan mode |
 
-## discussion-toolkit Plugin
+## discuss Plugin
 
-Critical feature discussion and idea refinement:
+Critical feature discussion and idea refinement (discussion-only; hands off to `/feature-dev:spec`):
 
 | Command | Purpose |
 |---------|---------|
-| `/discuss [feature or idea]` | Critical analysis with skeptical Staff Engineer perspective |
+| `/discuss:feature [feature or idea]` | Critical analysis with skeptical Staff Engineer perspective |
 | `/discuss:brainstorm [problem]` | Generate 4-6 alternative approaches |
-| `/discuss:devils-advocate [proposal]` | Argue against to stress-test decision |
+| `/discuss:challenge [proposal]` | Argue against to stress-test decision |
 | `/discuss:tradeoffs [A vs B]` | Compare options with structured pros/cons matrix |
 
 ## feature-dev Plugin

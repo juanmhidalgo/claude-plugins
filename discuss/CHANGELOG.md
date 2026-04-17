@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.3.0] - 2026-04-17
+
+### Changed
+- `/discuss:feature` now hard-stops after analysis — added a blocking rule forbidding code, task creation, plan mode, or calling implementation skills after Phase 4
+- Added Rationalization Defenses table covering the "user answered my questions, so now I can implement" failure mode
+- Stop hook now recommends `/feature-dev:spec` as the single next step (replacing `/feature-dev:explore-plan` and `/prd:create`)
+
 ## [2.2.0] - 2026-04-16
 
 ### Changed
