@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.9.0 (2026-04-22)
+
+### Added
+- `/feature-dev:spec-review` — opt-in validator that reads a `SPEC-*.md` and emits a Blocking / Should Address / Nice to Have gap checklist. Modeled on `prd-toolkit`'s validate pattern but checks SPEC-specific structure: acceptance criteria observability, multi-repo `Cross-Repo Contracts` presence, `Repo:` task tagging, frontmatter validity. Auto-discovers `SPEC-*.md` in repo root when called without arguments.
+- `/feature-dev:plan-review` — opt-in validator for `PLAN-*.md`. Checks `source_spec:` linkage (and that the linked SPEC file still exists), Files-to-Modify table presence, Implementation Order rationale, Risks, Estimated Test Cases. Auto-discovers `PLAN-*.md` in repo root when called without arguments.
+- `spec-plan-validator` subagent — shared backend for both new commands. Routes by `artifact_type` (`spec` or `plan`). Categorical findings only — no numerical scoring (scoring invites rubber-stamping). Findings are advisory and never written back into the artifact.
+- `### Parallelization Hints` section in the plan template emitted by `/feature-dev:explore-plan`. Informational only — flags independent steps from the Implementation Order so a human or future executor can decide where parallel work is safe. Does NOT contain executable subagent prompts (TDD requires sequential discipline, and concurrent edits to overlapping files would collide).
+- `/feature-dev:cleanup` — opt-in bulk deletion of SPEC/PLAN artifacts that are no longer in active use. Categorizes files by safety (implemented specs and orphan plans → safe; in-flight specs/plans → never offered; ambiguous standalone plans → surfaced but not auto-included), then requires a single explicit Y/N confirmation before deletion. `disable-model-invocation: true` so it can never auto-trigger; allowed-tools scoped to `Bash(rm SPEC-*.md)` and `Bash(rm PLAN-*.md)` only. Solves long-term clutter without forcing a delete prompt at every TDD completion.
+
+### Changed
+- `/feature-dev:spec` Stop hook now lists `/feature-dev:spec-review` as an optional next step.
+- `/feature-dev:spec` Phase 4 handoff text updated to include `spec-review` in the next-step parenthetical.
+- `/feature-dev:spec` now adds `SPEC-*.md` to the project's `.gitignore` (new Phase 1 step 6, mirroring the existing `/feature-dev:explore-plan` behavior for `PLAN-*.md`). Closes the `git add .` loophole that previously let SPEC files be committed accidentally despite the documented "local artifact" convention.
+- `/feature-dev:explore-plan` Stop hook now lists `/feature-dev:plan-review` as an optional next step.
+- `/feature-dev:spec-review` and `/feature-dev:plan-review` rules now explicitly state that SPEC/PLAN files are local working artifacts and must not be committed.
+
 ## 1.8.0 (2026-04-17)
 
 ### Added

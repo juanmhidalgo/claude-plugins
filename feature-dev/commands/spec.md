@@ -24,6 +24,7 @@ hooks:
     once: true
     command: |
       echo "Spec complete. Next steps:"
+      echo "  - /feature-dev:spec-review to validate the spec for structural gaps (optional)"
       echo "  - /feature-dev:explore-plan to explore the codebase"
       echo "  - /feature-dev:tdd to start test-driven implementation"
 ---
@@ -98,9 +99,11 @@ Follow the gated workflow. Each phase requires user review before advancing.
    ---
    ```
 
-   Update `status:` to `approved` after the user validates the spec in step 6.
+   Update `status:` to `approved` after the user validates the spec in step 7.
 
-6. **Present to user** for review. Do NOT proceed until they approve.
+6. **Update `.gitignore`.** If the project's `.gitignore` does not already include `SPEC-*.md`, add it. The spec is a local working artifact, not a repo deliverable — this prevents accidental commits via `git add .`. (Mirrors the same step performed by `/feature-dev:explore-plan` for `PLAN-*.md`.)
+
+7. **Present to user** for review. Do NOT proceed until they approve.
 
 ### Phase 2: Plan
 
@@ -145,7 +148,7 @@ Add tasks to the spec file. Present for review.
 After all phases are approved:
 - The `SPEC-<slug>.md` file is a **local working artifact**, not a repo deliverable. Do NOT commit it, and do NOT run any git commands. Downstream commands read it directly from the working tree.
 - Confirm the spec's frontmatter `status:` is `approved` (it will be flipped to `implemented` automatically when `/feature-dev:tdd` finishes).
-- Stop here. The Stop hook will surface the next-step options (`/feature-dev:explore-plan` or `/feature-dev:tdd`) — let the user choose.
+- Stop here. The Stop hook will surface the next-step options (`/feature-dev:spec-review`, `/feature-dev:explore-plan`, or `/feature-dev:tdd`) — let the user choose.
 
 ## Rules
 

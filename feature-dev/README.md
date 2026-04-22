@@ -9,6 +9,9 @@ Feature development workflows with structured phases and quality gates.
 | `/feature-dev:spec <feature>` | Create a structured specification before coding with gated review workflow |
 | `/feature-dev:tdd <spec>` | Test-driven feature development: write failing tests, implement, coverage gate, refactor |
 | `/feature-dev:explore-plan <feature>` | Parallel codebase exploration with 4 agents, synthesized implementation plan |
+| `/feature-dev:spec-review [file]` | Validate a `SPEC-*.md` for structural gaps; emits Blocking / Should Address / Nice to Have checklist |
+| `/feature-dev:plan-review [file]` | Validate a `PLAN-*.md` for structural gaps; emits Blocking / Should Address / Nice to Have checklist |
+| `/feature-dev:cleanup` | Bulk-delete implemented `SPEC-*.md` and stale `PLAN-*.md` artifacts; explicit Y/N confirmation required |
 
 ## Agents
 
@@ -20,6 +23,7 @@ Dedicated exploration agents spawned by `explore-plan` for parallel codebase ana
 | `frontend-explorer` | Components, hooks, API clients, routing, state management, UI patterns |
 | `test-explorer` | Test files, fixtures, factories, coverage config, test patterns |
 | `history-explorer` | Git history, open PRs, recent changes, conflict risk assessment |
+| `spec-plan-validator` | Shared backend for `spec-review` and `plan-review`: structural gap detection on `SPEC-*.md` / `PLAN-*.md` |
 
 ## Skills
 

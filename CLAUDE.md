@@ -174,6 +174,9 @@ Feature development workflows with quality gates:
 | `/feature-dev:spec <feature>` | Create a structured specification with gated review workflow |
 | `/feature-dev:tdd <spec>` | Test-driven development: failing tests → implement → coverage gate → refactor |
 | `/feature-dev:explore-plan <feature>` | Parallel 4-agent codebase exploration → synthesized implementation plan |
+| `/feature-dev:spec-review [file]` | Validate `SPEC-*.md` for gaps: Blocking / Should Address / Nice to Have |
+| `/feature-dev:plan-review [file]` | Validate `PLAN-*.md` for gaps: Blocking / Should Address / Nice to Have |
+| `/feature-dev:cleanup` | Bulk-delete implemented SPEC and stale PLAN artifacts (Y/N confirm) |
 
 ## second-opinion Plugin
 

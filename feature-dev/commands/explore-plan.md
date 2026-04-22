@@ -26,6 +26,7 @@ hooks:
     once: true
     command: |
       echo "Exploration complete."
+      echo "  - /feature-dev:plan-review to validate the plan for structural gaps (optional)"
       echo "  - Review the plan above, then run /feature-dev:tdd to implement"
       echo "  - Or start a NEW conversation and run /feature-dev:tdd (maximizes context)"
 ---
@@ -139,6 +140,12 @@ source_spec: [source_spec path, or null if none]
 ### Risks
 - [Risk 1 — and mitigation]
 - [Risk 2 — and mitigation]
+
+### Parallelization Hints
+<!-- Informational only. Flag steps from "Implementation Order" that are independent and could be worked on in parallel by humans or by a future executor. Do NOT include executable subagent prompts here — TDD requires sequential discipline, and concurrent edits to overlapping files will collide. -->
+- Steps [X] and [Y]: independent — touch different files / different layers, no shared state
+- Step [Z]: must complete before step [W] — [dependency reason]
+- (If nothing to parallelize, write exactly: "All steps are sequentially dependent — no parallelization opportunities.")
 
 ### Estimated Test Cases
 - [Category]: [count] tests ([brief description])
