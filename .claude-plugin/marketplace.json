@@ -5,7 +5,7 @@
   },
   "metadata": {
     "description": "Personal Claude Code plugins for code review, development workflows, and prompt engineering",
-    "version": "1.5.0"
+    "version": "1.6.0"
   },
   "plugins": [
     {
@@ -161,6 +161,17 @@
       },
       "keywords": ["github", "issue", "bug", "fix", "handoff", "multi-repo"],
       "category": "development"
+    },
+    {
+      "name": "intake",
+      "source": "./intake",
+      "description": "Translate unstructured customer/CSM/Sales/Support requests into engineering feasibility reports against the codebase, with capability+constraint decomposition and parallel codebase research",
+      "version": "0.2.0",
+      "author": {
+        "name": "Juan M. Hidalgo"
+      },
+      "keywords": ["intake", "feasibility", "csm", "sales-handoff", "customer-request", "capability-mapping", "constraints"],
+      "category": "productivity"
     }
   ]
 }

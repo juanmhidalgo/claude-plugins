@@ -65,6 +65,18 @@ Critical feature discussion and idea refinement with a skeptical Staff Engineer 
 /plugin install discussion-toolkit@juanmhidalgo-plugins
 ```
 
+### intake
+
+Translate unstructured customer/CSM/Sales/Support requests into engineering feasibility reports against the codebase. Sits before `/discuss:feature` and `/feature-dev:spec` in the workflow.
+
+**Commands:**
+- `/intake:feasibility <request or path>` - Decompose a customer ask into capabilities, research each in parallel against the codebase, produce a Status × Effort × Evidence map with risk callout and phased recommendation
+
+**Install:**
+```bash
+/plugin install intake@juanmhidalgo-plugins
+```
+
 ## Updating Plugins
 
 ```bash

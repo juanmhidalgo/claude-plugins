@@ -165,6 +165,14 @@ Critical feature discussion and idea refinement (discussion-only; hands off to `
 | `/discuss:challenge [proposal]` | Argue against to stress-test decision |
 | `/discuss:tradeoffs [A vs B]` | Compare options with structured pros/cons matrix |
 
+## intake Plugin
+
+Translate unstructured customer/CSM/Sales/Support requests into engineering feasibility reports (sits before `/discuss:feature` and `/feature-dev:spec` in the workflow):
+
+| Command | Purpose |
+|---------|---------|
+| `/intake:feasibility <request or path>` | Decompose a customer ask into capabilities, research each in parallel, produce Status × Effort × Evidence map with risk callout and phased recommendation |
+
 ## feature-dev Plugin
 
 Feature development workflows with quality gates:
