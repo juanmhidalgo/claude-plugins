@@ -65,11 +65,12 @@ Extract from the feasibility report:
 - The capability map (Status, Effort per capability)
 - The constraints (if any) — distinguishing POLICY constraints from TEMPORAL constraints
 - The "Feasibility against [customer]'s stated deadline" section (if any) — the per-capability ✅/⚠️/❌ verdict
-- The phased recommendation
+- The "Workarounds available today" section (if any) — combinations of existing capabilities that meet some of the ask without new code
+- The phased recommendation, including any "Pragmatic alternative path" subsection (alternative trajectory using existing patterns)
 - The "Excluded for this customer" list (if any)
 - The open questions
 
-If any of these sections are missing, note it but proceed — older reports may not have constraint extraction or temporal feasibility data.
+If any of these sections are missing, note it but proceed — older reports may not have constraint extraction, temporal feasibility data, or the alternatives lens.
 
 ## Phase 2: Translate Capabilities to Plain Language
 
@@ -147,6 +148,20 @@ Produce **two output formats**, in this order:
 **Not a path forward for [customer name]:**
 - <Customer-facing capability name> — <which constraint applies; suggested alternative>
 
+## Workarounds available today (no new build required)
+
+For each workaround in the feasibility report's `Workarounds available today` section:
+- **<workaround title>** — combines <existing capabilities, in plain language>. Operational burden: <who runs it, how often>. Does NOT solve: <what's still missing>.
+
+Omit this section entirely if the feasibility report has no workarounds.
+
+## Pragmatic alternative path (instead of bespoke Phase 1)
+
+For each entry in the feasibility report's `Pragmatic alternative path` subsection:
+- **<pattern title>** — extends/clones an existing pattern in our system. Could partially or fully address: <which capabilities>. Trades: <what it sacrifices for what it gains>.
+
+Omit this section entirely if no pragmatic alternative was found.
+
 ## Against [customer]'s stated deadline ([date])
 
 **Achievable in principle within their window:**
@@ -184,6 +199,14 @@ This is the channel most engineers actually use to coordinate with CSM. The mess
 - <bullet, what's a deliberate-planning item>
 - <bullet, what's a larger initiative>
 - <bullet, what's blocked by a constraint and our recommended alternative>
+
+**Could meet some of the ask today without new code:**
+- <one-line workaround> — <operational burden>; doesn't solve <what's still missing>
+*(Omit this whole section if no workarounds. Omit any individual workaround row that doesn't apply.)*
+
+**Pragmatic alt to bespoke Phase 1:**
+- <pattern title>: extend <existing pattern> to <what it'd cover>. Trades <what it sacrifices> for <what it gains>.
+*(Omit this section if no pragmatic alternative was found.)*
 
 **Against [customer]'s stated deadline ([date]):**
 - ✅ Achievable in principle: <list of capabilities>

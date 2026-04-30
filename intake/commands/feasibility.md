@@ -153,16 +153,21 @@ Do not ask multiple rounds of clarification — one pass only.
 ## Phase 3: Parallel Research
 
 <research priority="critical">
-Spawn **one Explore subagent per capability** in parallel (single message, multiple Agent tool calls). Each subagent receives a self-contained prompt.
+Spawn **N + 1 Explore subagents in parallel** in a single message, multiple Agent tool calls:
+- **N capability subagents** — one per capability, vertical lens ("does X work?")
+- **1 alternatives subagent** — horizontal lens ("what existing patterns could be cloned, extended, or repurposed?")
 
-**Each Explore prompt must include:**
+All `N + 1` agents must use `model: "sonnet"` (per repository convention — Explore agents must use sonnet). Wait for all to return before proceeding to Phase 4.
+
+### Capability subagent prompts
+
+**Each capability prompt must include:**
 1. The capability statement (one line)
 2. The original quote from the customer request
 3. Specific search terms to investigate (3–8 keywords/identifiers)
 4. The exact output schema below
-5. `model: "sonnet"` (per repository convention — Explore agents must use sonnet)
 
-**Required output schema for each Explore subagent:**
+**Required output schema for each capability subagent:**
 
 ```markdown
 ## Capability <ID>: <statement>
@@ -180,7 +185,46 @@ Spawn **one Explore subagent per capability** in parallel (single message, multi
 - **medium** — days; new endpoint/model/migration, fits existing patterns
 - **large** — weeks; new infrastructure, new dependencies, new architectural pattern, or cross-cutting changes
 
-Wait for all subagents to return before proceeding to Phase 4.
+### Alternatives subagent prompt
+
+The alternatives agent has a different lens than the capability agents. It looks **horizontally** across the codebase for existing patterns and operationally-realistic combinations of EXISTS capabilities. It is NOT bounded to any single capability.
+
+**The alternatives prompt must include:**
+1. The full customer request (so the agent sees the complete ask, not one slice)
+2. The list of capability IDs and one-line statements (so the agent knows what's being researched separately and avoids duplicating)
+3. The two-question lens (workarounds + pragmatic alternatives)
+4. The exact output schema below
+
+**Required output schema for the alternatives subagent:**
+
+```markdown
+## Workarounds available today
+
+For each operationally-realistic combination of EXISTS capabilities + manual or admin steps that meets some subset of the customer's ask without writing new production code:
+
+| ID | Workaround | Combines | Operational burden | What it does NOT solve |
+|----|------------|----------|---------------------|------------------------|
+| W1 | <one-line title> | <which existing capability IDs and which existing tools/admin pages> | <who runs it, how often, by hand or scripted> | <which capability IDs remain unaddressed> |
+
+## Pragmatic alternatives (clone or extend existing patterns)
+
+For each existing pattern in the codebase that could be cloned/extended/broadened to ship a larger acceptable version of the ask faster than building bespoke from scratch:
+
+| ID | Pattern | Found at | Could address | Effort to broaden |
+|----|---------|----------|---------------|-------------------|
+| P1 | <one-line title — what the pattern is> | <file:line> | <capability IDs this could partially or fully replace> | trivial / small / medium |
+```
+
+If neither lens finds anything operationally realistic or backed by file:line evidence, output exactly:
+
+> "No workarounds or pragmatic alternatives identified. Bespoke build appears necessary."
+
+**Rules for the alternatives agent:**
+- Workarounds must be **operationally realistic**. An admin running an export 4× per day is plausible; an admin running it 4× per *minute* is not — don't list it.
+- Pragmatic alternatives must be **backed by file:line evidence** of the existing pattern. No speculation about "we probably have something like this."
+- Always state the **operational burden** of a workaround. "CS runs it daily" is a real workaround with real cost; the cost is part of the workaround's data.
+- Always state **what the workaround does NOT solve**. A workaround that meets 60% of the ask is useful; one that hides the other 40% is dangerous.
+- Pragmatic alternatives are usually **trade-offs**, not strict replacements. Note what they sacrifice (less custom, less flexible, etc.) when relevant.
 </research>
 
 ## Phase 4: Synthesize the Report
@@ -244,11 +288,17 @@ A single table with all capabilities:
 |----|------------|--------|--------|-------------|
 | A | ... | EXISTS | trivial | ... |
 
-The "Key Finding" column is one short sentence with the most important file:line evidence or the dominant gap. Detailed evidence belongs in the per-capability sections (next).
+The "Key Finding" column is one short sentence with the most important file:line evidence or the dominant gap. Detailed evidence belongs in the per-capability sections.
+
+### Workarounds available today (Required when alternatives agent returned workarounds)
+
+Surface the alternatives agent's `Workarounds available today` table verbatim. Do NOT summarize. Place between the Capability Map and Per-Capability Detail so the reader sees "what could meet some of the ask without new code" right after seeing what exists.
+
+If the alternatives agent returned no workarounds (output was "No workarounds or pragmatic alternatives identified..."), omit this section entirely. Don't write a placeholder.
 
 ### Per-Capability Detail (Required)
 
-One subsection per capability with the schema returned by the Explore subagents. Do not summarize — copy the full evidence.
+One subsection per capability with the schema returned by the capability subagents. Do not summarize — copy the full evidence.
 
 ### Top 3 Risks (Required)
 
@@ -279,9 +329,19 @@ Group capabilities into phases by effort and dependency, with this format:
 ### Phase 3 — <theme> (<aggregate effort>)
 ...
 
+### Pragmatic alternative path (Optional — only when the alternatives agent returned pragmatic alternatives)
+
+Instead of the bespoke Phase 1 → 2 → 3 trajectory, an alternative using existing patterns:
+- <Pattern ID from alternatives table> — <one-line action; what existing pattern is broadened, file:line>
+- ...
+
+**Trades:** <what this alternative sacrifices (less custom UX, less flexibility, etc.) for what it gains (faster ship, lower complexity)>
+
 ### Excluded for this customer
 - <Capability ID> — blocked by <Constraint tag>: <one-line reason>
 ```
+
+Pragmatic alternatives are *trade-offs against the ideal Phase 1*, not strict replacements. Surface them as a separate path so CSM/eng leads can choose based on the trade. Omit the entire "Pragmatic alternative path" section if the alternatives agent returned none.
 
 **Rules:**
 - Order phases by smallest-impact-to-customer-blockers first. Customer asks like "we need this by Q3" mean Phase 1 must unblock the most painful part of their workflow.
@@ -367,6 +427,9 @@ If you catch yourself thinking any of these, STOP — you are about to violate t
 | "Email-with-signed-URL is technically not 'sending data via email' so the constraint doesn't apply" | The customer's IT department wrote the policy, not you. A signed link IS the candidate data being delivered via email from the customer's perspective — the file is one click away. Do not lawyer the constraint. |
 | "The customer set a date, so I can use that as our delivery commitment" | The customer asked; engineering assesses; CSM negotiates. A TEMPORAL constraint is a window to evaluate against, not a date for engineering to commit to. Use ✅/⚠️/❌ "achievable in principle" language, never "we will deliver by X". |
 | "The deadline is unrealistic for the larger items, I'll just leave them off the report" | Don't drop capabilities to hide an awkward verdict. ❌ "not realistic in this window" is the honest, useful answer — it tells CSM what to negotiate around. Hiding it just delays the same conversation. |
+| "I can skip the alternatives agent — the capability agents already cover what exists" | The capability agents look vertically (does X work?). The alternatives agent looks horizontally (what existing pattern could be cloned, what combination of EXISTS could meet the ask without new code?). Different lens, different output — skipping it costs you the workarounds that often *are* the right answer. |
+| "I'll list a workaround as 'an admin can run this hourly' even though that's operationally unrealistic" | A workaround that no human would actually operate is not a workaround. The bar is "could realistically be operated by a real CS team without burning out". State the operational burden honestly so the reader can judge. |
+| "I found something similar in the codebase, I'll list it as a pragmatic alternative even without specific file:line" | Pragmatic alternatives must be backed by file:line evidence. "We probably have something like this" is speculation — same problem as guessing Status: EXISTS without citations. |
 
 <mindset>
 - The customer's prose is a hypothesis, not a specification

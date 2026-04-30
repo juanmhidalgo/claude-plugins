@@ -33,11 +33,14 @@ Decompose a customer request into atomic capabilities **and constraints** (POLIC
 - Constraints section (when present) — POLICY constraints that exclude solutions for this customer, TEMPORAL constraints (deadlines) that filter capabilities by feasibility-within-window
 - **Feasibility against stated deadline** section (when a TEMPORAL constraint is present) — per-capability ✅ achievable in principle / ⚠️ tight, may slip / ❌ not realistic
 - Capability map table (Status × Effort × Key Finding)
+- **Workarounds available today** (when found) — combinations of EXISTS capabilities + manual operation that meet some subset of the ask without new code, with operational burden noted
 - Per-capability evidence with `file:line` references
 - Top 3 risks for the overall request
-- Phased recommendation, with constraint-violating capabilities listed under `Excluded for this customer`
+- Phased recommendation, with: constraint-violating capabilities under `Excluded for this customer`, and an optional **Pragmatic alternative path** when an existing pattern could be cloned/extended faster than bespoke
 - Open questions back to the customer (when applicable)
 - After printing, the command asks whether to save it to `INTAKE-feasibility-<slug>.md` — opt-in only
+
+**Research model:** Phase 3 spawns N + 1 parallel Explore subagents — N capability agents (one per atomic ask) plus 1 alternatives agent (horizontal pass for workarounds and pragmatic alternatives). The two lenses are kept separate so each agent's output schema stays clean.
 
 **Examples:**
 

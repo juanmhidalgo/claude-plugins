@@ -77,7 +77,8 @@ For each capability and risk in the report, check whether it triggers any of the
 | **Buy-vs-build** | A `large` capability has a known SaaS substitute | CSM, Sales |
 | **Existing-customer impact** | A capability touches code shared with other customers | CSM (always), Engineering Manager |
 | **Why-not-already-built** | A `MISSING` capability sounds obvious or table-stakes | CSM, Customer, Sales |
-| **Workaround feasibility** | A `MISSING` capability has a manual path | CSM, Sales |
+| **Workaround feasibility** | The report lists `Workarounds available today` (combinations of EXISTS capabilities + manual operation), OR a `MISSING` capability has a manual path | CSM, Sales |
+| **Pragmatic-alternative pushback** | The report lists a `Pragmatic alternative path` (clone/extend an existing pattern instead of bespoke); the asker may push back on the trade-off | Sales, occasionally Engineering Manager |
 | **Silent-bug embarrassment** | A risk callout names a silent bug | CSM specifically |
 | **Competitor-does-this** | A `MISSING` capability is offered by a known competitor | Sales |
 | **Constraint re-litigation** | The customer pushes back on their own stated constraint | Customer, Sales |

@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.7.0] - 2026-04-30
+
+### Added
+- `/intake:feasibility` Phase 3 now spawns **N + 1 parallel Explore subagents**: N capability agents (vertical lens — "does X work?") plus **1 alternatives agent** (horizontal lens — "what existing patterns could be cloned, extended, or repurposed?"). The two lenses are kept separate so each agent's output schema stays clean.
+- New synthesis section: **Workarounds available today** — combinations of EXISTS capabilities + manual or admin operation that meet some subset of the customer's ask without writing new production code. Includes operational burden and what each workaround does NOT solve.
+- New phased-recommendation subsection: **Pragmatic alternative path** — when an existing pattern in the codebase could be cloned/extended/broadened to ship a larger acceptable version of the ask faster than building bespoke. Always framed as a trade-off (what it sacrifices vs. what it gains), not a strict replacement.
+- `/intake:respond-draft` Format A and Format B both surface workarounds and pragmatic alternatives when the feasibility report contains them. Empty-section rule applies — omit headings that have no entries.
+- `/intake:objection-prep` checklist gains a new **pragmatic-alternative pushback** category and the **workaround feasibility** category is updated to recognize the report's first-class `Workarounds available today` data.
+- Three new rationalization defenses targeting the failure modes the alternatives lens introduces: skipping the alternatives agent because "the capability agents covered it", listing operationally-unrealistic workarounds, and citing pragmatic alternatives without `file:line` evidence.
+
 ## [0.6.0] - 2026-04-30
 
 ### Added
