@@ -1,8 +1,8 @@
 ---
 description: |
-  Use AFTER /intake:feasibility to draft a customer/CSM-facing reply from the engineering feasibility report.
-  Translates the capability map and constraints into commitment-free customer language suitable for forwarding to CSM, Sales, or the customer directly.
-  Do NOT use for spec writing, internal engineering status updates, or anything that requires concrete delivery commitments — this command emits NO calendar dates, week counts, sprint references, or specific timing by design.
+  Use AFTER /intake:feasibility to summarize the engineering findings for CSM in plain language — drops file paths, library names, and engineering jargon so CSM has the context they need to drive the customer conversation in their own voice.
+  Do NOT use to draft customer-facing messages — that is CSM's job and out of scope for this command. This command stops at the engineering→CSM handoff.
+  Do NOT use for spec writing or internal engineering status updates. Emits NO calendar dates, week counts, sprint references, or specific timing by design.
 argument-hint: "<paste feasibility report OR path to INTAKE-feasibility-*.md>"
 allowed-tools:
   - Read
@@ -10,17 +10,17 @@ allowed-tools:
   - Grep
   - AskUserQuestion
 keywords:
-  - customer-response
-  - csm-reply
-  - feasibility-reply
+  - csm-summary
+  - csm-handoff
+  - feasibility-summary
   - respond-draft
   - intake-handoff
 triggers:
-  - "draft a reply"
-  - "customer-facing response"
+  - "summarize for csm"
   - "send this to csm"
-  - "write the customer version"
-  - "reply to the customer"
+  - "csm summary"
+  - "engineering read for csm"
+  - "draft a reply"
 hooks:
   - event: Stop
     once: true
@@ -35,9 +35,11 @@ hooks:
 If you were dispatched as a subagent to execute a specific task, skip this command and proceed with your assigned task.
 </SUBAGENT-STOP>
 
-# Customer-Facing Response Draft
+# CSM Summary of Engineering Findings
 
-You are translating an engineering feasibility report into a customer/CSM-facing reply. Your audience is **non-technical**: CSM, Sales, the customer themselves. The output must be honest, commitment-free on timing, and ready to forward.
+You are summarizing an engineering feasibility report **for CSM**. Your audience is the CSM owner of this customer relationship — they are not engineers, but they speak the product's domain language fluently. Your job is to translate the engineering findings into plain language so CSM has what they need to drive the customer conversation **in their own voice**.
+
+**Out of scope**: drafting the customer-facing message itself. That is CSM's job — they own the customer relationship and the voice that fits it. This command stops at the engineering→CSM handoff.
 
 <context>
 **Working directory**: !`pwd`
@@ -52,9 +54,9 @@ The argument may be either:
 
 If the input is empty or no feasibility report can be found, tell the user:
 
-> "This command translates a feasibility report into a customer reply. Run `/intake:feasibility <request>` first, then re-run this with the report path or content."
+> "This command summarizes a feasibility report for CSM. Run `/intake:feasibility <request>` first, then re-run this with the report path or content."
 
-Do not draft a reply without a feasibility report — you cannot honestly describe what's available without verified evidence.
+Do not summarize without a feasibility report — you cannot honestly describe what's available without verified evidence.
 </input_handling>
 
 ## Phase 1: Read the Report
@@ -68,13 +70,13 @@ Extract from the feasibility report:
 
 If any of these sections are missing, note it but proceed — older reports may not have constraint extraction.
 
-## Phase 2: Translate Capabilities to Customer Language
+## Phase 2: Translate Capabilities to Plain Language
 
 <translation>
-Translate engineering jargon into language a non-technical reader understands. Examples:
+Translate engineering jargon into language CSM understands. CSM speaks the product's domain language ("audience," "candidate," "interview," "report") fluently — but does not read code. Examples:
 
-| Engineering language | Customer-facing translation |
-|---------------------|------------------------------|
+| Engineering language | Plain-language version |
+|---------------------|------------------------|
 | `Candidate.custom_fields JSONField exists` | "Our data model already supports custom fields" |
 | `bulk_import.py drops unknown columns` | "Custom field columns aren't currently being saved during upload" |
 | `JWT-authenticated org-facing endpoint` | "A self-service download from within the application" |
@@ -85,13 +87,13 @@ Translate engineering jargon into language a non-technical reader understands. E
 Drop entirely:
 - File paths and `file:line` references
 - Library/framework names (`Pipfile`, `Celery Beat`, `JSONField`, `paramiko`, etc.)
-- Internal service names that are not customer-recognizable
+- Internal service implementation names not recognizable to CSM
 - Repository names
 
 Keep:
 - The honest verdict (works today / needs work / not currently supported)
 - The shape of any limitation
-- The name of any external dependency the *customer* knows about
+- Product-domain terms CSM uses with customers (audience, interview, candidate, report, KPI dashboard, etc.)
 </translation>
 
 ## Phase 3: Group by Commitment Category (NOT by Phase)
@@ -155,12 +157,10 @@ Produce **two output formats**, in this order:
 
 ### Format B: Slack message to CSM (default channel)
 
-This is the channel most engineers actually use to coordinate with CSM. The message is written for posting directly into a Slack thread or DM — short top section for CSM, with a quotable customer-facing block they can copy-paste-and-adapt for the customer.
-
-Structure:
+This is the channel most engineers actually use to coordinate with CSM. The message is written for posting directly into a Slack thread or DM. Structure:
 
 ```markdown
-**Feasibility on the [short topic] ask** — TL;DR + customer-facing draft below.
+**Feasibility on the [short topic] ask** — engineering's read for you below.
 
 **The honest read:**
 - <bullet, plain language, what works today>
@@ -169,17 +169,16 @@ Structure:
 - <bullet, what's a larger initiative>
 - <bullet, what's blocked by a constraint and our recommended alternative>
 
-**Customer-facing draft you can adapt for [customer name]:**
-> <The customer-readable prose, written so CSM can copy-paste into their own outbound message to the customer. Acknowledges the request, walks through what works / what needs work / what's larger, registers the constraint and recommends the alternative, ends with the open questions and a [CSM TO CONFIRM TIMELINE] placeholder.>
-
-**Open questions** you'll want answers on before scoping further:
+**Open questions** to relay back to [customer name]:
 - <Question> — <why it matters>
 - ...
 
 **Timing**: [CSM TO CONFIRM TIMELINE] — once you have answers above + prioritization context.
 ```
 
-**Format adaptation**: This structure works as-is in Slack. If the team uses email or a ticket comment thread instead, the same content reads fine — adjust the opener, add a salutation/sign-off if the channel calls for it, and remove the `>` quote marks if rendering matters. Tell the user to ask for an email/ticket version if they need one; don't generate both speculatively.
+**Why no customer-facing draft**: writing the customer message is CSM's job — they own the customer relationship, the voice, and the prioritization context. Engineering's role here is to give CSM a clear engineering read so CSM has what they need to drive the conversation in their own voice.
+
+**Format adaptation**: This structure works as-is in Slack. If the team uses email or a ticket comment thread instead, adjust the opener and add a salutation/sign-off if the channel calls for it. Tell the user to ask for an email/ticket version if they need one; don't generate both speculatively.
 </draft_structure>
 
 ## Phase 6: Print, Then Offer to Save (Optional)
@@ -231,12 +230,14 @@ If you catch yourself thinking any of these, STOP — you are about to violate t
 
 | Rationalization | Why It's Wrong |
 |----------------|----------------|
-| "I'll add 'approximately 2 weeks' so the customer has *something*" | Approximate timelines are still timelines. The customer hears "2 weeks" and forgets "approximately." Use `[CSM TO CONFIRM TIMELINE]` so the human owner sets the number. |
-| "The effort estimate is 'small' so 'a few days' is safe to write" | Effort is not delivery. A "small" change still has to fit in a sprint, get reviewed, deployed, and verified. The CSM/owner has the prioritization context that engineering doesn't. |
-| "The customer needs *some* signal on timing or they'll escalate" | An honest "we need to confirm prioritization" is a better signal than a date you'll miss. Missed dates erode trust faster than no dates. |
-| "I'll just put the engineering phase numbers in the customer reply" | Phase 1/2/3 in the engineering report carries time-effort coupling. In the customer reply, those phase numbers will be read as time commitments. Translate to commitment categories instead. |
+| "I'll add 'approximately 2 weeks' so CSM has something to relay" | Approximate timelines are still timelines. CSM relays "2 weeks" and the customer forgets "approximately." Use `[CSM TO CONFIRM TIMELINE]` so the human owner sets the number after their prioritization conversations. |
+| "The effort estimate is 'small' so 'a few days' is safe to write" | Effort is not delivery. A "small" change still has to fit in a sprint, get reviewed, deployed, and verified. CSM has prioritization context that engineering doesn't. |
+| "CSM needs *some* signal on timing or they'll escalate" | An honest "we need prioritization input from your side" is a better signal than a date that gets missed. Missed dates erode trust faster than no dates. |
+| "I'll just put the engineering phase numbers in the Slack message" | Phase 1/2/3 in the engineering report carries time-effort coupling. In a CSM-facing message, those phase numbers will be read as time commitments. Translate to commitment categories instead. |
 | "The constraint says no email but a signed link is technically not email" | The customer's IT department wrote the policy. They decide what counts. Do not propose workarounds the customer didn't ask for. |
-| "Status is PARTIAL but the gap is tiny, I'll write 'supported'" | PARTIAL is PARTIAL. The customer who reads "supported" and then runs into the gap will trust us less than the customer who reads "supported with a small adjustment needed" and has accurate expectations. |
+| "Status is PARTIAL but the gap is tiny, I'll write 'supported'" | PARTIAL is PARTIAL. The CSM who relays "supported" and then has a customer hit the gap will lose more trust than the CSM who relayed "supported with a small adjustment needed" up front. |
+| "I should still draft a customer-facing version, CSM will appreciate the head start" | CSM owns the customer relationship and voice. A pre-written customer-facing block creates expectation drift (CSM may feel pressure to forward verbatim) and strips CSM's authorship of their own communication. Stay in the engineering→CSM lane. |
+| "CSM will paraphrase my Slack message verbatim to the customer, I should write it customer-ready" | If the Slack message is customer-ready, you've quietly taken over CSM's job. Write it for CSM as the *reader*, not the customer. CSM translates to customer voice with their own context and tone. |
 
 <mindset>
 - Every word in this draft will be quoted back at us if it turns out wrong

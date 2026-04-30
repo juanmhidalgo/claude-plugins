@@ -57,11 +57,13 @@ Decompose a customer request into atomic capabilities **and constraints**, resea
 
 ### `/intake:respond-draft <feasibility-report-or-path>`
 
-Translate the engineering feasibility report into a customer/CSM-facing reply. Drops file paths and library names, uses commitment categories instead of phases, and emits **no calendar dates by design**.
+Summarize the engineering feasibility report **for CSM** in plain language. Drops file paths and library names, uses commitment categories instead of phases, and emits **no calendar dates by design**.
 
 **Output:**
 - Format A — Structured status (for CSM internal review): capabilities grouped by `Currently supported` / `Supported with a small adjustment` / `Possible with deliberate planning` / `Significant initiative required` / `Not a path forward for [customer]`. Empty buckets are omitted.
-- Format B — **Slack message to CSM (default channel)**: starts with a TL;DR section addressed to CSM, then a quotable customer-facing block CSM can copy-paste-and-adapt for the customer, then open questions, then a `[CSM TO CONFIRM TIMELINE]` line. Email or ticket-comment versions of the same content can be requested in a follow-up message — there is no `--channel` argument by design.
+- Format B — **Slack message to CSM (default channel)**: TL;DR engineering read for CSM, open questions to relay, then a `[CSM TO CONFIRM TIMELINE]` line. Email or ticket-comment versions of the same content can be requested in a follow-up message — there is no `--channel` argument by design.
+
+**Why no customer-facing draft:** writing the customer message is CSM's job — they own the customer relationship, the voice, and the prioritization context. Engineering's role here is to give CSM a clear engineering read so CSM has what they need to drive the customer conversation in their own voice.
 
 **Why no dates:** engineering effort estimates do not equal delivery dates — prioritization, code review, deployment, and QA cycles all sit between effort and ship. The CSM/owner sets timing based on their authority and prioritization conversations.
 

@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.0] - 2026-04-30
+
+### Changed (BREAKING — output structure)
+- `/intake:respond-draft` is reframed as a **CSM summary of engineering findings**, not a customer-facing reply draft. The customer-facing block is removed from Format B — drafting customer-facing communication is CSM's job, not engineering's, and pre-writing it created expectation drift around voice and authorship.
+- Format B now contains: TL;DR engineering read for CSM → open questions to relay → `[CSM TO CONFIRM TIMELINE]`. No quotable customer-facing block.
+- Added two rationalization defenses guarding the new boundary: "I should still draft a customer-facing version, CSM will appreciate the head start" and "CSM will paraphrase my Slack message verbatim, I should write it customer-ready."
+- Description, header, and Phase 2 wording shifted from "customer language" to "plain language" with CSM as the explicit reader. Translation rules unchanged in substance — engineering jargon (file paths, library names) still drops; product-domain terms (audience, candidate, KPI dashboard) still stay.
+
 ## [0.4.0] - 2026-04-30
 
 ### Changed
