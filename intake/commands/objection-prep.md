@@ -114,10 +114,44 @@ For each likely objection, output the following:
 - Never commit to a date or a workaround that isn't in the report
 </response_schema>
 
-## Phase 4: Print, Then Offer to Save (Optional)
+## Phase 4: Tier the Prepped Responses
+
+<tiering>
+A flat list of 8–10 Q&A entries is exhausting to scan before a customer call. Sort the prepped objections into three tiers so the engineer can triage at a glance.
+
+### Tier rules
+
+**Must-prep — almost certainly will come up. Limit: 2–4 entries.**
+
+A Q goes in Must-prep if it satisfies *any* of:
+- The report has a **silent-bug embarrassment** finding (silent bugs always force the conversation)
+- A capability the customer **explicitly named** in the request is excluded by a **constraint**
+- A capability the customer **explicitly named** has Status MISSING with Effort `large`
+- The report has a `MISSING` capability that sounds **table-stakes for the customer's industry** (e.g., "self-service download" for a B2B data product)
+
+**Should-prep — likely depending on asker's context. Limit: 2–4 entries.**
+
+A Q goes in Should-prep if it satisfies *any* of:
+- A `medium` or `large` capability touches **shared code or infrastructure** that affects existing customers
+- The customer is asking for a **one-off** version of something that should be platform-level
+- A `MISSING` capability has a **manual workaround** the asker is likely to ask about
+- A constraint applies that the **customer themselves** might re-litigate (asks like "couldn't we make an exception?")
+
+**Nice-to-prep — only if the conversation goes specific directions. Limit: any remaining triggered categories.**
+
+Everything else: buy-vs-build (only if there's a known managed substitute), pure effort grumbling on items where everyone already agrees the work is large, competitor parity questions (only if grounded), etc.
+
+### How to use the tiers
+
+- The Must-prep section is the **commit-to-memory** set — the engineer reads these before the call and is ready
+- The Should-prep section is the **scan-once** set — the engineer skims these so phrases don't catch them off guard
+- The Nice-to-prep section is the **reference** set — read it if there's time, otherwise skip
+</tiering>
+
+## Phase 5: Print, Then Offer to Save (Optional)
 
 <output>
-**Default behavior is print-only.** Print the Q&A list inline, organized by category. Then ask once via AskUserQuestion:
+**Default behavior is print-only.** Print the Q&A list inline organized by tier (Must-prep, then Should-prep, then Nice-to-prep), with the tier headings clearly marked. Then ask once via AskUserQuestion:
 
 > "Save this objection prep as a file?"
 
@@ -128,9 +162,9 @@ Options:
 
 If declined, do nothing further.
 
-End your final response with a one-line summary noting which categories were triggered and which were not (so the user knows what was *not* anticipated, not just what was). Example:
-
-> "Triggered: effort objection, constraint re-litigation, why-not-already-built. Not triggered: buy-vs-build, competitor-does-this, hack-it-for-one-customer."
+End your final response with a two-line summary:
+1. Tier counts: e.g., "Must-prep: 3, Should-prep: 4, Nice-to-prep: 2"
+2. Which categories were triggered AND which were not (so the user knows what was *not* anticipated, not just what was). Example: "Triggered: effort objection, constraint re-litigation, silent-bug embarrassment, ... Not triggered: competitor-does-this."
 </output>
 
 <critical_rules>

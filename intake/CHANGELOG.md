@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.0] - 2026-04-30
+
+### Changed
+- `/intake:respond-draft` Format A now omits empty commitment-category buckets (no more "Currently supported: (none with no caveats)" placeholder lines).
+- `/intake:respond-draft` Format B is reframed as a **Slack message to CSM by default** — the channel most engineers actually use to coordinate with CSM. The structure leads with a TL;DR for CSM, then a quotable customer-facing block CSM can copy-paste-and-adapt for the customer. Other channels (email, ticket comment) work with the same content; the user can ask for an adapted version when needed (no explicit `--channel` argument by design).
+- `/intake:objection-prep` output is now tiered into **Must-prep / Should-prep / Nice-to-prep** sections so engineers can triage at a glance instead of scanning a flat list of 8–10 Q&A entries. Tier rules are explicit — silent bugs, constraint-blocked customer-named capabilities, and large-effort customer-named capabilities go to Must-prep automatically.
+
 ## [0.3.0] - 2026-04-30
 
 ### Added

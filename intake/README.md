@@ -60,8 +60,8 @@ Decompose a customer request into atomic capabilities **and constraints**, resea
 Translate the engineering feasibility report into a customer/CSM-facing reply. Drops file paths and library names, uses commitment categories instead of phases, and emits **no calendar dates by design**.
 
 **Output:**
-- Format A — Structured status (for CSM internal review): capabilities grouped by `Currently supported` / `Supported with a small adjustment` / `Possible with deliberate planning` / `Significant initiative required` / `Not a path forward for [customer]`
-- Format B — Customer-facing prose: forwardable reply that acknowledges constraints, lists what works today, describes the shape of work needed, and ends with `[CSM TO CONFIRM TIMELINE]` placeholders for the CSM to fill in
+- Format A — Structured status (for CSM internal review): capabilities grouped by `Currently supported` / `Supported with a small adjustment` / `Possible with deliberate planning` / `Significant initiative required` / `Not a path forward for [customer]`. Empty buckets are omitted.
+- Format B — **Slack message to CSM (default channel)**: starts with a TL;DR section addressed to CSM, then a quotable customer-facing block CSM can copy-paste-and-adapt for the customer, then open questions, then a `[CSM TO CONFIRM TIMELINE]` line. Email or ticket-comment versions of the same content can be requested in a follow-up message — there is no `--channel` argument by design.
 
 **Why no dates:** engineering effort estimates do not equal delivery dates — prioritization, code review, deployment, and QA cycles all sit between effort and ship. The CSM/owner sets timing based on their authority and prioritization conversations.
 
@@ -71,10 +71,11 @@ Translate the engineering feasibility report into a customer/CSM-facing reply. D
 
 Anticipate the questions, pushback, and objections the engineer will receive from CSM, Sales, or the customer when sharing the feasibility report.
 
-**Output:**
-- Q&A list ordered by likelihood, each with the question in the asker's actual voice, a prepped factual response, and an optional escalation path
-- Categories considered: effort, hack-it-for-one-customer, constraint, buy-vs-build, existing-customer impact, why-not-already-built, workaround feasibility, silent-bug embarrassment, competitor-does-this, constraint re-litigation
-- Final summary of which categories were triggered AND which were not (so the engineer knows what was not anticipated)
+**Output (tiered for triage):**
+- **Must-prep** (2–4 entries) — almost certainly will come up: silent bugs, customer-named capabilities blocked by constraints, customer-named capabilities with `large` effort
+- **Should-prep** (2–4 entries) — likely depending on asker's context: existing-customer impact, hack-for-one-customer pressure, manual-workaround questions, constraint re-litigation
+- **Nice-to-prep** (remainder) — only if the conversation goes specific directions: buy-vs-build, competitor parity, etc.
+- Final summary with tier counts AND which categories were triggered vs not triggered
 
 ## When to Use This Plugin
 

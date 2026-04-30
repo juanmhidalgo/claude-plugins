@@ -151,16 +151,35 @@ Produce **two output formats**, in this order:
 - <Question> — <why it matters>
 ```
 
-### Format B: Customer-facing prose (forwardable as-is)
+**Empty-bucket rule**: Omit any commitment-category bucket that has zero entries. Do not write "Currently supported: (none with no caveats)" — drop the heading entirely. Empty buckets are noise that obscures the buckets that matter.
 
-A single readable response in the voice of the engineering or CS team. Structure:
+### Format B: Slack message to CSM (default channel)
 
-1. **Acknowledge the request** — restate what they asked for in your own words to confirm understanding
-2. **What works today** — direct list of "currently supported" items
-3. **What needs work** — honest description of partial/missing items, with the shape of work required (no timing)
-4. **What's blocked for them specifically** — call out constraints + recommended alternatives
-5. **What we need from them** — open questions, framed as "to scope this further, we'd want to confirm…"
-6. **Close with a soft handoff** — "[CSM TO CONFIRM TIMELINE]" placeholder where the CSM will fill in delivery expectations
+This is the channel most engineers actually use to coordinate with CSM. The message is written for posting directly into a Slack thread or DM — short top section for CSM, with a quotable customer-facing block they can copy-paste-and-adapt for the customer.
+
+Structure:
+
+```markdown
+**Feasibility on the [short topic] ask** — TL;DR + customer-facing draft below.
+
+**The honest read:**
+- <bullet, plain language, what works today>
+- <bullet, what needs a small adjustment>
+- <bullet, what's a deliberate-planning item>
+- <bullet, what's a larger initiative>
+- <bullet, what's blocked by a constraint and our recommended alternative>
+
+**Customer-facing draft you can adapt for [customer name]:**
+> <The customer-readable prose, written so CSM can copy-paste into their own outbound message to the customer. Acknowledges the request, walks through what works / what needs work / what's larger, registers the constraint and recommends the alternative, ends with the open questions and a [CSM TO CONFIRM TIMELINE] placeholder.>
+
+**Open questions** you'll want answers on before scoping further:
+- <Question> — <why it matters>
+- ...
+
+**Timing**: [CSM TO CONFIRM TIMELINE] — once you have answers above + prioritization context.
+```
+
+**Format adaptation**: This structure works as-is in Slack. If the team uses email or a ticket comment thread instead, the same content reads fine — adjust the opener, add a salutation/sign-off if the channel calls for it, and remove the `>` quote marks if rendering matters. Tell the user to ask for an email/ticket version if they need one; don't generate both speculatively.
 </draft_structure>
 
 ## Phase 6: Print, Then Offer to Save (Optional)
