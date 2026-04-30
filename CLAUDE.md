@@ -171,7 +171,7 @@ Translate unstructured customer/CSM/Sales/Support requests into engineering sign
 
 | Command | Purpose |
 |---------|---------|
-| `/intake:feasibility <request or path>` | Decompose a customer ask into capabilities + constraints, research each capability in parallel, produce Status × Effort × Evidence map with risk callout, phased recommendation, and `Excluded for this customer` list |
+| `/intake:feasibility <request or path>` | Decompose a customer ask into capabilities + constraints (POLICY and TEMPORAL), research each capability in parallel, produce Status × Effort × Evidence map with risk callout, phased recommendation, `Excluded for this customer` list, and per-capability ✅/⚠️/❌ feasibility against any stated deadline |
 | `/intake:respond-draft <report>` | Summarize a feasibility report **for CSM** in plain language. **No customer-facing draft** (CSM owns customer voice). **No calendar commitments** (uses commitment categories and `[CSM TO CONFIRM TIMELINE]` placeholders) |
 | `/intake:objection-prep <report>` | Anticipate CSM/Sales/customer pushback against a feasibility report; outputs a Q&A list with prepped factual responses |
 

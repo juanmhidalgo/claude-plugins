@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.0] - 2026-04-30
+
+### Added
+- Constraints now have an explicit sub-type: **POLICY** (excludes solutions for this customer regardless of timing) vs **TEMPORAL** (deadlines that filter capabilities by feasibility-within-window). The constraints table in `/intake:feasibility` reports gains a `Type` column.
+- `/intake:feasibility` synthesis adds a **Feasibility against [customer]'s stated deadline** section with per-capability ✅/⚠️/❌ verdicts when a TEMPORAL constraint exists. The verdict guidance maps effort buckets against window length (< 1 week / 1–4 weeks / 1–3 months / 3+ months), with explicit framing that every verdict is "achievable *in principle*" not "we will deliver by X".
+- `/intake:respond-draft` Format A and Format B both gain an `Against [customer]'s stated deadline` section that surfaces the per-capability verdicts to CSM. Empty bucket rule applies — ⚠️ and ❌ rows are omitted when they have no entries, and the entire section is omitted when no TEMPORAL constraint exists.
+- New rationalization defenses across both commands targeting the failure modes that motivated this change: treating the customer's stated date as a delivery commitment, dropping awkward `❌` items to hide the verdict, and proposing alternative dates (CSM's job, not engineering's).
+
 ## [0.5.0] - 2026-04-30
 
 ### Changed (BREAKING — output structure)

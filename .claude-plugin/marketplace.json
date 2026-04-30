@@ -166,7 +166,7 @@
       "name": "intake",
       "source": "./intake",
       "description": "Translate unstructured customer/CSM/Sales/Support requests into engineering feasibility reports, customer-facing reply drafts, and anticipated-objection Q&A — with capability+constraint decomposition and parallel codebase research",
-      "version": "0.5.0",
+      "version": "0.6.0",
       "author": {
         "name": "Juan M. Hidalgo"
       },

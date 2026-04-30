@@ -63,12 +63,13 @@ Do not summarize without a feasibility report — you cannot honestly describe w
 
 Extract from the feasibility report:
 - The capability map (Status, Effort per capability)
-- The constraints (if any)
+- The constraints (if any) — distinguishing POLICY constraints from TEMPORAL constraints
+- The "Feasibility against [customer]'s stated deadline" section (if any) — the per-capability ✅/⚠️/❌ verdict
 - The phased recommendation
 - The "Excluded for this customer" list (if any)
 - The open questions
 
-If any of these sections are missing, note it but proceed — older reports may not have constraint extraction.
+If any of these sections are missing, note it but proceed — older reports may not have constraint extraction or temporal feasibility data.
 
 ## Phase 2: Translate Capabilities to Plain Language
 
@@ -146,6 +147,19 @@ Produce **two output formats**, in this order:
 **Not a path forward for [customer name]:**
 - <Customer-facing capability name> — <which constraint applies; suggested alternative>
 
+## Against [customer]'s stated deadline ([date])
+
+**Achievable in principle within their window:**
+- <Customer-facing capability name>
+
+**Possible but tight, may slip:**
+- <Customer-facing capability name>
+
+**Not realistic in that window regardless of priority:**
+- <Customer-facing capability name>
+
+(NB: "achievable in principle" describes engineering effort fitting in the window. Actual delivery still depends on prioritization, code review, deployment, and QA cycles — CSM owns timeline commitments.)
+
 ## Acknowledged constraints
 - <Restated in customer's framing>
 
@@ -153,7 +167,9 @@ Produce **two output formats**, in this order:
 - <Question> — <why it matters>
 ```
 
-**Empty-bucket rule**: Omit any commitment-category bucket that has zero entries. Do not write "Currently supported: (none with no caveats)" — drop the heading entirely. Empty buckets are noise that obscures the buckets that matter.
+**Empty-bucket rule**: Omit any commitment-category bucket that has zero entries. Do not write "Currently supported: (none with no caveats)" — drop the heading entirely. Empty buckets are noise that obscures the buckets that matter. **The same rule applies to the deadline section** — if there are no ⚠️ items, omit the "Possible but tight" heading; if there are no ❌ items, omit the "Not realistic" heading.
+
+**Omit the entire "Against [customer]'s stated deadline" section** if the feasibility report has no TEMPORAL constraint.
 
 ### Format B: Slack message to CSM (default channel)
 
@@ -168,6 +184,12 @@ This is the channel most engineers actually use to coordinate with CSM. The mess
 - <bullet, what's a deliberate-planning item>
 - <bullet, what's a larger initiative>
 - <bullet, what's blocked by a constraint and our recommended alternative>
+
+**Against [customer]'s stated deadline ([date]):**
+- ✅ Achievable in principle: <list of capabilities>
+- ⚠️ Tight, may slip: <list of capabilities>
+- ❌ Not realistic in that window: <list of capabilities>
+*(Omit this whole section if no TEMPORAL constraint. Omit any ✅/⚠️/❌ row that has no entries — empty rows are noise.)*
 
 **Open questions** to relay back to [customer name]:
 - <Question> — <why it matters>
@@ -238,6 +260,9 @@ If you catch yourself thinking any of these, STOP — you are about to violate t
 | "Status is PARTIAL but the gap is tiny, I'll write 'supported'" | PARTIAL is PARTIAL. The CSM who relays "supported" and then has a customer hit the gap will lose more trust than the CSM who relayed "supported with a small adjustment needed" up front. |
 | "I should still draft a customer-facing version, CSM will appreciate the head start" | CSM owns the customer relationship and voice. A pre-written customer-facing block creates expectation drift (CSM may feel pressure to forward verbatim) and strips CSM's authorship of their own communication. Stay in the engineering→CSM lane. |
 | "CSM will paraphrase my Slack message verbatim to the customer, I should write it customer-ready" | If the Slack message is customer-ready, you've quietly taken over CSM's job. Write it for CSM as the *reader*, not the customer. CSM translates to customer voice with their own context and tone. |
+| "The customer set their own deadline, so committing to it isn't a date emission on our part" | The customer asked, not committed for us. We can say what's achievable in principle within their window — we cannot say "we'll deliver by [their date]". Use ✅/⚠️/❌ feasibility-in-principle language. |
+| "The customer's deadline is unrealistic for the larger items, I should suggest an alternative date" | Engineering's job is to say what's feasible in the customer's window. Proposing an alternative date is CSM's job after their prioritization conversations. Mark items ❌ "not realistic in this window" and stop there. |
+| "I'll add a 'we expect X by [their date]' just to give CSM something to relay" | "Expect" is a soft commitment that hardens in the customer's mind. Use ✅ "achievable in principle" — same information, no implicit promise. |
 
 <mindset>
 - Every word in this draft will be quoted back at us if it turns out wrong

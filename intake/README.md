@@ -27,10 +27,11 @@ Each plugin owns one stage. `intake` produces a verifiable feasibility report. T
 
 ### `/intake:feasibility <paste request OR path to file>`
 
-Decompose a customer request into atomic capabilities **and constraints**, research each capability in parallel against the current codebase, and produce a feasibility report.
+Decompose a customer request into atomic capabilities **and constraints** (POLICY and TEMPORAL), research each capability in parallel against the current codebase, and produce a feasibility report.
 
 **Output (printed inline in chat by default):**
-- Constraints section (when present) — rules that exclude solutions for this customer
+- Constraints section (when present) — POLICY constraints that exclude solutions for this customer, TEMPORAL constraints (deadlines) that filter capabilities by feasibility-within-window
+- **Feasibility against stated deadline** section (when a TEMPORAL constraint is present) — per-capability ✅ achievable in principle / ⚠️ tight, may slip / ❌ not realistic
 - Capability map table (Status × Effort × Key Finding)
 - Per-capability evidence with `file:line` references
 - Top 3 risks for the overall request
@@ -60,8 +61,8 @@ Decompose a customer request into atomic capabilities **and constraints**, resea
 Summarize the engineering feasibility report **for CSM** in plain language. Drops file paths and library names, uses commitment categories instead of phases, and emits **no calendar dates by design**.
 
 **Output:**
-- Format A — Structured status (for CSM internal review): capabilities grouped by `Currently supported` / `Supported with a small adjustment` / `Possible with deliberate planning` / `Significant initiative required` / `Not a path forward for [customer]`. Empty buckets are omitted.
-- Format B — **Slack message to CSM (default channel)**: TL;DR engineering read for CSM, open questions to relay, then a `[CSM TO CONFIRM TIMELINE]` line. Email or ticket-comment versions of the same content can be requested in a follow-up message — there is no `--channel` argument by design.
+- Format A — Structured status (for CSM internal review): capabilities grouped by `Currently supported` / `Supported with a small adjustment` / `Possible with deliberate planning` / `Significant initiative required` / `Not a path forward for [customer]`, plus an `Against [customer]'s stated deadline` section (✅/⚠️/❌) when a TEMPORAL constraint exists. Empty buckets are omitted.
+- Format B — **Slack message to CSM (default channel)**: TL;DR engineering read for CSM, deadline feasibility line (when applicable), open questions to relay, then a `[CSM TO CONFIRM TIMELINE]` line. Email or ticket-comment versions of the same content can be requested in a follow-up message — there is no `--channel` argument by design.
 
 **Why no customer-facing draft:** writing the customer message is CSM's job — they own the customer relationship, the voice, and the prioritization context. Engineering's role here is to give CSM a clear engineering read so CSM has what they need to drive the customer conversation in their own voice.
 

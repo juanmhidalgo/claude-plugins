@@ -84,38 +84,51 @@ A capability is a single verifiable engineering ask. Customer messages bundle ma
 - Don't invent capabilities the request didn't imply
 - Don't merge capabilities that have different effort profiles
 
-### 2. Constraints — rules that EXCLUDE solutions for this customer
+### 2. Constraints — rules that filter solutions for this customer
 
-A constraint is a phrase that rules out a class of solutions for **this customer specifically**, not a hint about what to build. Constraints filter the phased recommendation later.
+A constraint is a phrase that limits which solutions apply to **this customer specifically**, not a hint about what to build. Constraints filter the phased recommendation later.
+
+**Two sub-types of constraints:**
+
+**[POLICY]** — exclude solutions regardless of timing.
+- Examples: "no email per IT policy", "must run on-prem", "GDPR-compliant only", "no PII in logs"
+- Effect: capabilities violating a policy constraint are **excluded** for this customer (listed under `Excluded for this customer`)
+
+**[TEMPORAL]** — deadlines or windows that filter capabilities by feasibility-within-window.
+- Examples: "by Friday", "for our Q3 launch", "before our IT audit on May 15", "in time for open enrollment in November", "we need this in two weeks"
+- Effect: capabilities are NOT excluded — they're evaluated for ✅ achievable in principle / ⚠️ tight, may slip / ❌ not realistic against the stated window. The phased recommendation gains a `Feasibility against deadline` section.
 
 **For each constraint, capture:**
 - A short tag (C1, C2, ...)
-- A one-line statement of what is excluded and for whom
+- The sub-type label (`[POLICY]` or `[TEMPORAL]`)
+- A one-line statement
 - The exact quote from the request
-- Which capabilities (by ID) it excludes for this customer
+- The effect (which capabilities it excludes, OR which deadline it imposes)
 
 **Examples of constraint phrases:**
-- "they can't be sent candidate data via email per IT policy" → excludes email-delivery capability *for this customer*
-- "must run on-prem" → excludes SaaS-hosted solutions
-- "GDPR-compliant only" → excludes capabilities that move data outside the EU
-- "no PII in logs" → excludes solutions that emit PII to log streams
+
+| Phrase | Sub-type | Effect |
+|--------|----------|--------|
+| "they can't be sent candidate data via email per IT policy" | POLICY | Excludes email-delivery capability for this customer |
+| "must run on-prem" | POLICY | Excludes SaaS-hosted solutions |
+| "GDPR-compliant only" | POLICY | Excludes capabilities that move data outside the EU |
+| "by Friday" / "by EOW" | TEMPORAL | Window of days; only `trivial`/`small` items realistic |
+| "for our Q3 launch on July 15" | TEMPORAL | Window of weeks-to-months; depends on today's date |
+| "in time for the open enrollment on November 1" | TEMPORAL | Long window; most capabilities feasible in principle |
 
 ### Worked example
 
-> "Customer wants extracts multiple times a day, sent via SFTP or dropbox — they can't receive data via email per IT policy. Custom fields joined to KPI data."
+> "Customer wants extracts multiple times a day, sent via SFTP or dropbox — they can't receive data via email per IT policy. Custom fields joined to KPI data. Need at least the custom-field upload working by Friday for an audit."
 
 Decomposes to:
-- **Capabilities**:
-  - A. Custom field support on uploads
-  - B. Join custom-field data with KPI/analytics data
-  - C. Scheduled report generation (multiple times/day)
-  - D. Email delivery channel *(still extract this — the customer mentioned distribution by email may apply to other customers; it's just excluded for **this** one)*
-  - E. SFTP delivery channel
-  - F. Dropbox delivery channel
+- **Capabilities**: (A custom fields, B join, C scheduling, D email, E SFTP, F Dropbox — same as before)
 - **Constraints**:
-  - C1. Email is blocked for this customer — *"they can't receive data via email per IT policy"* — excludes capability D for this customer
+  - **C1 [POLICY]** — *"they can't receive data via email per IT policy"* → excludes capability D for this customer
+  - **C2 [TEMPORAL]** — *"need at least the custom-field upload working by Friday for an audit"* → window of days; capability A must be ✅ in that window, others assessed accordingly
 
-**Critical distinction**: Capability D (email delivery) is still a valid product capability — other customers may use it. But constraint C1 means D is **out for this customer**. The phased recommendation in Phase 4 must respect this: the customer's path uses E and F, not D.
+**Critical distinctions**:
+- Capability D (email delivery) is still a valid product capability — other customers may use it. But constraint C1 means D is **out for this customer** permanently.
+- A "by Friday" deadline (C2) does NOT exclude any capability — it just maps each capability to ✅/⚠️/❌ feasibility against that window. Capabilities that are ❌ for *this window* may still ship later.
 
 **Failure mode this prevents**: treating a constraint phrase as motivation to build the excluded capability. "They can't get email" does NOT mean "build email delivery." It means "build the capabilities that bypass email."
 </decomposition>
@@ -186,12 +199,42 @@ Produce a single markdown report with these sections in order:
 
 ## Constraints (apply to this customer only)
 
-| Tag | Constraint | Excludes |
-|-----|------------|----------|
-| C1 | <one-line statement> | <capability IDs this rules out for this customer> |
+| Tag | Type | Constraint | Effect |
+|-----|------|------------|--------|
+| C1 | POLICY | <one-line statement> | Excludes <capability IDs> for this customer |
+| C2 | TEMPORAL | <one-line statement, with the date> | Window for feasibility-against-deadline (see section below) |
 ```
 
 Omit the Constraints section entirely if Phase 1 found none. If constraints exist, this section is **required** and must appear above the Capability Map — readers need to know what's off the table before they read what's on the table.
+
+### Feasibility against [customer]'s stated deadline (Required when a TEMPORAL constraint exists)
+
+When a temporal constraint is present, add this section between Constraints and the Capability Map:
+
+```markdown
+## Feasibility against [customer]'s stated deadline ([date or window from the request])
+
+| ID | Capability | Verdict | Reason |
+|----|------------|---------|--------|
+| A | ... | ✅ | <one-line reason — typically effort fits in window if prioritized> |
+| C | ... | ⚠️ | <one-line reason — possible but tight, may slip> |
+| E | ... | ❌ | <one-line reason — not realistic in window regardless of priority> |
+```
+
+**Verdict guidance** (engineer's judgment, not formula):
+
+| Window length (days from today) | Effort `trivial`/`small` | Effort `medium` | Effort `large` |
+|---|---|---|---|
+| < 1 week | ⚠️ tight, code review + deploy chip into a tight window | ❌ not realistic | ❌ not realistic |
+| 1–4 weeks | ✅ achievable in principle | ⚠️ tight, may slip | ❌ not realistic |
+| 1–3 months | ✅ achievable in principle | ✅ achievable in principle | ⚠️ likely needs scope reduction |
+| 3+ months | ✅ achievable in principle | ✅ achievable in principle | ✅ achievable in principle |
+
+The engineer can override based on team capacity, dependencies, or known constraints (e.g., a `small` fix that touches a regulated subsystem may need extra review time). The grid is guidance, not formula.
+
+**Critical framing**: every verdict is "achievable *in principle*" or "not realistic *in this window*", never "we will deliver by X". The verdict comments on the customer's stated date as a constraint to evaluate, not a commitment to make.
+
+Omit this section entirely if no TEMPORAL constraint was extracted in Phase 1.
 
 ### Capability Map (Required)
 
@@ -322,6 +365,8 @@ If you catch yourself thinking any of these, STOP — you are about to violate t
 | "I'll trim the per-capability detail to keep the report short" | The table is for CSM, the per-capability evidence is for engineering. Trimming the detail breaks one of the two audiences this report serves. |
 | "They said 'no email,' which means I should research email delivery to see if there's a workaround" | A constraint excludes a solution; it does not motivate building it. "They can't get email" → use SFTP/file-drop, do NOT propose "email a signed link" as a clever bypass. The customer's word is the customer's word. |
 | "Email-with-signed-URL is technically not 'sending data via email' so the constraint doesn't apply" | The customer's IT department wrote the policy, not you. A signed link IS the candidate data being delivered via email from the customer's perspective — the file is one click away. Do not lawyer the constraint. |
+| "The customer set a date, so I can use that as our delivery commitment" | The customer asked; engineering assesses; CSM negotiates. A TEMPORAL constraint is a window to evaluate against, not a date for engineering to commit to. Use ✅/⚠️/❌ "achievable in principle" language, never "we will deliver by X". |
+| "The deadline is unrealistic for the larger items, I'll just leave them off the report" | Don't drop capabilities to hide an awkward verdict. ❌ "not realistic in this window" is the honest, useful answer — it tells CSM what to negotiate around. Hiding it just delays the same conversation. |
 
 <mindset>
 - The customer's prose is a hypothesis, not a specification
