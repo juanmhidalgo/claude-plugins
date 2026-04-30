@@ -165,12 +165,12 @@
     {
       "name": "intake",
       "source": "./intake",
-      "description": "Translate unstructured customer/CSM/Sales/Support requests into engineering feasibility reports against the codebase, with capability+constraint decomposition and parallel codebase research",
-      "version": "0.2.0",
+      "description": "Translate unstructured customer/CSM/Sales/Support requests into engineering feasibility reports, customer-facing reply drafts, and anticipated-objection Q&A — with capability+constraint decomposition and parallel codebase research",
+      "version": "0.3.0",
       "author": {
         "name": "Juan M. Hidalgo"
       },
-      "keywords": ["intake", "feasibility", "csm", "sales-handoff", "customer-request", "capability-mapping", "constraints"],
+      "keywords": ["intake", "feasibility", "csm", "sales-handoff", "customer-request", "capability-mapping", "constraints", "respond-draft", "objection-prep"],
       "category": "productivity"
     }
   ]

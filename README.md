@@ -67,10 +67,12 @@ Critical feature discussion and idea refinement with a skeptical Staff Engineer 
 
 ### intake
 
-Translate unstructured customer/CSM/Sales/Support requests into engineering feasibility reports against the codebase. Sits before `/discuss:feature` and `/feature-dev:spec` in the workflow.
+Translate unstructured customer/CSM/Sales/Support requests into engineering signals: feasibility reports, customer-facing reply drafts, and anticipated-objection Q&A. Sits before `/discuss:feature` and `/feature-dev:spec` in the workflow.
 
 **Commands:**
-- `/intake:feasibility <request or path>` - Decompose a customer ask into capabilities, research each in parallel against the codebase, produce a Status × Effort × Evidence map with risk callout and phased recommendation
+- `/intake:feasibility <request or path>` - Decompose a customer ask into capabilities + constraints, research each in parallel against the codebase, produce a Status × Effort × Evidence map with risk callout, phased recommendation, and `Excluded for this customer` list
+- `/intake:respond-draft <report>` - Translate a feasibility report into a customer/CSM-facing reply with **no calendar commitments** (uses commitment categories and `[CSM TO CONFIRM TIMELINE]` placeholders)
+- `/intake:objection-prep <report>` - Anticipate CSM/Sales/customer pushback against a feasibility report; outputs a Q&A list with prepped factual responses
 
 **Install:**
 ```bash

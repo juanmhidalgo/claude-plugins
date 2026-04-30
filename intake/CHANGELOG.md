@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.0] - 2026-04-30
+
+### Added
+- `/intake:respond-draft <feasibility-report>` — translate an engineering feasibility report into a customer/CSM-facing reply.
+  - Produces two formats: structured status (for CSM internal review) and customer-facing prose (forwardable as-is).
+  - **No-calendar-dates discipline**: blocking rule prevents the draft from emitting calendar dates, week counts, sprint references, or any specific timing. Uses `[CSM TO CONFIRM TIMELINE]` placeholders where timelines naturally fit so the CSM/owner — not engineering — sets delivery commitments.
+  - Effort buckets (trivial/small/medium/large) translate to commitment categories (currently supported / supported with adjustment / possible with deliberate planning / significant initiative required) — describes shape of effort, not timing.
+  - Honors `Excluded for this customer` constraints from the feasibility report and surfaces alternatives.
+  - Six rationalization defenses targeting the "I'll add 'approximately X weeks' to be helpful" failure mode and its variants.
+- `/intake:objection-prep <feasibility-report>` — anticipate the questions and pushback that will come back from CSM, Sales, or the customer when the report is shared.
+  - 10-category objection checklist (effort, hack-it-for-one-customer, constraint, buy-vs-build, existing-customer impact, why-not-already-built, workaround feasibility, silent-bug embarrassment, competitor-does-this, constraint re-litigation).
+  - Q&A schema captures the likely question in the asker's actual voice (Sales-pressure, CSM-relationship-anxiety, customer-expectation), with a prepped response and an optional "if pushed" escalation.
+  - Reports both triggered and non-triggered categories so the engineer knows what was *not* anticipated.
+  - Five rationalization defenses against generic-answer noise, softening hard findings, and lawyering away customer constraints.
+
 ## [0.2.0] - 2026-04-30
 
 ### Added

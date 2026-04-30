@@ -27,13 +27,14 @@ Each plugin owns one stage. `intake` produces a verifiable feasibility report. T
 
 ### `/intake:feasibility <paste request OR path to file>`
 
-Decompose a customer request into atomic capabilities, research each in parallel against the current codebase, and produce a feasibility report.
+Decompose a customer request into atomic capabilities **and constraints**, research each capability in parallel against the current codebase, and produce a feasibility report.
 
 **Output (printed inline in chat by default):**
+- Constraints section (when present) — rules that exclude solutions for this customer
 - Capability map table (Status × Effort × Key Finding)
 - Per-capability evidence with `file:line` references
 - Top 3 risks for the overall request
-- Phased recommendation (Phase 1 / 2 / 3 by effort and priority)
+- Phased recommendation, with constraint-violating capabilities listed under `Excluded for this customer`
 - Open questions back to the customer (when applicable)
 - After printing, the command asks whether to save it to `INTAKE-feasibility-<slug>.md` — opt-in only
 
@@ -47,17 +48,33 @@ Decompose a customer request into atomic capabilities, research each in parallel
 /intake:feasibility ./tickets/customer-request-1234.txt
 ```
 
-**What it produces (table excerpt):**
-
-| ID | Capability | Status | Effort | Key Finding |
-|----|------------|--------|--------|-------------|
-| A | Custom field support on uploads | PARTIAL | small | `JSONField` exists at `apps/candidates/models.py:44` but importer drops unknown columns at `bulk_import.py:264` |
-| B | Scheduled report generation | MISSING | large | `django-celery-beat` not installed; no `ScheduledReport` model |
-
 **What it does NOT do:**
 - Write code or implementation
 - Create a SPEC, PLAN, or PRD file
 - Decide which capabilities should be built — that's a human call after reading the report
+
+---
+
+### `/intake:respond-draft <feasibility-report-or-path>`
+
+Translate the engineering feasibility report into a customer/CSM-facing reply. Drops file paths and library names, uses commitment categories instead of phases, and emits **no calendar dates by design**.
+
+**Output:**
+- Format A — Structured status (for CSM internal review): capabilities grouped by `Currently supported` / `Supported with a small adjustment` / `Possible with deliberate planning` / `Significant initiative required` / `Not a path forward for [customer]`
+- Format B — Customer-facing prose: forwardable reply that acknowledges constraints, lists what works today, describes the shape of work needed, and ends with `[CSM TO CONFIRM TIMELINE]` placeholders for the CSM to fill in
+
+**Why no dates:** engineering effort estimates do not equal delivery dates — prioritization, code review, deployment, and QA cycles all sit between effort and ship. The CSM/owner sets timing based on their authority and prioritization conversations.
+
+---
+
+### `/intake:objection-prep <feasibility-report-or-path>`
+
+Anticipate the questions, pushback, and objections the engineer will receive from CSM, Sales, or the customer when sharing the feasibility report.
+
+**Output:**
+- Q&A list ordered by likelihood, each with the question in the asker's actual voice, a prepped factual response, and an optional escalation path
+- Categories considered: effort, hack-it-for-one-customer, constraint, buy-vs-build, existing-customer impact, why-not-already-built, workaround feasibility, silent-bug embarrassment, competitor-does-this, constraint re-litigation
+- Final summary of which categories were triggered AND which were not (so the engineer knows what was not anticipated)
 
 ## When to Use This Plugin
 
