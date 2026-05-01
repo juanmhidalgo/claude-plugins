@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.9.1 (2026-05-01)
+
+### Fixed
+- `/feature-dev:spec` no longer fails with `Shell command failed` when `.claude/settings.local.json` is absent. The Context block's `jq` call previously exited non-zero on a missing file (stderr was silenced but the exit code was not), tripping the harness. Appended `|| true` so a missing settings file just produces an empty `Additional directories` value, which is the intended single-repo signal.
+
 ## 1.9.0 (2026-04-22)
 
 ### Added

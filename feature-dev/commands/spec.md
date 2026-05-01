@@ -37,7 +37,7 @@ If you were dispatched as a subagent to execute a specific task, skip this comma
 
 - **Branch**: !`git branch --show-current`
 - **Recent commits**: !`git log --oneline -5`
-- **Additional directories**: !`jq -r '.permissions.additionalDirectories[]? // empty' .claude/settings.local.json 2>/dev/null`
+- **Additional directories**: !`jq -r '.permissions.additionalDirectories[]? // empty' .claude/settings.local.json 2>/dev/null || true`
 - **Parent context file**: !`test -f ../CLAUDE.md && echo "../CLAUDE.md exists (read for repo catalog)" || echo "no ../CLAUDE.md"`
 
 <best_practices>
