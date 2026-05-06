@@ -1,6 +1,6 @@
 ---
 name: prd-specialist
-description: "Expert in creating and refining PRDs (Product Requirements Documents) for GitHub issues and ClickUp tickets. Use proactively when the user wants to: (1) Create or refine a PRD, (2) Define feature requirements, (3) Convert ideas into structured technical specifications, (4) Publish PRDs to GitHub or ClickUp."
+description: "Expert in refining and analyzing PRDs (Product Requirements Documents) for GitHub issues and ClickUp tickets. Use proactively when the user wants to: (1) Refine an existing PRD or convert a vague issue, (2) Analyze a PRD for gaps and ambiguities, (3) Publish refined PRDs to GitHub or ClickUp."
 tools:
   - Bash(gh *)
   - Read

@@ -67,7 +67,7 @@ Compare 2-4 specific options with structured pros/cons matrix. Produces decision
     ↓
 /discuss:challenge                  → Stress-test decision
     ↓
-/prd:create                         → Formalize as PRD
+/feature-dev:spec                   → Formalize as structured spec
     ↓
 /feature-dev:explore-plan           → Explore and plan implementation
 ```

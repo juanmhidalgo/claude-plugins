@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.0] - 2026-05-06
+
+### Removed (BREAKING)
+- `/prd:create` command. PRD-from-scratch creation is consolidated into `/feature-dev:spec`, which produces a richer, gated `SPEC-*.md` artifact that the rest of this toolkit (`/prd:refine`, `/prd:analyze`, `/prd:validate`) can still operate on.
+
+### Changed
+- `prd-specialist` agent description narrowed to "refine and analyze" (no longer claims to create from scratch).
+- `/prd:refine` "Do NOT use" guidance now points to `/feature-dev:spec` for new specs.
+- Plugin description and README updated to reflect the narrower scope. Workflow diagram now starts at `/feature-dev:spec`.
+
+### Migration
+- Replace any `/prd:create <feature>` invocations with `/feature-dev:spec <feature>`.
+
 ## [1.8.1] - 2026-05-06
 
 ### Changed

@@ -19,8 +19,8 @@ hooks:
     once: true
     command: |
       echo "Tradeoff analysis complete. Next steps:"
-      echo "  - /feature-dev:explore-plan to implement chosen approach"
-      echo "  - /prd:create to formalize the decision"
+      echo "  - /feature-dev:spec to formalize the decision into a structured spec"
+      echo "  - /feature-dev:explore-plan to explore implementation"
 ---
 
 # Tradeoff Analysis

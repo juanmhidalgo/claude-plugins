@@ -40,10 +40,11 @@ Comprehensive code review workflow with skeptical AI feedback triage.
 Create and manage Product Requirements Documents (PRDs) with AI assistance.
 
 **Commands:**
-- `/prd:create [feature]` - Generate a concise mini-PRD for a new feature
 - `/prd:refine [file | issue-url]` - Improve existing PRD or convert vague issue to PRD
 - `/prd:validate [file | issue-url]` - Verify implementation matches PRD criteria
 - `/prd:analyze [file | issue-url | text]` - Identify gaps, edge cases, and ambiguities
+
+For creating new specs from scratch, use `/feature-dev:spec`.
 
 **Install:**
 ```bash

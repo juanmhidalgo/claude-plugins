@@ -1,7 +1,7 @@
 ---
 description: |
   Use to translate an unstructured customer/CSM/Sales/Support request into a feasibility report against the current codebase, with a phased recommendation.
-  Do NOT use for implementation, spec writing, or PRD drafting (use /feature-dev:spec or /prd:create after).
+  Do NOT use for implementation or spec writing (use /feature-dev:spec after).
 argument-hint: "<paste request OR path to file containing it>"
 allowed-tools:
   - Read

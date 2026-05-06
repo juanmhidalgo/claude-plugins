@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.3.2] - 2026-05-06
+
+### Changed
+- `/discuss:tradeoffs` Stop hook and README workflow no longer reference the removed `/prd:create` command — both now suggest `/feature-dev:spec` for formalizing decisions.
+
 ## [2.3.1] - 2026-05-06
 
 ### Changed

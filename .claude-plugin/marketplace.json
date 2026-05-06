@@ -5,7 +5,7 @@
   },
   "metadata": {
     "description": "Personal Claude Code plugins for code review, development workflows, and prompt engineering",
-    "version": "1.6.1"
+    "version": "1.6.2"
   },
   "plugins": [
     {
@@ -22,8 +22,8 @@
     {
       "name": "prd-toolkit",
       "source": "./prd-toolkit",
-      "description": "Create and manage Product Requirements Documents (PRDs) with AI assistance. Publish to GitHub Issues or ClickUp.",
-      "version": "1.8.1",
+      "description": "Refine, analyze, and validate Product Requirements Documents (PRDs). Publish to GitHub Issues or ClickUp.",
+      "version": "2.0.0",
       "author": {
         "name": "Juan M. Hidalgo"
       },
@@ -45,7 +45,7 @@
       "name": "discuss",
       "source": "./discuss",
       "description": "Critical feature discussion and idea refinement with skeptical Staff Engineer perspective",
-      "version": "2.3.1",
+      "version": "2.3.2",
       "author": {
         "name": "Juan M. Hidalgo"
       },
@@ -166,7 +166,7 @@
       "name": "intake",
       "source": "./intake",
       "description": "Translate unstructured customer/CSM/Sales/Support requests into engineering feasibility reports, customer-facing reply drafts, and anticipated-objection Q&A — with capability+constraint decomposition and parallel codebase research",
-      "version": "0.7.1",
+      "version": "0.7.2",
       "author": {
         "name": "Juan M. Hidalgo"
       },

@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.7.2] - 2026-05-06
+
+### Changed
+- `/intake:feasibility` description no longer references the removed `/prd:create` command — points to `/feature-dev:spec` for downstream spec writing.
+
 ## [0.7.1] - 2026-05-06
 
 ### Changed

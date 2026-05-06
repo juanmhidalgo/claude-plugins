@@ -16,24 +16,13 @@ Create and manage Product Requirements Documents (PRDs) with AI assistance.
 
 | Command | Description |
 |---------|-------------|
-| `/prd:create [feature]` | Generate a concise mini-PRD for a new feature |
 | `/prd:refine [file \| issue-url]` | Improve existing PRD or convert vague issue to PRD |
 | `/prd:analyze [file \| issue-url \| text]` | Identify gaps, edge cases, and ambiguities before implementation |
 | `/prd:validate [file \| issue-url]` | Verify implementation matches PRD criteria |
 
+> Creating a new spec from scratch? Use [`/feature-dev:spec`](../feature-dev/README.md) — it produces a structured `SPEC-*.md` artifact with a gated review workflow that this toolkit's PRD validators can read.
+
 ## Usage
-
-### Create a new PRD
-
-```
-/prd:create user authentication with OAuth
-```
-
-The agent will:
-1. Ask clarifying questions if needed
-2. Generate a structured mini-PRD
-3. Let you iterate and refine
-4. Publish to GitHub, ClickUp, or save locally
 
 ### Refine or convert to PRD
 
@@ -89,11 +78,11 @@ The agent will:
 ## Workflow
 
 ```
-/prd:create [feature]       → Generate PRD
+/feature-dev:spec [feature] → Generate structured spec
     ↓
 /prd:analyze                → Find gaps before implementation
     ↓
-/discuss:feature            → Critically analyze the PRD
+/discuss:feature            → Critically analyze the spec
     ↓
 /feature-dev:explore-plan   → Explore codebase and plan
     ↓

@@ -138,10 +138,11 @@ Create and manage Product Requirements Documents (PRDs):
 
 | Command | Purpose |
 |---------|---------|
-| `/prd:create [feature]` | Generate a concise mini-PRD for a new feature |
 | `/prd:refine [file \| issue-url]` | Improve existing PRD or convert vague issue to PRD |
 | `/prd:validate [file \| issue-url]` | Verify implementation matches PRD criteria |
 | `/prd:analyze [file \| issue-url \| text]` | Identify gaps, edge cases, and ambiguities before implementation |
+
+> For creating new specs from scratch, use `/feature-dev:spec` (consolidated in v2.0.0 of `prd-toolkit`).
 
 ## handoff Plugin
 

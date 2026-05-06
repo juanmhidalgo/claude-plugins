@@ -4,7 +4,7 @@ allowed-tools:
 argument-hint: [file-path | github-issue-url | "paste"]
 description: |
   Use when you have an existing PRD or GitHub issue that needs improvement or conversion to structured requirements.
-  Do NOT use to create a PRD from scratch — use /prd:create instead.
+  Do NOT use to create a spec from scratch — use /feature-dev:spec instead.
 keywords:
   - prd-improvement
   - issue-to-prd
