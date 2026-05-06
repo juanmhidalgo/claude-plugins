@@ -5,7 +5,7 @@
   },
   "metadata": {
     "description": "Personal Claude Code plugins for code review, development workflows, and prompt engineering",
-    "version": "1.6.2"
+    "version": "1.7.0"
   },
   "plugins": [
     {
@@ -89,7 +89,7 @@
       "name": "feature-dev",
       "source": "./feature-dev",
       "description": "Feature development workflows: test-driven development with coverage gates and parallel codebase exploration before planning",
-      "version": "1.9.2",
+      "version": "1.10.0",
       "author": {
         "name": "Juan M. Hidalgo"
       },

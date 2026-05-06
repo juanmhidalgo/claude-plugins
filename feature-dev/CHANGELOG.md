@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.10.0 (2026-05-06)
+
+### Added
+- **Decision Rules** section in `spec-driven-development` skill — operational tests applied in real time when writing a spec or pushing back on stakeholders. Includes the P0 cut-test ("if removed, does the feature still solve the core problem?"), the "if everything is P0, nothing is P0" rule, the scope-trade-only rule (any addition requires a removal or timeline extension), time-boxed investigations, and the genuinely-open-questions rule (open questions must be unanswerable from context, owner-tagged, and marked blocking vs non-blocking).
+- **Common Spec Mistakes** section in `spec-driven-development` skill — anti-pattern catalog covering bad-spec failure modes (vague criteria, solution-prescriptive stories, internal-focus stories, everything-is-P0, padded open questions, perfunctory boundaries, post-hoc specs). Complements the existing Anti-Rationalizations table, which catches *skipping* the spec; this catches *writing it badly*.
+
+### Changed
+- Phase 1's "Reframe vague requirements" step now bans nine specific vague words from acceptance criteria (`fast`, `slow`, `easy`, `simple`, `user-friendly`, `intuitive`, `seamless`, `better`, `improved`) unless immediately defined concretely. Added a second worked example showing the reframe for "intuitive."
+- Verification checklist expanded with three new gates: no banned vague words without concrete definitions, P0 list passes the cut-test (≤5 items each truly required), and open questions are genuinely open, owner-tagged, and blocking-vs-non-blocking marked. Boundaries verification now requires one-line rationale per Never-do item.
+
+### Why
+Borrowed from a comparable Anthropic spec-writing skill we studied. Our previous skill defined what a good spec contains; the new content adds operational decision rules and an anti-pattern catalog so the model can self-correct mid-conversation rather than only catch issues in review.
+
 ## 1.9.2 (2026-05-06)
 
 ### Changed
