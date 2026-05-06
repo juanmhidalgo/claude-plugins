@@ -2,7 +2,7 @@
 
 Personal Claude Code plugins for development workflows.
 
-See [WORKFLOW.md](WORKFLOW.md) for how to use these plugins together across the development lifecycle.
+See [WORKFLOW.md](WORKFLOW.md) for how to use these plugins together across the development lifecycle, and [CONNECTORS.md](CONNECTORS.md) for which plugins integrate with which external systems (GitHub `gh` CLI, ClickUp MCP, etc.).
 
 ## Installation
 
