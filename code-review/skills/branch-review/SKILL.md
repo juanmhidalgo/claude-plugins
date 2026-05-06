@@ -67,11 +67,11 @@ A HIGH-severity / LOW-confidence finding ("this *might* be a security bug") need
 
 ## Focus Areas (Non-Obvious)
 
-**Security** - Hardcoded secrets, missing input validation, SQL injection, auth gaps
+**Security** - Hardcoded secrets, missing input validation, SQL injection, auth gaps. For deeper threat modeling and OWASP-aligned analysis, delegate to the **`security:security-hardening`** skill rather than expanding this section — that skill is the canonical security reference.
 
 **Bugs** - Race conditions in concurrent code, resource leaks (connections, file handles)
 
-**Performance** - N+1 queries, blocking calls in async contexts, missing pagination
+**Performance** - N+1 queries, blocking calls in async contexts, missing pagination. For load profiling and Core Web Vitals analysis, delegate to **`performance:performance-optimization`** rather than diagnosing here.
 
 ## Review Anti-Patterns
 

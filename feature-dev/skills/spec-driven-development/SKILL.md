@@ -103,7 +103,7 @@ Break into discrete, implementable tasks:
 
 ### Phase 4: Implement
 
-Execute tasks using `tdd` patterns. One task at a time, verify before advancing.
+Execute tasks using the **`feature-dev:tdd-patterns`** skill (RED-GREEN-REFACTOR cycle, 5-cycle iteration limit, stuck-after-3 rule, coverage gate workflow). One task at a time, verify before advancing. Do not duplicate the cycle's rules here — `tdd-patterns` is the canonical reference.
 
 ## Multi-Repo Features
 

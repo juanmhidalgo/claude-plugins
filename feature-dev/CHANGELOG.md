@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.11.0 (2026-05-06)
+
+### Changed
+- `spec-driven-development` Phase 4 now explicitly delegates to the **`feature-dev:tdd-patterns`** skill rather than describing TDD inline. Avoids duplicating the cycle rules (5-cycle limit, stuck-after-3, coverage gate) in two places — `tdd-patterns` becomes the single canonical reference. Pattern borrowed from Anthropic's `engineering` plugin where `architecture` delegates depth to `system-design`.
+
 ## 1.10.0 (2026-05-06)
 
 ### Added

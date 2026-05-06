@@ -5,6 +5,15 @@ All notable changes to this plugin will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.17.0] - 2026-05-06
+
+### Changed
+- `branch-review` Focus Areas now delegate Security and Performance depth to sibling plugins: deeper threat-modeling and OWASP analysis go to **`security:security-hardening`**; load profiling and Core Web Vitals go to **`performance:performance-optimization`**. Branch review surfaces the concern; the specialized skills handle the diagnosis. Avoids duplicating their content here.
+- `tech-debt-reviewer` agent now points at the **`refactor`** plugin (`/refactor:analyze`, `/refactor:plan`, `/refactor:extract`) for acting on findings, instead of describing refactoring inline. Cleaner separation: this agent identifies debt, refactor acts on it.
+
+### Why
+Borrowed from Anthropic's `engineering` plugin: `architecture` delegates depth to `system-design` rather than duplicating. Cross-skill delegation keeps individual skills thin and composable, and prevents drift between plugins that cover overlapping ground.
+
 ## [2.16.0] - 2026-05-06
 
 ### Added

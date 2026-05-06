@@ -137,3 +137,7 @@ git diff $BASE...HEAD | grep -E '^\+.*\b(TODO|FIXME|HACK|XXX|TEMP)\b'
 - Reasonable trade-offs with clear context
 - Test files (unless testing patterns are problematic)
 - Stylistic preferences or nitpicks
+
+## Handoff to refactor
+
+When findings warrant action beyond a TODO comment, delegate to the **`refactor`** plugin: `/refactor:analyze <file>` deep-dives a specific target, `/refactor:plan` produces an extraction plan, `/refactor:extract` performs the change. Don't duplicate refactoring guidance here — surface the finding, then point at refactor for the action.

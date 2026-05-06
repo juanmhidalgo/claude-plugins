@@ -1,7 +1,7 @@
 {
   "name": "feature-dev",
   "description": "Feature development workflows: spec-driven development, test-driven development with coverage gates, and parallel codebase exploration",
-  "version": "1.10.0",
+  "version": "1.11.0",
   "author": {
     "name": "Juan M. Hidalgo"
   }
