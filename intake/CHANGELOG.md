@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.7.1] - 2026-05-06
+
+### Changed
+- Trimmed `feasibility`, `respond-draft`, and `objection-prep` command descriptions to fit Claude Code's skill-listing budget. Removed redundant workflow detail (still present in command bodies) so descriptions are now ~150-250 chars instead of 460-559.
+
 ## [0.7.0] - 2026-04-30
 
 ### Added

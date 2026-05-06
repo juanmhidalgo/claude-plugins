@@ -1,8 +1,7 @@
 ---
 description: |
-  Use AFTER /intake:feasibility (and optionally /intake:respond-draft) to anticipate the questions, pushback, and objections engineering will receive from CSM, Sales, or the customer when sharing the feasibility report.
-  Generates a Q&A list of the most likely objections with prepped, factual responses.
-  Do NOT use for technical FAQ generation, customer documentation, or product marketing — this is specifically for adversarial-style anticipation of intake feedback.
+  Use AFTER /intake:feasibility to anticipate likely objections from CSM, Sales, or the customer. Outputs a Q&A list with prepped, factual responses.
+  Do NOT use for technical FAQs, customer docs, or marketing.
 argument-hint: "<paste feasibility report OR path to INTAKE-feasibility-*.md>"
 allowed-tools:
   - Read

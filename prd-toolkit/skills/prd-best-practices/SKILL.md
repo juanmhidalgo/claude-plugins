@@ -1,9 +1,8 @@
 ---
 name: prd-best-practices
 description: |
-  Use when writing PRDs, defining acceptance criteria, or structuring product requirements.
-  Provides observable-behavior focus and anti-patterns to avoid.
-  Do NOT use for technical specs, system architecture docs, or API documentation.
+  Use when writing PRDs, defining acceptance criteria, or structuring product requirements with observable-behavior focus.
+  Do NOT use for technical specs, architecture docs, or API documentation.
 keywords:
   - prd-writing
   - product-requirements

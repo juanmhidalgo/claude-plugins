@@ -7,9 +7,8 @@ allowed-tools:
   - Bash(rm SPEC-*.md)
   - Bash(rm PLAN-*.md)
 description: |
-  Use when SPEC-*.md and/or PLAN-*.md files have accumulated at the project root and you want to bulk-delete artifacts from completed or abandoned features.
-  Lists only safe-to-delete candidates (implemented specs, stale plans) and requires explicit Y/N confirmation before deleting.
-  Do NOT use during active feature work — this command never offers in-flight specs/plans, but it is destructive on the candidates the user confirms.
+  Use to bulk-delete completed/abandoned SPEC-*.md and PLAN-*.md artifacts. Lists only safe candidates and requires Y/N confirm.
+  Do NOT use during active feature work — destructive on confirmed candidates.
 keywords:
   - cleanup
   - feature-dev

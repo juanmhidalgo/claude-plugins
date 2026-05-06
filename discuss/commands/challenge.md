@@ -1,7 +1,7 @@
 ---
 description: |
-  Use when you want to stress-test a proposal or decision by hearing the strongest counter-arguments.
-  Do NOT use for neutral analysis (use /discuss:feature) or comparing options (use /discuss:tradeoffs).
+  Use to stress-test a proposal by hearing the strongest counter-arguments.
+  Do NOT use for neutral analysis (/discuss:feature) or comparing options (/discuss:tradeoffs).
 argument-hint: "<proposal or decision to challenge>"
 allowed-tools: [Read, Glob, Grep, Agent, WebFetch, WebSearch, AskUserQuestion]
 keywords:

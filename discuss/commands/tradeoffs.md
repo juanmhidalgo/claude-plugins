@@ -1,7 +1,7 @@
 ---
 description: |
-  Use when you have 2-4 specific known options and need a structured comparison to decide between them.
-  Do NOT use for open-ended exploration (use /discuss:brainstorm) or single-option analysis (use /discuss:feature).
+  Use when you have 2-4 specific options and need a structured comparison.
+  Do NOT use for open-ended exploration (/discuss:brainstorm) or single-option analysis (/discuss:feature).
 argument-hint: "<option1> vs <option2> [vs option3]"
 allowed-tools: [Read, Glob, Grep, Agent, WebFetch, WebSearch, AskUserQuestion]
 keywords:

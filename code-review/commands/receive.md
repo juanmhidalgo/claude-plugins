@@ -1,8 +1,8 @@
 ---
 argument-hint: "<paste review report>"
 description: |
-  Use when pasting review output from /code-review:staged, /code-review:branch, or similar tools.
-  Do NOT use for PR triage (use /code-review:triage) or to run a new review (use /code-review:staged or :branch).
+  Use when pasting review output from /code-review:staged or :branch.
+  Do NOT use for PR triage (/code-review:triage) or to run a new review.
 keywords:
   - code-review
   - receive-feedback

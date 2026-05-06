@@ -1,7 +1,7 @@
 ---
 description: |
-  Use when you know what to extract but want to perform the extraction safely with proper naming and placement.
-  Do NOT use when you're still discovering what needs refactoring — use /refactor:analyze first.
+  Use when you know what to extract and want a safe extraction with proper naming and placement.
+  Do NOT use while still discovering what to refactor — use /refactor:analyze first.
 argument-hint: "<what-to-extract>"
 allowed-tools:
   - Read

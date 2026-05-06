@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.9.2 (2026-05-06)
+
+### Changed
+- Trimmed `cleanup`, `plan-review`, `spec-review` command descriptions and `spec-driven-development` skill description to fit Claude Code's skill-listing budget. Workflow detail remains in command/skill bodies.
+
 ## 1.9.1 (2026-05-01)
 
 ### Fixed

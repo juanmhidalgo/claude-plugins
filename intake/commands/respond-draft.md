@@ -1,8 +1,7 @@
 ---
 description: |
-  Use AFTER /intake:feasibility to summarize the engineering findings for CSM in plain language — drops file paths, library names, and engineering jargon so CSM has the context they need to drive the customer conversation in their own voice.
-  Do NOT use to draft customer-facing messages — that is CSM's job and out of scope for this command. This command stops at the engineering→CSM handoff.
-  Do NOT use for spec writing or internal engineering status updates. Emits NO calendar dates, week counts, sprint references, or specific timing by design.
+  Use AFTER /intake:feasibility to summarize engineering findings for CSM in plain language (no file paths, libs, or jargon). Emits no dates or sprint references.
+  Do NOT use to draft customer-facing messages (CSM owns voice) or for spec writing.
 argument-hint: "<paste feasibility report OR path to INTAKE-feasibility-*.md>"
 allowed-tools:
   - Read

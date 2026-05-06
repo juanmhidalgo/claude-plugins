@@ -5,14 +5,14 @@
   },
   "metadata": {
     "description": "Personal Claude Code plugins for code review, development workflows, and prompt engineering",
-    "version": "1.6.0"
+    "version": "1.6.1"
   },
   "plugins": [
     {
       "name": "code-review",
       "source": "./code-review",
       "description": "Comprehensive code review workflow: branch reviews, PR triage, false positive dismissal, and fix tracking",
-      "version": "1.0.0",
+      "version": "2.15.1",
       "author": {
         "name": "Juan M. Hidalgo"
       },
@@ -23,7 +23,7 @@
       "name": "prd-toolkit",
       "source": "./prd-toolkit",
       "description": "Create and manage Product Requirements Documents (PRDs) with AI assistance. Publish to GitHub Issues or ClickUp.",
-      "version": "1.2.1",
+      "version": "1.8.1",
       "author": {
         "name": "Juan M. Hidalgo"
       },
@@ -34,7 +34,7 @@
       "name": "claude-md-toolkit",
       "source": "./claude-md-toolkit",
       "description": "Analyze and optimize CLAUDE.md files using Anthropic's best practices for prompt engineering, XML tags, and memory patterns",
-      "version": "0.2.0",
+      "version": "0.7.1",
       "author": {
         "name": "Juan M. Hidalgo"
       },
@@ -45,7 +45,7 @@
       "name": "discuss",
       "source": "./discuss",
       "description": "Critical feature discussion and idea refinement with skeptical Staff Engineer perspective",
-      "version": "2.0.0",
+      "version": "2.3.1",
       "author": {
         "name": "Juan M. Hidalgo"
       },
@@ -56,7 +56,7 @@
       "name": "handoff",
       "source": "./handoff",
       "description": "Generate self-contained prompts for use in other repositories, including API handoffs between frontend and backend teams",
-      "version": "1.0.0",
+      "version": "1.4.1",
       "author": {
         "name": "Juan M. Hidalgo"
       },
@@ -67,7 +67,7 @@
       "name": "onboard",
       "source": "./onboard",
       "description": "Codebase exploration and onboarding tools for new developers",
-      "version": "1.0.0",
+      "version": "1.2.0",
       "author": {
         "name": "Juan M. Hidalgo"
       },
@@ -78,7 +78,7 @@
       "name": "refactor",
       "source": "./refactor",
       "description": "Structured refactoring workflow: analyze, plan, and extract code safely",
-      "version": "1.0.0",
+      "version": "1.2.1",
       "author": {
         "name": "Juan M. Hidalgo"
       },
@@ -89,7 +89,7 @@
       "name": "feature-dev",
       "source": "./feature-dev",
       "description": "Feature development workflows: test-driven development with coverage gates and parallel codebase exploration before planning",
-      "version": "1.1.0",
+      "version": "1.9.2",
       "author": {
         "name": "Juan M. Hidalgo"
       },
@@ -100,7 +100,7 @@
       "name": "second-opinion",
       "source": "./second-opinion",
       "description": "Get second opinions from external AIs (Codex, Gemini, Copilot, Claude) on code reviews, architecture decisions, and implementation approaches",
-      "version": "1.0.0",
+      "version": "1.1.1",
       "author": {
         "name": "Juan M. Hidalgo"
       },
@@ -111,7 +111,7 @@
       "name": "ship",
       "source": "./ship",
       "description": "End-to-end shipping workflow: smart staging with change cohesion analysis, conventional commits, test gates, push, and optional PR creation",
-      "version": "1.0.0",
+      "version": "1.2.1",
       "author": {
         "name": "Juan M. Hidalgo"
       },
@@ -122,7 +122,7 @@
       "name": "security",
       "source": "./security",
       "description": "Security auditing workflow: vulnerability scanning, OWASP Top 10 verification, dependency audit, and hardening recommendations",
-      "version": "1.0.0",
+      "version": "1.1.1",
       "author": {
         "name": "Juan M. Hidalgo"
       },
@@ -133,7 +133,7 @@
       "name": "debug",
       "source": "./debug",
       "description": "Systematic debugging workflow: structured triage, root cause analysis, regression guards, and error pattern recognition",
-      "version": "1.0.0",
+      "version": "1.1.1",
       "author": {
         "name": "Juan M. Hidalgo"
       },
@@ -144,7 +144,7 @@
       "name": "performance",
       "source": "./performance",
       "description": "Performance optimization workflow: measure-first profiling, bottleneck identification, Core Web Vitals, and anti-pattern detection",
-      "version": "1.0.0",
+      "version": "1.1.1",
       "author": {
         "name": "Juan M. Hidalgo"
       },
@@ -155,7 +155,7 @@
       "name": "github-issues",
       "source": "./github-issues",
       "description": "Fix GitHub Issues: fetch issue details, explore the codebase, plan and implement the fix, with multi-repo handoff support",
-      "version": "1.1.0",
+      "version": "1.2.1",
       "author": {
         "name": "Juan M. Hidalgo"
       },
@@ -166,7 +166,7 @@
       "name": "intake",
       "source": "./intake",
       "description": "Translate unstructured customer/CSM/Sales/Support requests into engineering feasibility reports, customer-facing reply drafts, and anticipated-objection Q&A — with capability+constraint decomposition and parallel codebase research",
-      "version": "0.7.0",
+      "version": "0.7.1",
       "author": {
         "name": "Juan M. Hidalgo"
       },

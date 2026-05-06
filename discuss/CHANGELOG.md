@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.3.1] - 2026-05-06
+
+### Changed
+- Trimmed `feature`, `brainstorm`, `tradeoffs`, and `challenge` command descriptions to fit Claude Code's skill-listing budget.
+
 ## [2.3.0] - 2026-04-17
 
 ### Changed

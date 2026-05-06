@@ -1,9 +1,8 @@
 ---
 name: branch-review
 description: |
-  Use when reviewing branch changes or PRs for merge readiness.
-  Provides severity classification, feedback format, and review anti-patterns.
-  Do NOT use for general code quality advice or linting - use dedicated linters instead.
+  Use when reviewing branch changes or PRs for merge readiness with severity classification.
+  Do NOT use for general code quality advice — use dedicated linters.
 keywords:
   - code-review
   - branch-comparison

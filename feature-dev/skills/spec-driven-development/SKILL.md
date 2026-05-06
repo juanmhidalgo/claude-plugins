@@ -1,8 +1,8 @@
 ---
 name: spec-driven-development
 description: |
-  Use when starting a new feature or significant change and no specification exists yet. Covers both single-repo and multi-repo (cross-repository) features.
-  Do NOT use for single-line fixes, typos, unambiguous self-contained changes, or post-hoc documentation of already-implemented work.
+  Use when starting a new feature or significant change with no spec yet. Covers single-repo and multi-repo features.
+  Do NOT use for typos, single-line fixes, or post-hoc documentation of finished work.
 keywords:
   - spec
   - specification

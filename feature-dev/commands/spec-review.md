@@ -5,9 +5,8 @@ allowed-tools:
   - Glob
 argument-hint: "[spec-file-path — optional; auto-discovers SPEC-*.md if omitted]"
 description: |
-  Use when validating a SPEC-*.md for structural and logical gaps before handing off to planning or implementation.
-  Provides a categorical Blocking / Should Address / Nice to Have findings list.
-  Do NOT use for code review or for verifying implementation against a spec — use /prd:validate for the latter.
+  Use to validate a SPEC-*.md for gaps before planning or implementation. Outputs Blocking / Should Address / Nice to Have findings.
+  Do NOT use to verify implementation (use /prd:validate).
 keywords:
   - spec-review
   - spec-validation

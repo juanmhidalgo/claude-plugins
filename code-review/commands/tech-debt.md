@@ -5,9 +5,7 @@ allowed-tools:
   - Read
 argument-hint: "[staged | base-branch]"
 description: |
-  Analyze changes for technical debt before committing or merging.
-  Supports two scopes: "staged" for staged changes, or a base branch for branch comparison.
-  Use when you want to check if changes introduce maintainability issues.
+  Use to analyze staged changes or branch diff for technical debt and maintainability issues before merge.
   Do NOT use for bug detection or security review.
 keywords:
   - tech-debt

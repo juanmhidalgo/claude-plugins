@@ -1,8 +1,7 @@
 ---
 description: |
-  Use when translating an unstructured customer/CSM/Sales/Support request into an engineering feasibility report against the current codebase.
-  Decomposes the prose into atomic capabilities, researches each in parallel, and produces a Status × Effort × Evidence map with a risk callout and phased recommendation.
-  Do NOT use for implementation, spec writing, or PRD drafting (use /feature-dev:spec or /prd:create after the chosen capabilities are picked).
+  Use to translate an unstructured customer/CSM/Sales/Support request into a feasibility report against the current codebase, with a phased recommendation.
+  Do NOT use for implementation, spec writing, or PRD drafting (use /feature-dev:spec or /prd:create after).
 argument-hint: "<paste request OR path to file containing it>"
 allowed-tools:
   - Read

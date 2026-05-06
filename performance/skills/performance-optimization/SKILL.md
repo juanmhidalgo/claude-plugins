@@ -2,8 +2,7 @@
 name: performance-optimization
 description: |
   Use when performance requirements exist, profiling reveals bottlenecks, or Core Web Vitals need improvement.
-  Provides measure-first workflow, bottleneck identification patterns, and performance budgets.
-  Do NOT use without evidence of a problem — premature optimization adds complexity.
+  Do NOT use without evidence — premature optimization adds complexity.
 keywords:
   - performance
   - optimization

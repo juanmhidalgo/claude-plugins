@@ -2,7 +2,7 @@
 name: receiving-code-review
 description: |
   Use when receiving code review feedback to verify suggestions before accepting or pushing back.
-  Do NOT use for running a review (use /code-review:staged or :branch) or for PR triage (use /code-review:triage).
+  Do NOT use to run a review (/code-review:staged) or for PR triage (/code-review:triage).
 keywords:
   - code-review-feedback
   - review-reception

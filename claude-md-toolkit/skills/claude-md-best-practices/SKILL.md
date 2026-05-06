@@ -2,8 +2,7 @@
 name: claude-md-best-practices
 description: |
   Use when creating, analyzing, or optimizing CLAUDE.md files for Claude Code projects.
-  Provides XML structure patterns, memory hierarchy, and token optimization techniques.
-  Do NOT use for general prompt engineering or non-CLAUDE.md configuration files.
+  Do NOT use for general prompt engineering or non-CLAUDE.md configuration.
 keywords:
   - claude-md
   - memory-file

@@ -1,7 +1,7 @@
 ---
 description: |
-  Use before entering plan mode to critically analyze a feature spec or proposal for gaps, edge cases, and risks.
-  Do NOT use for simple Q&A, implementation requests, or code review (use /code-review:*).
+  Use before plan mode to critically analyze a feature proposal for gaps, edge cases, and risks.
+  Do NOT use for simple Q&A, implementation, or code review (/code-review:*).
 argument-hint: "<feature or idea to discuss>"
 allowed-tools: [Read, Glob, Grep, Agent, WebFetch, WebSearch, AskUserQuestion]
 keywords:

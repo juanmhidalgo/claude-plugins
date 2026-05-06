@@ -1,9 +1,8 @@
 ---
 name: debugging-strategies
 description: |
-  Use when tests fail, builds break, or behavior doesn't match expectations.
-  Provides structured triage methodology, error pattern recognition, and regression guard patterns.
-  Do NOT use for writing new features or general code quality — this is for fixing broken things.
+  Use when tests fail, builds break, or behavior doesn't match expectations. Covers triage methodology and regression guards.
+  Do NOT use for writing new features or general code quality.
 keywords:
   - debugging
   - triage

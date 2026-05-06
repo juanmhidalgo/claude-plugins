@@ -1,10 +1,8 @@
 ---
 name: ship
 description: |
-  Use when ready to ship code changes to remote — handles both direct push to main and
-  PR-based feature branch flows.
-  Do NOT use for partial workflows: just committing (use /commit), just pushing,
-  or code review before committing (use /code-review:staged first).
+  Use when ready to ship code to remote — handles direct push to main and PR-based feature branch flows.
+  Do NOT use for partial workflows like just committing or just pushing.
 disable-model-invocation: true
 argument-hint: "[--skip-tests] [--no-pr] [--draft] [--skip-copilot-review]"
 keywords:

@@ -1,9 +1,8 @@
 ---
 name: security-hardening
 description: |
-  Use when writing code that handles user input, authentication, sessions, or external data.
-  Provides the Three-Tier Boundary System, OWASP prevention patterns, and input validation rules.
-  Do NOT use for general code quality or performance — use dedicated skills for those.
+  Use when writing code that handles user input, auth, sessions, or external data. Covers OWASP prevention patterns.
+  Do NOT use for general code quality or performance — see dedicated skills.
 keywords:
   - security
   - owasp

@@ -1,9 +1,8 @@
 ---
 name: second-opinion
 description: |
-  Use when the user wants a second opinion from another AI (Codex, Gemini, Copilot, or Claude) on code,
-  architecture decisions, or implementation approaches.
-  Do NOT use for writing code or making changes — this is read-only consultation.
+  Use when the user wants a second opinion from another AI (Codex, Gemini, Copilot, Claude) on code or architecture.
+  Read-only consultation — does not write code.
 argument-hint: "[--backend codex|gemini|copilot|claude] review staged | review <file> | <question>"
 disable-model-invocation: true
 allowed-tools:

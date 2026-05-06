@@ -1,11 +1,8 @@
 ---
 name: api-change-documentation
 description: |
-  Use when generating cross-team API handoff prompts. Provides structured output
-  formats for communicating API changes between frontend and backend teams.
-  Includes breaking change classification, schema documentation patterns, and
-  handoff checklists specific to this workflow. Do NOT use for general API
-  documentation or OpenAPI spec generation.
+  Use when generating cross-team API handoff prompts to communicate changes between frontend and backend teams.
+  Do NOT use for general API documentation or OpenAPI spec generation.
 keywords:
   - api-documentation
   - cross-team

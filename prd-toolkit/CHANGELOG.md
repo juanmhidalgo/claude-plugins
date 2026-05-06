@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.8.1] - 2026-05-06
+
+### Changed
+- Trimmed `prd-best-practices` skill description to fit Claude Code's skill-listing budget.
+
 ## [1.8.0] - 2026-04-16
 
 ### Changed

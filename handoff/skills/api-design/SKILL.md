@@ -2,8 +2,7 @@
 name: api-design
 description: |
   Use when designing new API endpoints, defining module boundaries, or establishing contracts between teams.
-  Provides contract-first design workflow, Hyrum's Law awareness, error semantics, and naming conventions.
-  Do NOT use for general code quality or existing API documentation — use api-change-documentation for handoffs.
+  Do NOT use for general code quality — use api-change-documentation for handoffs.
 keywords:
   - api-design
   - rest-api

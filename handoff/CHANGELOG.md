@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.4.1] - 2026-05-06
+
+### Changed
+- Trimmed `api-design` and `api-change-documentation` skill descriptions to fit Claude Code's skill-listing budget.
+
 ## [1.4.0] - 2026-04-16
 
 ### Changed

@@ -1,9 +1,8 @@
 ---
 name: fix
 description: |
-  Use when the user provides a GitHub Issue URL and wants to fix it in the current repo.
-  Do NOT use for feature requests without a clear bug, issues in repos the user hasn't cloned,
-  or PRs (use /code-review instead).
+  Use when the user provides a GitHub Issue URL and wants it fixed in the current repo.
+  Do NOT use for feature requests without a clear bug or for PRs (use /code-review).
 argument-hint: "<github-issue-url>"
 disable-model-invocation: true
 keywords:

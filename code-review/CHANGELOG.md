@@ -5,6 +5,11 @@ All notable changes to this plugin will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.15.1] - 2026-05-06
+
+### Changed
+- Trimmed `tech-debt` and `receive` command descriptions and `branch-review` and `receiving-code-review` skill descriptions to fit Claude Code's skill-listing budget.
+
 ## [2.15.0] - 2026-04-17
 
 ### Added

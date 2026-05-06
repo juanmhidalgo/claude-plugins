@@ -1,6 +1,6 @@
 {
   "name": "claude-md-toolkit",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "Analyze and optimize CLAUDE.md files using Anthropic's best practices for prompt engineering, XML tags, and memory patterns",
   "author": {
     "name": "juanmhidalgo"

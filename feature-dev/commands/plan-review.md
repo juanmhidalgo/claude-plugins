@@ -5,9 +5,8 @@ allowed-tools:
   - Glob
 argument-hint: "[plan-file-path — optional; auto-discovers PLAN-*.md if omitted]"
 description: |
-  Use when validating a PLAN-*.md for structural and logical gaps before starting test-driven implementation.
-  Provides a categorical Blocking / Should Address / Nice to Have findings list.
-  Do NOT use for code review, for verifying implementation against a plan, or for SPEC review (use /feature-dev:spec-review).
+  Use to validate a PLAN-*.md for gaps before starting TDD implementation. Outputs Blocking / Should Address / Nice to Have findings.
+  Do NOT use for code review or SPEC review (use /feature-dev:spec-review).
 keywords:
   - plan-review
   - plan-validation
