@@ -85,6 +85,19 @@ With validated spec, generate a technical plan:
 - Risks and mitigations
 - What can parallelize vs. must be sequential
 - Verification checkpoints between phases
+- **Consequences** (required when the plan makes an architectural choice — new pattern, framework, data store, integration, or significant refactor). Three-way split:
+  - **What becomes easier** — capabilities or future work this unlocks
+  - **What becomes harder** — costs the team takes on
+  - **What we'll need to revisit later** — the conditions under which this decision should be reopened (scale threshold, new use case, contract change)
+
+The third clause is the operational gold. Most spec/ADR templates stop at pros/cons; "revisit when" forces the plan to name the conditions that would invalidate the choice, rather than letting the decision drift into "permanent" by default.
+
+Example:
+
+> **Decision**: Adopt event sourcing for billing reconciliation.
+> - **Easier**: Audit trail comes for free; replay-on-bug-fix is built in.
+> - **Harder**: Schema migrations require event upcasters; consumers see eventual consistency.
+> - **Revisit when**: Event volume exceeds 10k/sec (storage cost), or a non-billing domain wants to read the events (cross-domain coupling concern).
 
 ### Phase 3: Tasks
 

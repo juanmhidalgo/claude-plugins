@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.12.0 (2026-05-06)
+
+### Added
+- **Consequences** three-way split in `spec-driven-development` Phase 2 (Plan), required when the plan makes an architectural choice (new pattern, framework, data store, integration, or significant refactor): *what becomes easier* / *what becomes harder* / *what we'll need to revisit later*. Includes a worked example (event sourcing for billing reconciliation).
+
+### Why
+Borrowed from Anthropic's `engineering:architecture` ADR template. Most spec/ADR templates stop at pros/cons; the third clause (`revisit when`) is the operational gold — it forces the plan to name the conditions that would invalidate the choice, rather than letting the decision drift into "permanent" by default. Surfaces scale thresholds, integration points, and cross-domain coupling that pros/cons hide.
+
 ## 1.11.0 (2026-05-06)
 
 ### Changed
