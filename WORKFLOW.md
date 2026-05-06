@@ -59,18 +59,21 @@ Implement with test-driven development.
 
 Follows the RED → GREEN → REFACTOR cycle with coverage gates. If a `PLAN-*.md` exists from Phase 3, it loads it automatically instead of re-exploring.
 
-## Phase 5: Debug
+## Phase 5: Debug & Incident Response
 
-When something breaks during development.
+When something breaks during development — or in production.
 
 | When | Command |
 |------|---------|
 | Systematic debugging | `/debug:debug <error or failing test>` |
 | Quick error classification | `/debug:triage <error message>` |
+| Incident lifecycle (triage / status update / postmortem) | `/debug:incident <new \| update \| postmortem>` |
 
 `debug` follows the 6-step triage: **Reproduce → Localize → Reduce → Root Cause → Guard → Verify**. Always writes a regression test before moving on.
 
 `triage` is a lighter-weight classification — use it to quickly understand what kind of error you're dealing with before committing to a full debug session.
+
+`incident` runs a full incident lifecycle. Use `new` for initial triage with SEV1-4 classification and role assignment, `update` for status broadcasts at the right cadence per severity, and `postmortem` for a blameless retrospective with 5 Whys, What Went Well/Poorly, and action items. The investigation work itself still uses `/debug:debug` — incident is the coordination layer.
 
 ## Phase 6: Review
 
