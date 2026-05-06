@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.4.0] - 2026-05-06
+
+### Added
+- **Common Discussion Mistakes** anti-pattern catalog in `/discuss:feature`. Names traps the model can fall into during analysis: solutioning before framing, anchoring on the first idea, feature-parity thinking, generic (untied-to-code) risks, confirmation-biased risk ranking, no counter-position, padded clarifying questions, internal-focus complaints. Each entry includes a one-line fix. Complements the existing **Rationalization Defenses** table (which catches boundary violations) — these catch *doing the analysis badly* rather than *bypassing the boundary*.
+
 ## [2.3.2] - 2026-05-06
 
 ### Changed

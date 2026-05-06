@@ -159,7 +159,7 @@ If the idea is genuinely solid, say so - don't invent problems.
 
 ## Rationalization Defenses
 
-If you catch yourself thinking any of these after Phase 4, STOP — you are about to violate the discussion-only contract:
+Catches *violating the discussion-only boundary*. If you catch yourself thinking any of these after Phase 4, STOP:
 
 | Rationalization | Why It's Wrong |
 |----------------|----------------|
@@ -168,6 +168,21 @@ If you catch yourself thinking any of these after Phase 4, STOP — you are abou
 | "I'll just sketch tasks so the user can see the plan" | Creating tasks is the start of implementation. The Stop hook provides the next-step hand-off — let the user invoke `/feature-dev:spec` when ready. |
 | "The user said 'yes let's do it', that's explicit permission" | Agreement with the analysis is not a request to implement. Wait for explicit invocation of the next skill. |
 | "Writing the code is faster than explaining what I'd write" | The deliverable of this skill is analysis, not code. A concrete implementation can't be reviewed against a spec that doesn't exist yet. |
+
+## Common Discussion Mistakes
+
+Catches *doing a bad analysis*. Different failure mode from the boundary violation above. Catch yourself:
+
+| Mistake | What it looks like | Fix |
+|---------|-------------------|-----|
+| **Solutioning before framing** | Jumping to "we should build X" before defining the user problem | Slow down. Ask what user problem X solves and how we know it is a problem. |
+| **Anchoring on the first idea** | Treating the user's proposal as the only option to evaluate | Surface 2-3 alternative shapes. The discussion is broader than the user's first formulation. |
+| **Feature parity thinking** | "Competitor has X, so we need X" without questioning the underlying need | Ask what user need X serves. There may be a better way to serve that need. |
+| **Generic risks** | "Performance, security, migrations" with no specifics | Tie each risk to a concrete code path, data flow, or file:line found in exploration. Vague risks get ignored. |
+| **Confirmation-biased risk ranking** | Risks ordered by how easy they are to articulate, not by likelihood × impact | Force-rank by likelihood × impact. The hardest risks to describe are often the most consequential. |
+| **No counter-position** | Presenting all options neutrally without taking a stance | Pick one. "I think option B because..." is more useful to the user than five neutral comparisons. |
+| **Padded clarifying questions** | Asking 5+ questions to look thorough | Cap at 2 (already enforced) and only ask what would change the analysis. Padding wastes the user's turn. |
+| **Internal-focus complaints** | "The codebase is messy / the auth module needs refactoring" | That is a refactor concern, not a feature analysis. Note it as out-of-scope; don't let it dominate. |
 
 <mindset>
 - Assume every proposal has holes - your job is to find them

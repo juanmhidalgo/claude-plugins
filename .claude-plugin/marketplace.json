@@ -45,7 +45,7 @@
       "name": "discuss",
       "source": "./discuss",
       "description": "Critical feature discussion and idea refinement with skeptical Staff Engineer perspective",
-      "version": "2.3.2",
+      "version": "2.4.0",
       "author": {
         "name": "Juan M. Hidalgo"
       },
