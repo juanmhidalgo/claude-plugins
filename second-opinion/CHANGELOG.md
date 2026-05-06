@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.2.0] - 2026-05-06
+
+### Added
+- **Confidence labeling** on each substantive claim from external AIs. Step 4 now classifies every concern, recommendation, or claim as HIGH (cited specific code, named function/line, or pointed to evidence in the diff), MEDIUM (defensible argument from general principles without specifics), or LOW (hedging, speculating, or applying generic best practices without grounding). Format: `**[CONFIDENCE]** *external AI's claim* — Your assessment: *agree / partial / disagree*`. A LOW-confidence external opinion is a starting point for investigation; a HIGH-confidence one that contradicts your own analysis warrants a closer look.
+
+### Why
+Borrowed from Anthropic's `synthesize-research` skill. External AIs vary widely in how grounded their feedback is — some cite specific code, others apply generic best practices to a vacuum. Labeling each claim's evidence strength prevents users from giving equal weight to a confident-sounding but ungrounded recommendation.
+
 ## [1.1.1] - 2026-05-06
 
 ### Changed

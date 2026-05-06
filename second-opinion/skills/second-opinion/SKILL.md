@@ -125,7 +125,23 @@ Be concise. Prioritize actionable feedback.
 
 ## Step 4: Present the result
 
-Present the response clearly, noting which AI provided it (e.g. "Codex opinion:", "Gemini opinion:"). If the AI raised concerns, briefly note whether you agree or disagree with each point based on your own analysis.
+Present the response clearly, noting which AI provided it (e.g. "Codex opinion:", "Gemini opinion:").
+
+### Label each substantive claim with confidence
+
+External AIs vary widely in how grounded their feedback is. Apply this rubric to every concern, recommendation, or claim in the response:
+
+| Level | Meaning |
+|-------|---------|
+| HIGH | The external AI cited specific code, named a function or line, or pointed to evidence visible in the diff/file you sent it |
+| MEDIUM | The AI made a defensible argument from general principles or framework behavior, but didn't cite specifics from your code |
+| LOW | The AI was hedging, speculating, or applying generic best practices without grounding in the actual code under review |
+
+Format each point as:
+
+> **[CONFIDENCE]** *external AI's claim* — Your assessment: *agree / partial / disagree*, with one-line reason
+
+A LOW-confidence external opinion is a starting point for investigation, not a conclusion. A HIGH-confidence external opinion that contradicts your own analysis warrants a closer look at the actual code rather than dismissing it.
 
 ## Important notes
 

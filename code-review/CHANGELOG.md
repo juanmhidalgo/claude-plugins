@@ -5,6 +5,14 @@ All notable changes to this plugin will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.16.0] - 2026-05-06
+
+### Added
+- **Confidence Classification** in `branch-review` skill — orthogonal dimension to the existing Severity (which answers "should this block merge?"). Confidence answers "how strong is the evidence?": HIGH (verified by reading the code path; cited file:line, observable behavior), MEDIUM (strong inference from patterns; needs runtime confirmation), LOW (speculation or pattern-based concern). Feedback Format updated to require both labels (`**[SEVERITY] · [CONFIDENCE]**`) and adds an `Evidence:` field. Distinguishes "this *might* be a security bug" from "this *is* a security bug" — they need different responses.
+
+### Why
+Borrowed from Anthropic's `synthesize-research` skill. Severity alone collapses two distinct judgments (is this bad? is this real?) into one label, which lets weak evidence get treated as confirmed bugs. Pairing severity with confidence prevents over-claiming on speculation and under-reacting on verified critical issues.
+
 ## [2.15.1] - 2026-05-06
 
 ### Changed

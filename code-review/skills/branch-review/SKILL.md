@@ -34,16 +34,30 @@ user-invocable: true
 | MEDIUM | Recommend | Code smells, minor perf issues, missing non-critical tests |
 | LOW | Optional | Style issues, refactoring opportunities, docs |
 
+## Confidence Classification
+
+Severity answers "should this block merge?". Confidence answers "how strong is the evidence?". They are orthogonal — always pair both on every finding.
+
+| Level | Meaning |
+|-------|---------|
+| HIGH | Verified by reading the code path. Evidence is direct: cited file:line, observable behavior, or reproducible scenario. |
+| MEDIUM | Strong inference from code patterns or framework behavior; would benefit from runtime confirmation before fixing. |
+| LOW | Speculation or pattern-based concern; may not apply in this specific context. Worth flagging, not over-weighting. |
+
+A HIGH-severity / LOW-confidence finding ("this *might* be a security bug") needs different handling than HIGH-severity / HIGH-confidence ("this *is* a security bug — block merge"). Calibrate the response to both dimensions.
+
 ## Feedback Format
 
 ```markdown
-**[SEVERITY]** Brief title
+**[SEVERITY] · [CONFIDENCE]** Brief title
 
 📍 `path/to/file.py:42`
 
 **Issue:** Clear description of the problem
 
 **Risk:** What could go wrong
+
+**Evidence:** What in the code proves (or suggests) this — required for HIGH; recommended for MEDIUM; explicit "speculation only" if LOW
 
 **Suggestion:**
 ```python

@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.5.0] - 2026-05-06
+
+### Added
+- **Confidence labeling** on findings in `/discuss:feature`. Phase 4 now requires every gap, risk, and red flag to be labeled HIGH (tied to specific code path / file:line from Phase 1 exploration), MEDIUM (plausible based on patterns or proposal structure), or LOW (speculative — depends on assumptions that may not hold). Format: `**[CONFIDENCE]** **Risk:** ... — *Evidence: file:line or "speculation only"*`. Calibrates the user's reaction so HIGH risks drive action and LOW risks don't get over-weighted.
+
+### Why
+Borrowed from Anthropic's `synthesize-research` skill. Without confidence labels, the model's analysis can mix evidenced concerns with speculative ones at equal weight, misleading the user about which risks are actually load-bearing.
+
 ## [2.4.0] - 2026-05-06
 
 ### Added
