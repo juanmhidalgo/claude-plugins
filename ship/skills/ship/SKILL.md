@@ -190,8 +190,16 @@ If on a feature branch:
    - Use the default branch detected in Phase 1 as the base
    - Run `git log <default-branch>..HEAD --oneline` to gather commit history
    - Generate a concise PR title (under 70 chars)
-   - Generate body with summary bullets and test plan
-3. Create PR:
+   - Generate body with summary bullets, test plan, and rollback triggers (see below)
+3. **Rollback Triggers** — decide before merging what objective signals would warrant reverting this change post-merge. This is *the* time to write them; deciding mid-incident is too late.
+   - For runtime-impacting changes, list 2-4 concrete thresholds:
+     - "Error rate on `<endpoint>` exceeds X% sustained for 5 min"
+     - "p99 latency on `<endpoint>` exceeds Yms for 5 min"
+     - "Synthetic check on `<critical user flow>` fails"
+     - "Customer-reported regression on `<feature>` within 24h of deploy"
+   - For non-runtime changes (docs, tests, config without behavior change, dev tooling), use `N/A — non-runtime change`. Don't fabricate triggers; honest N/A is more useful than ceremonial ones.
+   - For database migrations, always include rollback SQL or migration-reversal procedure as a trigger, even if the rest is N/A.
+4. Create PR:
    ```bash
    gh pr create --base <default-branch> --title "<title>" --body "$(cat <<'EOF'
    ## Summary
@@ -199,16 +207,19 @@ If on a feature branch:
 
    ## Test plan
    <checklist>
+
+   ## Rollback Triggers
+   <concrete thresholds, OR "N/A — non-runtime change">
    EOF
    )"
    ```
    - If `$ARGUMENTS` contains `--draft`, add the `--draft` flag to `gh pr create`
-4. **Request Copilot review** (unless `$ARGUMENTS` contains `--skip-copilot-review`):
+5. **Request Copilot review** (unless `$ARGUMENTS` contains `--skip-copilot-review`):
    ```bash
    gh pr edit --add-reviewer @copilot
    ```
    If this fails (e.g., Copilot review not available on the repo's plan), warn the user and continue — do not fail the workflow.
-5. Report the PR URL
+6. Report the PR URL
 
 ## Error Recovery
 

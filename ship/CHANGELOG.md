@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.3.0] - 2026-05-06
+
+### Added
+- **Rollback Triggers** section in the PR body template (Phase 6). For runtime-impacting changes, the PR now lists 2-4 concrete thresholds (error rate, p99 latency, synthetic check failures, customer-reported regressions) that would warrant reverting the change post-merge. For non-runtime changes (docs, tests, config without behavior change), uses `N/A — non-runtime change` honestly rather than fabricating triggers. Database migrations always include a reversal procedure trigger.
+
+### Why
+Borrowed from Anthropic's `engineering:deploy-checklist` skill, which makes the operational point explicit: rollback criteria must be decided *before* deploying, not during an incident. Capturing them in the PR body puts the criteria where reviewers see them and where on-call can find them later.
+
 ## [1.2.1] - 2026-05-06
 
 ### Changed
