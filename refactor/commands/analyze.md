@@ -106,16 +106,30 @@ Read the target file(s) and calculate:
 - `utils/helpers.py:function_name` - could replace [duplicated code]
 - `base/base_class.py` - could inherit for [shared behavior]
 
-## Estimated Effort
-| Refactoring | Effort | Risk | Impact |
-|-------------|--------|------|--------|
-| [Refactoring 1] | Low | Low | High |
-| [Refactoring 2] | Medium | Medium | Medium |
+## Estimated Effort and Priority
+
+Score each refactoring on a 1-5 scale:
+- **Impact**: How much does this improve readability/extensibility/testability? (1 = barely, 5 = unblocks future work)
+- **Risk**: What's the risk of breaking something while doing it? (1 = trivial, 5 = touches critical paths without coverage)
+- **Effort**: How long will it take? (1 = minutes, 5 = weeks)
+
+**Priority = (Impact + Risk) × (6 − Effort)** — rewards high-value refactorings that are cheap to do.
+
+| Refactoring | Impact | Risk | Effort | Priority |
+|-------------|--------|------|--------|----------|
+| [Refactoring 1] | 5 | 2 | 1 | 35 |
+| [Refactoring 2] | 4 | 3 | 3 | 21 |
+| [Refactoring 3] | 5 | 5 | 5 | 10 |
 
 ## Recommended Order
-1. [First refactoring] - lowest risk, unblocks others
-2. [Second refactoring] - depends on #1
-3. [Third refactoring] - highest impact
+
+Sort by Priority descending, but apply two overrides:
+1. **Dependency**: if Refactoring B requires Refactoring A done first, A goes first regardless of priority.
+2. **Coverage gap**: if a target has no test coverage, propose adding tests *before* refactoring (counts as a separate, prerequisite refactoring).
+
+1. [Highest-priority refactoring] — Priority N, lowest risk, unblocks others
+2. [Next refactoring] — Priority N, depends on #1
+3. [Third refactoring] — Priority N, highest absolute impact (even if priority is lower due to effort)
 ```
 </output_format>
 

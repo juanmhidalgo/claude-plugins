@@ -5,6 +5,14 @@ All notable changes to this plugin will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.18.0] - 2026-05-06
+
+### Added
+- **Prioritization Formula** in `tech-debt-reviewer` agent: `Priority = (Impact + Risk) × (6 − Effort)`. Each finding now scores Impact/Risk/Effort on a 1-5 scale, computes a numeric priority, and the output is sorted by priority descending. New action thresholds (≥30 BLOCKING, 15-29 SIGNIFICANT, 5-14 MINOR, <5 NOTE) replace vibes-based ordering.
+
+### Why
+Borrowed from Anthropic's `engineering:tech-debt` skill. The formula rewards high-impact / high-risk debt that is *cheap* to fix (5/5/1 scores 50) vs. expensive (5/5/5 scores only 10). Defensible numeric ranking surfaces the easy big wins that vibes-based ordering tends to bury under loud-but-expensive items.
+
 ## [2.17.0] - 2026-05-06
 
 ### Changed

@@ -12,7 +12,7 @@
       "name": "code-review",
       "source": "./code-review",
       "description": "Comprehensive code review workflow: branch reviews, PR triage, false positive dismissal, and fix tracking",
-      "version": "2.17.0",
+      "version": "2.18.0",
       "author": {
         "name": "Juan M. Hidalgo"
       },
@@ -78,7 +78,7 @@
       "name": "refactor",
       "source": "./refactor",
       "description": "Structured refactoring workflow: analyze, plan, and extract code safely",
-      "version": "1.2.1",
+      "version": "1.3.0",
       "author": {
         "name": "Juan M. Hidalgo"
       },

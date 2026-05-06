@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.3.0] - 2026-05-06
+
+### Added
+- **Priority scoring formula** in `/refactor:analyze` output: `Priority = (Impact + Risk) × (6 − Effort)` with each dimension on a 1-5 scale. Replaces the previous qualitative Low/Med/High labels with explicit numeric scores and an explicit Priority column. Refactorings now sort by computed priority by default, with two overrides (dependency order and missing-test-coverage prerequisites).
+
+### Why
+Borrowed from Anthropic's `engineering:tech-debt` skill. The formula rewards high-impact / high-risk refactorings that are *cheap* to fix. A 5/5/1 scores 35; a 5/5/5 scores only 10 — correctly reflecting that shipping easy big wins beats grinding on a hard fix that sits unstarted. Replaces vibes-based ordering with a defensible ranking.
+
 ## [1.2.1] - 2026-05-06
 
 ### Changed

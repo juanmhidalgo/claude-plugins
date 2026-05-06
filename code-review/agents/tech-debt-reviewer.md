@@ -78,6 +78,29 @@ git diff $BASE...HEAD | grep -E '^\+.*\b(TODO|FIXME|HACK|XXX|TEMP)\b'
 - Implicit dependencies (global state, singletons)
 - Tight coupling (excessive imports from one module)
 
+## Prioritization Formula
+
+For each finding, score three dimensions on a 1-5 scale and compute a priority:
+
+- **Impact** (1-5): How much does this slow the team down or hurt the product? (1 = barely noticeable, 5 = blocks future work)
+- **Risk** (1-5): What happens if we don't fix it? (1 = nothing, 5 = production incident, security breach, or major regression)
+- **Effort** (1-5): How hard is the fix? (1 = minutes, 5 = weeks of focused work)
+
+**Priority = (Impact + Risk) × (6 − Effort)**
+
+The formula rewards high-impact / high-risk items that are *cheap* to fix. A 5/5/1 finding scores 50; a 5/5/5 finding scores 10. This is correct: shipping the easy big wins first beats grinding on a hard fix that sits unstarted.
+
+Score range: 2 (1+1) × 1 = 2 minimum; (5+5) × 5 = 50 maximum.
+
+| Priority | Action |
+|----------|--------|
+| ≥ 30 | BLOCKING — fix before merge |
+| 15-29 | SIGNIFICANT — fix before merge or create tracked ticket |
+| 5-14 | MINOR — follow-up ticket |
+| < 5 | NOTE — mention in review, don't track |
+
+This priority computation overrides "vibes-based" ordering. Even a high-impact finding with effort=5 is often correctly deferred — surface it but be honest about the cost.
+
 ## Output Format
 
 ```markdown
@@ -92,16 +115,16 @@ git diff $BASE...HEAD | grep -E '^\+.*\b(TODO|FIXME|HACK|XXX|TEMP)\b'
 
 **Summary:** X items across Y categories
 
-### BLOCKING / SIGNIFICANT Items
-#### [Short title]
+### BLOCKING / SIGNIFICANT Items (sorted by Priority desc)
+#### [Short title] — Priority: <score> (I=<n>/R=<n>/E=<n>)
 - **Location:** `file.ts:42-58`
 - **Category:** complexity | duplication | debt-markers | test-gaps | code-smells | dependencies | maintainability
 - **Debt:** Description of the issue
 - **Consequence:** What happens if left unaddressed
 - **Suggestion:** Concrete improvement
 
-### Minor Items
-#### [Short title]
+### Minor Items (sorted by Priority desc)
+#### [Short title] — Priority: <score> (I=<n>/R=<n>/E=<n>)
 - **Location:** `file.ts:12`
 - **Debt:** Description
 - **Suggestion:** Fix or follow-up action
