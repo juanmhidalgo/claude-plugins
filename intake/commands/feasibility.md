@@ -410,7 +410,7 @@ Write the report so a CSM can read the table and risks without engineering help,
 
 ## Rationalization Defenses
 
-If you catch yourself thinking any of these, STOP — you are about to violate the feasibility-only contract:
+Catches *violating the feasibility-only contract*. If you catch yourself thinking any of these, STOP:
 
 | Rationalization | Why It's Wrong |
 |----------------|----------------|
@@ -429,6 +429,19 @@ If you catch yourself thinking any of these, STOP — you are about to violate t
 | "I can skip the alternatives agent — the capability agents already cover what exists" | The capability agents look vertically (does X work?). The alternatives agent looks horizontally (what existing pattern could be cloned, what combination of EXISTS could meet the ask without new code?). Different lens, different output — skipping it costs you the workarounds that often *are* the right answer. |
 | "I'll list a workaround as 'an admin can run this hourly' even though that's operationally unrealistic" | A workaround that no human would actually operate is not a workaround. The bar is "could realistically be operated by a real CS team without burning out". State the operational burden honestly so the reader can judge. |
 | "I found something similar in the codebase, I'll list it as a pragmatic alternative even without specific file:line" | Pragmatic alternatives must be backed by file:line evidence. "We probably have something like this" is speculation — same problem as guessing Status: EXISTS without citations. |
+
+## Common Intake Mistakes
+
+Catches *producing a low-quality report*. Different failure mode from the boundary violations above. Catch yourself:
+
+| Mistake | What it looks like | Fix |
+|---------|-------------------|-----|
+| **Under-decomposed capabilities** | One capability called "API integration" or "data sync" | Apply the one-verb-per-capability rule. If the statement contains "and" or a comma, split it. Bundled capabilities hide effort variance. |
+| **Generic risks** | "Performance, security, scalability might be issues" | Tie each risk to a specific file:line, data flow, or capability ID. Untied risks get ignored; tied risks drive de-risking work. |
+| **Customer framing taken as the correct framing** | The customer described a solution; you researched that solution literally | When the requested capability looks like one of several solutions to a deeper need, surface the underlying problem in Open Questions for CSM. Don't second-guess silently — flag it. |
+| **Equal-priority phasing** | Phase 1 contains capabilities A, B, C, D, E in arbitrary order | Order Phase 1 by customer-blocker impact. The capability that unblocks the most painful part of *their* workflow goes first. |
+| **No counter-recommendation when scope is large** | A 6-capability ask presented as "all feasible, here's the phased plan" | Take a position. "I would push back on capability E — significant scope without clear value, recommend deferring." Useful to CSM; neutral compliance is not. |
+| **Surface-level EXISTS** | Status: EXISTS based on a single matching keyword (e.g., a model named `WebhookConfig`) | Confirm the integration *round-trips*. Find producer, consumer, and a test or log line showing the data flow works end-to-end. A name match is not a working feature. |
 
 <mindset>
 - The customer's prose is a hypothesis, not a specification

@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.8.0] - 2026-05-06
+
+### Added
+- **Common Intake Mistakes** anti-pattern catalog in `/intake:feasibility`. Names quality-related failure modes the existing Rationalization Defenses don't cover: under-decomposed capabilities, generic (untied-to-code) risks, customer framing taken as the correct framing, equal-priority phasing, no counter-recommendation when scope is large, surface-level EXISTS verdicts based on keyword matches alone. Each entry includes a one-line fix.
+
+### Why
+Boundary defenses (Rationalization Defenses) prevent the model from breaking the feasibility-only contract. Quality defenses catch the model when it produces a report that meets the rules but isn't useful — a different failure mode worth defending against. Mirrors the same Rationalization-Defenses + Common-Mistakes split now used in `/feature-dev:spec` and `/discuss:feature`.
+
 ## [0.7.2] - 2026-05-06
 
 ### Changed
