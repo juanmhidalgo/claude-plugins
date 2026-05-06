@@ -132,8 +132,8 @@
     {
       "name": "debug",
       "source": "./debug",
-      "description": "Systematic debugging workflow: structured triage, root cause analysis, regression guards, and error pattern recognition",
-      "version": "1.1.1",
+      "description": "Systematic debugging and incident response: structured triage, root cause analysis, regression guards, error pattern recognition, and blameless postmortem generation",
+      "version": "1.2.0",
       "author": {
         "name": "Juan M. Hidalgo"
       },

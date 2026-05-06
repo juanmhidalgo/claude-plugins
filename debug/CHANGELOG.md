@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.2.0] - 2026-05-06
+
+### Added
+- **`/debug:incident`** command and **`incident-response`** skill — manages the full incident lifecycle through three explicit modes: `new` (triage with SEV1-4 classification + roles assignment), `update` (status broadcast with cadence guidance per severity), and `postmortem` (blameless retrospective with 5 Whys, What Went Well/Poorly, action items table with P0/P1/P2 owners).
+- Common Postmortem Mistakes anti-pattern catalog (naming the person, 5 Whys stopping early, action items without owners, symptom-only timeline, skipping What Went Well, pre-populated conclusions).
+- Rationalization Defenses for postmortem-skipping and severity-downgrading patterns.
+- Cross-skill delegation: incident-response is the coordination layer; root-cause investigation delegates to `debug:debugging-strategies`.
+
+### Changed
+- Plugin description expanded to cover incident response alongside debugging.
+
+### Why
+Borrowed from Anthropic's `engineering:incident-response` skill. Our marketplace previously covered debugging (active troubleshooting) and shipping (deploy) but had no skill for *post-deploy emergency*. Adding it as a sibling skill in `debug` reuses the existing "stop-the-line, preserve evidence, root cause" mindset and avoids creating a separate plugin for a closely related concern.
+
 ## [1.1.1] - 2026-05-06
 
 ### Changed
