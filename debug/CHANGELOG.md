@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.2.1] - 2026-05-07
+
+### Changed
+- Added `Do NOT use for…` boundary to `/debug:triage` description (directs systematic debugging to `/debug:debug` instead).
+
+### Why
+Aligns descriptions with Anthropic's Claude Code best practices ("Description = triggering conditions only, with what NOT to use it for").
+
 ## [1.2.0] - 2026-05-06
 
 ### Added

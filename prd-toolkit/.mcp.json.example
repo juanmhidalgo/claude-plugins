@@ -1,0 +1,13 @@
+{
+  "_comment": "Optional MCP server config for the ClickUp integration in /prd:refine. Copy to '.mcp.json' (or merge into your project's existing .mcp.json) and customize the command/args for your installed ClickUp MCP server. Without this, /prd:refine falls back to direct ClickUp REST API calls via curl, which still work but are less ergonomic.",
+  "mcpServers": {
+    "clickup": {
+      "_comment": "Replace 'command' and 'args' with the actual invocation for your ClickUp MCP server (e.g., a binary you've installed locally, an npx package, or a Python entrypoint). The token is read from the CLICKUP_API_TOKEN env var.",
+      "command": "node",
+      "args": ["/path/to/your/clickup-mcp-server/index.js"],
+      "env": {
+        "CLICKUP_API_TOKEN": "${CLICKUP_API_TOKEN}"
+      }
+    }
+  }
+}

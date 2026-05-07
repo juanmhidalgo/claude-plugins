@@ -54,195 +54,66 @@ If you were dispatched as a subagent to execute a specific task, skip this comma
 
 ## Phase 0: Validate
 
-Before starting, verify:
-1. PR number was provided (from $ARGUMENTS)
-2. Working tree is clean (no uncommitted changes). If dirty, **STOP** and ask user to commit or stash first.
+1. PR number was provided (from `$ARGUMENTS`)
+2. Working tree is clean. If dirty, **STOP** and ask user to commit or stash.
 3. PR is open: `gh pr view $ARGUMENTS --json state -q '.state'` must be `OPEN`. If draft/closed/merged, **STOP**.
 
-## Autonomous Mode Rules
+## Autonomous mode
 
-This pipeline runs **without asking for input**. Follow these decision rules:
-
-| Situation | Action |
-|-----------|--------|
-| Simple fix (typo, null check, import) | Implement directly |
-| Multiple valid approaches | Choose the simplest, most consistent with codebase |
-| Adding dependency | Prefer stdlib/existing deps over new ones |
-| Architectural decision | Choose the approach matching existing patterns |
-| Tests fail | Fix and retry (up to 2 attempts), then STOP |
-| Coverage below CI threshold | Write tests to improve coverage (up to 2 cycles), then STOP |
-| No CI coverage config found | Skip coverage gate, note in report |
-| Unclear if issue is valid | Default to false positive (conservative) |
-| No comments to triage | Report "no actionable feedback" and exit |
-| All comments are false positives | Dismiss all, skip to Phase 8 (report) |
-| No code changes made (all dismissed or no valid bugs) | Skip Phases 5-7, go to Phase 8 |
-| No test suite found | Skip test phase, warn in report |
-| Linter/formatter changed unrelated files | Reset them with `git checkout -- <file>`, log in report |
+This pipeline runs **without asking for input**. For the full decision-rules table covering simple fixes, ambiguous cases, test failures, coverage misses, and scope leaks from auto-formatters, see `@pipeline.references/phase-details.md` (Autonomous mode rules section).
 
 **NEVER ask for input.** Only stop if tests fail after 2 retry attempts or if validation fails.
 
 ## Phase 1: Triage
 
-Fetch all PR comments:
+Fetch all PR comments and verify each in parallel using the `comment-verifier` agent. Collect `VALID BUG` / `FALSE POSITIVE` verdicts with `ref_id` preserved.
 
-```bash
-${CLAUDE_PLUGIN_ROOT}/scripts/pr-triage-comments.sh OWNER REPO PR_NUMBER
-```
+For the exact script invocation and verifier-prompt format, see `@pipeline.references/phase-details.md` (Phase 1 detail).
 
-For each comment, spawn a `comment-verifier` agent in parallel to verify it against actual code:
+## Phase 2: Dismiss false positives
 
-```
-For each comment, use Agent tool with:
-- subagent_type: "comment-verifier"
-- prompt: "Verify this review comment:\n\nref_id: [ref_id]\nFile: [file:line]\nReviewer: @[author]\nComment: [body]"
-```
+For each `FALSE POSITIVE`, run `pr-resolve-comment.sh ... dismiss "REASON"`. For canonical reason phrases, see `@pipeline.references/phase-details.md` (Phase 2 detail).
 
-Launch ALL verifier agents in a single response (parallel tool calls). Each returns a structured verdict: `VALID BUG` or `FALSE POSITIVE` with evidence.
+## Phase 3: Plan fixes
 
-Collect all verdicts into a running list with `ref_id` preserved.
-
-## Phase 2: Dismiss False Positives
-
-For each FALSE POSITIVE, dismiss immediately:
-
-```bash
-${CLAUDE_PLUGIN_ROOT}/scripts/pr-resolve-comment.sh OWNER REPO PR_NUMBER REF_ID dismiss "REASON"
-```
-
-Use concise reasons: "Already handled in [location]", "YAGNI", "Misunderstands context: [brief]", "Style preference", "Pre-existing, not introduced by this PR".
-
-## Phase 3: Plan Fixes
-
-For each VALID BUG, create a fix plan:
-1. Read the affected code
+For each `VALID BUG`:
+1. Read affected code
 2. Determine the minimal fix
 3. Note which files are affected
 
-Group fixes by file to detect conflicts. Fixes touching **different files** can run in parallel.
+Group fixes by file. Fixes touching **different files** can run in parallel; fixes touching the **same file** run sequentially.
 
-## Phase 4: Implement Fixes
+## Phase 4: Implement fixes
 
-### Parallel execution (different files)
+- **Parallel** (different files) — spawn `fix-implementer` agents in parallel.
+- **Sequential** (same file) — run `fix-implementer` one at a time to avoid conflicts.
+- **After all fixes** — read each modified file to verify no syntax errors.
+- **Scope check** — discard auto-formatter-induced changes to files NOT in the fix plan via `git checkout -- <file>`; log the count.
 
-For fixes that touch different files, spawn parallel subagents using the Agent tool with the `fix-implementer` agent type. Each agent runs in the background (`background: true`) with a 25-turn cap:
+For agent prompts, parallel-launch instructions, and the full scope-check procedure, see `@pipeline.references/phase-details.md` (Phase 4 detail).
 
-```
-For each independent fix, use Agent tool with:
-- subagent_type: "fix-implementer"
-- prompt: "Fix: [issue title]. File: [path:line]. Problem: [description]. Expected fix: [solution from plan]."
-```
+## Phase 5: Run tests
 
-Launch all independent fix agents in a single response (parallel tool calls). Wait for all to complete before proceeding.
+Skip if no code changes were made (go to Phase 8). Discover the project's test runner, run the suite, fix-and-retry on failure (up to 3 attempts, then STOP).
 
-### Sequential execution (same file)
+For runner-discovery order and the failure handling sequence, see `@pipeline.references/phase-details.md` (Phase 5 detail).
 
-For fixes touching the same file, implement them sequentially using the same `fix-implementer` agent to avoid conflicts.
+## Phase 5b: Coverage gate
 
-### After all fixes
+Detect CI coverage config in `.github/workflows/*.yml`. If none, skip and note in report. If present, extract thresholds, categorize new/modified files by diff against the PR base, run coverage, gate per-file, and write additional tests for uncovered lines (up to 2 cycles).
 
-Read each modified file to verify no syntax errors were introduced.
+For threshold parsing, file categorization, and the cycle-limit behavior, see `@pipeline.references/phase-details.md` (Phase 5b detail).
 
-### Scope check: reset unrelated changes
+## Phase 6: Commit and push
 
-Pre-commit hooks and linters may auto-format files beyond the fix scope. Before proceeding:
+Skip if no code changes were made. Otherwise create a structured commit and `git push`.
 
-1. Run `git diff --name-only` to list all modified files
-2. Compare against the fix plan from Phase 3 — only files listed there should be modified
-3. For any file NOT in the fix plan:
-   - Run `git checkout -- <file>` to discard the unrelated changes
-   - Log in Phase 8 report: "Reset [count] unrelated files modified by auto-formatters"
-4. Run `git diff --stat` to confirm only fix-related files remain modified
+For the commit-message template, see `@pipeline.references/phase-details.md` (Phase 6 detail).
 
-## Phase 5: Run Tests
+## Phase 7: Resolve GitHub threads
 
-**Skip this phase if no code changes were made** (all comments dismissed as false positives or no valid bugs found). Go directly to Phase 8.
-
-Discover and run the project test suite:
-
-1. Check for test commands: `package.json` scripts (`test`), `Makefile` targets, `pytest.ini`/`pyproject.toml`, `Cargo.toml`, `go.mod`
-2. Run the full test suite
-3. If tests **pass** → continue to Phase 6
-4. If tests **fail**:
-   - Analyze failures
-   - Fix the failing tests or the code causing failures
-   - Re-run tests (attempt 2)
-   - If still failing: fix again and re-run (attempt 3)
-   - If still failing after attempt 3: **STOP** and report which tests fail and why
-
-## Phase 5b: Coverage Gate
-
-After tests pass, check if the repository has CI coverage thresholds:
-
-1. **Detect GHA coverage config**: Search `.github/workflows/*.yml` for coverage actions (`orgoro/coverage`, `CodeCoverageReport`, `cobertura-action`, `codecov`)
-2. **If no coverage config found**: Skip this phase, add "Coverage: SKIPPED (no CI config)" to report
-3. **If coverage config found**:
-   a. Extract thresholds and normalize to 0-100 percentages
-   b. Get the PR base branch: `gh pr view $ARGUMENTS --json baseRefName -q '.baseRefName'`
-   c. Categorize files:
-      - New: `git diff --name-only --diff-filter=A <base>...HEAD` (source files only)
-      - Modified: `git diff --name-only --diff-filter=M <base>...HEAD` (source files only)
-   d. Run test suite with coverage report generation (use tool from GHA workflow or project config)
-   e. Parse per-file coverage from the report
-   f. Check each file against its category threshold
-   g. **If all pass**: Continue to Phase 6
-   h. **If below threshold**:
-      - Identify uncovered lines in failing files
-      - Write additional tests targeting those lines
-      - Re-run coverage (up to 2 additional cycles)
-      - If still failing after 2 cycles: **STOP** and report which files are below threshold with current % vs required %
-
-## Phase 6: Commit and Push
-
-**Skip this phase if no code changes were made.** Go directly to Phase 8.
-
-Create a structured commit:
-
-```
-fix: resolve PR #{PR_NUMBER} review feedback
-
-Fixes applied:
-- [Brief description of each fix]
-
-Dismissed as false positives:
-- [Count] comments dismissed
-
-Reviewed-by: Claude Code
-```
-
-Then push:
-```bash
-git push
-```
-
-## Phase 7: Resolve GitHub Threads
-
-**Skip this phase if no fixes were implemented.**
-
-For each VALID BUG that was fixed, resolve the thread:
-
-```bash
-${CLAUDE_PLUGIN_ROOT}/scripts/pr-resolve-comment.sh OWNER REPO PR_NUMBER REF_ID resolve
-```
+For each `VALID BUG` that was fixed, run `pr-resolve-comment.sh ... resolve`.
 
 ## Phase 8: Report
 
-Output a final summary:
-
-```
-## Pipeline Results - PR #[number]
-
-### Fixed ([count])
-- [ref_id] [file:line] - [brief description of fix]
-
-### Dismissed ([count])
-- [ref_id] [file:line] - [reason]
-
-### Threads Resolved ([count])
-
-### Tests: PASS/FAIL
-
-### Coverage: PASS/FAIL/SKIPPED
-- [If applicable: files below threshold with current % vs required %]
-
-### Commits: [commit hash] pushed to [branch]
-```
+Print a final summary covering Fixed, Dismissed, Threads Resolved, Tests, Coverage, and Commits. For the report template, see `@pipeline.references/phase-details.md` (Phase 8 detail).

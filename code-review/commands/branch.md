@@ -4,7 +4,9 @@ allowed-tools:
   - Agent
   - Read
 argument-hint: [base-branch]
-description: Code review of current branch changes compared to a base branch (default: main/master)
+description: |
+  Use when reviewing branch changes for merge readiness with severity classification.
+  Do NOT use for staged-only review (use /code-review:staged) or PR feedback triage (use /code-review:triage).
 keywords:
   - branch-review
   - branch-comparison

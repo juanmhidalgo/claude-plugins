@@ -7,7 +7,9 @@ allowed-tools:
   - Bash(git log *)
   - Bash(git show *)
 argument-hint: "[file or endpoint path]"
-description: Generate handoff prompt for frontend after backend API changes
+description: |
+  Use to generate a handoff prompt for the frontend team after backend API changes have landed.
+  Do NOT use without backend changes already implemented — use /handoff:prompt for general cross-repo handoffs.
 keywords:
   - api-handoff
   - backend-to-frontend

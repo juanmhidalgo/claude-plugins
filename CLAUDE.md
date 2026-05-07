@@ -1,81 +1,29 @@
 # CLAUDE.md
 
 <project_context>
-This is a Claude Code plugins marketplace containing plugins for development workflows. The marketplace provides installable plugins that extend Claude Code with slash commands, agents, and skills.
+Claude Code plugins marketplace. Each top-level directory (e.g., `code-review/`, `feature-dev/`) is a plugin that bundles slash commands, agents, and skills. The marketplace registry lives in `.claude-plugin/marketplace.json`.
 </project_context>
-
-<reference_docs>
-Plugin creation guidelines: @.claude/rules/plugin-creation.md
-Skill testing methodology: @.claude/rules/skill-testing.md
-</reference_docs>
 
 <architecture>
 
-## Plugin Architecture
+## Plugin layout
 
 ```
 .claude-plugin/
-  marketplace.json     # Marketplace registry with plugin listings
+  marketplace.json     # Marketplace registry
 
 <plugin-name>/
   .claude-plugin/
     plugin.json        # Plugin metadata (name, version, description)
-  commands/            # Slash commands (*.md files)
-  agents/              # Specialized agent definitions (*.md files)
-  skills/              # Reusable skill documents (SKILL.md in subdirs)
-  scripts/             # Shell scripts for automation
+  commands/            # Slash commands (*.md)
+  agents/              # Specialized agents (*.md)
+  skills/<name>/SKILL.md  # Skills with optional references/
+  scripts/             # Shell scripts
+  CHANGELOG.md
+  README.md
 ```
 
-### Key Patterns
-
-- **Commands**: Markdown files with YAML frontmatter (`allowed-tools`, `argument-hint`, `description`)
-- **Agents**: Markdown files with YAML frontmatter defining specialized agents with specific tools and skills
-- **Skills**: Best practices documents activated by agents, providing domain knowledge
-- **Shell output embedding**: Commands can embed shell output using `!` backticks (e.g., `!`git branch --show-current``)
-- **Arguments**: Commands accept arguments via `$1`, `$ARGUMENTS`
-
-### Discoverability Fields
-
-Commands and skills support optional fields for improved discoverability:
-
-| Field | Type | Format | Purpose |
-|-------|------|--------|---------|
-| `keywords` | `string[]` | kebab-case lowercase | Search/taxonomy terms (e.g., `pull-request`, `code-review`) |
-| `triggers` | `string[]` | Natural language | User intent phrases (e.g., `"review this PR"`, `"check my code"`) |
-| `code-triggers` | `string[]` | Code identifiers | Patterns that activate skills (e.g., `BaseModel`, `Field`) |
-
-**Example command frontmatter:**
-```yaml
----
-description: Comprehensive code review for a pull request
-keywords:
-  - pull-request
-  - code-review
-  - github-pr
-triggers:
-  - "review this PR"
-  - "review pull request"
-allowed-tools: [...]
----
-```
-
-**Example skill frontmatter with code-triggers:**
-```yaml
----
-name: pydantic
-description: Data validation with Pydantic v2.
-keywords:
-  - pydantic-v2
-  - data-validation
-triggers:
-  - "create data model"
-  - "validate input"
-code-triggers:
-  - "BaseModel"
-  - "Field"
-  - "field_validator"
----
-```
+For deeper conventions (frontmatter fields, discoverability, progressive disclosure), see `.claude/rules/plugin-creation.md` (auto-loaded when working in a plugin directory). For skill testing, see `.claude/rules/skill-testing.md`.
 
 </architecture>
 
@@ -87,11 +35,11 @@ code-triggers:
 
 When modifying any plugin, YOU MUST complete these steps IN ORDER:
 
-1. **Bump the version** in the plugin's `.claude-plugin/plugin.json` file
+1. **Bump the version** in the plugin's `.claude-plugin/plugin.json`
 2. **Use semantic versioning**: patch (0.0.x) for fixes, minor (0.x.0) for features, major (x.0.0) for breaking changes
-3. **Update the CHANGELOG.md** in the plugin's root directory with the changes made
+3. **Update the CHANGELOG.md** in the plugin's root with the changes made
 
-NEVER skip version bumping. This is a MANDATORY step that prevents version conflicts and maintains marketplace integrity. No exceptions.
+NEVER skip version bumping. A `PostToolUse` hook (`.claude/hooks/version-bump-check.sh`) warns when this rule is violated. Bypass only with `SKIP_VERSION_CHECK=1` for genuinely in-progress work.
 
 </rule>
 
@@ -99,7 +47,7 @@ NEVER skip version bumping. This is a MANDATORY step that prevents version confl
 
 ## AI Code Review Principle
 
-AI feedback is NOT valid by default. YOU MUST verify every comment from AI reviewers against actual code before acting on it. This applies to all code review workflows.
+AI feedback is NOT valid by default. YOU MUST verify every comment from AI reviewers against actual code before acting on it. Applies to all code review workflows.
 
 </rule>
 
@@ -113,160 +61,8 @@ PRDs focus on **observable behavior**, not implementation details. Describe what
 
 </critical_rules>
 
-<available_plugins>
+<plugin_catalog>
 
-## code-review Plugin
+For the full plugin list, commands, and usage examples, see `README.md` or run `/plugin marketplace` in Claude Code.
 
-Comprehensive code review workflow:
-
-| Command | Purpose |
-|---------|---------|
-| `/code-review:pipeline PR#` | **Autonomous** triage, fix, dismiss, test, commit, push, resolve |
-| `/code-review:branch [base]` | Review current branch vs base |
-| `/code-review:staged` | Review staged changes |
-| `/code-review:triage PR#` | Triage AI reviewer feedback |
-| `/code-review:dismiss PR#` | Dismiss false positives on GitHub |
-| `/code-review:fixes-plan` | Generate REVIEW_FIXES.md tracking |
-| `/code-review:implement-fix` | Implement fixes, asking for technical decisions |
-| `/code-review:mark-fixed` | Verify and mark issues fixed |
-| `/code-review:resolve-fixed PR#` | Resolve GitHub threads for fixed issues |
-| `/code-review:coverage-gate [base]` | Check coverage against CI thresholds before push |
-
-## prd-toolkit Plugin
-
-Create and manage Product Requirements Documents (PRDs):
-
-| Command | Purpose |
-|---------|---------|
-| `/prd:refine [file \| issue-url]` | Improve existing PRD or convert vague issue to PRD |
-| `/prd:validate [file \| issue-url]` | Verify implementation matches PRD criteria |
-| `/prd:analyze [file \| issue-url \| text]` | Identify gaps, edge cases, and ambiguities before implementation |
-
-> For creating new specs from scratch, use `/feature-dev:spec` (consolidated in v2.0.0 of `prd-toolkit`).
-
-## handoff Plugin
-
-Generate prompts for use in other repositories, including API handoffs:
-
-| Command | Purpose |
-|---------|---------|
-| `/handoff:prompt [context]` | Generate a prompt from the current conversation for another repo |
-| `/handoff:backend-to-frontend [file]` | Generate handoff prompt for frontend after API changes |
-| `/handoff:frontend-to-backend [feature]` | Generate handoff prompt for backend when frontend needs APIs |
-| `/handoff:receive <prompt>` | Process received handoff with research-first verification and plan mode |
-
-## discuss Plugin
-
-Critical feature discussion and idea refinement (discussion-only; hands off to `/feature-dev:spec`):
-
-| Command | Purpose |
-|---------|---------|
-| `/discuss:feature [feature or idea]` | Critical analysis with skeptical Staff Engineer perspective |
-| `/discuss:brainstorm [problem]` | Generate 4-6 alternative approaches |
-| `/discuss:challenge [proposal]` | Argue against to stress-test decision |
-| `/discuss:tradeoffs [A vs B]` | Compare options with structured pros/cons matrix |
-
-## intake Plugin
-
-Translate unstructured customer/CSM/Sales/Support requests into engineering signals (sits before `/discuss:feature` and `/feature-dev:spec` in the workflow):
-
-| Command | Purpose |
-|---------|---------|
-| `/intake:feasibility <request or path>` | Decompose a customer ask into capabilities + constraints (POLICY and TEMPORAL), research each capability in parallel via N + 1 Explore subagents (capability agents + alternatives agent), produce Status × Effort × Evidence map with risk callout, phased recommendation (incl. optional pragmatic-alternative path), `Workarounds available today`, `Excluded for this customer` list, and per-capability ✅/⚠️/❌ feasibility against any stated deadline |
-| `/intake:respond-draft <report>` | Summarize a feasibility report **for CSM** in plain language. **No customer-facing draft** (CSM owns customer voice). **No calendar commitments** (uses commitment categories and `[CSM TO CONFIRM TIMELINE]` placeholders) |
-| `/intake:objection-prep <report>` | Anticipate CSM/Sales/customer pushback against a feasibility report; outputs a Q&A list with prepped factual responses |
-
-## feature-dev Plugin
-
-Feature development workflows with quality gates:
-
-| Command | Purpose |
-|---------|---------|
-| `/feature-dev:spec <feature>` | Create a structured specification with gated review workflow |
-| `/feature-dev:tdd <spec>` | Test-driven development: failing tests → implement → coverage gate → refactor |
-| `/feature-dev:explore-plan <feature>` | Parallel 4-agent codebase exploration → synthesized implementation plan |
-| `/feature-dev:spec-review [file]` | Validate `SPEC-*.md` for gaps: Blocking / Should Address / Nice to Have |
-| `/feature-dev:plan-review [file]` | Validate `PLAN-*.md` for gaps: Blocking / Should Address / Nice to Have |
-| `/feature-dev:cleanup` | Bulk-delete implemented SPEC and stale PLAN artifacts (Y/N confirm) |
-
-## second-opinion Plugin
-
-Get second opinions from external AIs on code, architecture, and implementation:
-
-| Command | Purpose |
-|---------|---------|
-| `/second-opinion review staged` | Review staged changes with external AI |
-| `/second-opinion review <file>` | Review a specific file |
-| `/second-opinion review branch` | Review current branch vs base |
-| `/second-opinion --backend <name> <query>` | Ask a specific backend (codex, gemini, copilot, claude) |
-
-## ship Plugin
-
-End-to-end shipping workflow with smart staging:
-
-| Command | Purpose |
-|---------|---------|
-| `/ship` | Full workflow: smart stage → commit → test → push → optional PR |
-| `/ship --skip-tests` | Ship without running tests |
-| `/ship --no-pr` | Ship without offering to create a PR |
-| `/ship --draft` | Create PR as draft |
-
-## security Plugin
-
-Security auditing workflow with OWASP Top 10 and dependency scanning:
-
-| Command | Purpose |
-|---------|---------|
-| `/security:audit [path]` | Comprehensive security audit with vulnerability scanning and code pattern analysis |
-| `/security:checklist [area]` | Quick security checklist verification (auth, input, data, infra, deps) |
-
-## debug Plugin
-
-Systematic debugging with structured triage:
-
-| Command | Purpose |
-|---------|---------|
-| `/debug:debug <error>` | 6-step debugging: reproduce → localize → reduce → root cause → guard → verify |
-| `/debug:triage <error>` | Quick error classification with targeted investigation steps |
-
-## performance Plugin
-
-Performance optimization with measure-first approach:
-
-| Command | Purpose |
-|---------|---------|
-| `/performance:audit [path]` | Performance audit with anti-pattern scanning and bottleneck identification |
-| `/performance:profile <target>` | Focused profiling of a specific function, endpoint, or component |
-
-## github-issues Plugin
-
-Fix GitHub Issues directly from Claude Code with multi-repo handoff:
-
-| Skill | Purpose |
-|-------|---------|
-| `/github-issues:fix <url>` | Fetch a GitHub Issue, explore the codebase, plan and implement the fix |
-
-</available_plugins>
-
-<environment_requirements>
-
-## Requirements
-
-- `gh` CLI installed and authenticated
-- GitHub token with repo scope
-
-</environment_requirements>
-
-<common_commands>
-
-## Installation Commands
-
-```bash
-# Add marketplace
-/plugin marketplace add juanmhidalgo/claude-plugins
-
-# Install plugin
-/plugin install code-review@juanmhidalgo-plugins
-```
-
-</common_commands>
+</plugin_catalog>

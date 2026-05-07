@@ -5,6 +5,18 @@ All notable changes to this plugin will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.19.0] - 2026-05-07
+
+### Changed
+- Split `/code-review:pipeline` (248 → 119 lines) into a workflow-narrative core plus `pipeline.references/phase-details.md` for autonomous-mode rules, per-phase details, and report templates. Progressive disclosure per Claude Code best practices.
+- Added `Do NOT use for…` boundary clauses to four commands' descriptions: `/code-review:branch`, `/code-review:staged`, `/code-review:triage`, `/code-review:mark-fixed`.
+
+### Added
+- Future-direction note in `pipeline.references/phase-details.md` documenting the agent-teams migration path for parallel verifiers and parallel fix-implementers (deferred — Anthropic agent-teams are still experimental).
+
+### Why
+Aligns with Anthropic's official Claude Code best practices: "Description = triggering conditions only" (boundaries) and progressive disclosure (split overlong commands into core + references). No behavior changes.
+
 ## [2.18.0] - 2026-05-06
 
 ### Added

@@ -1,6 +1,6 @@
 {
   "name": "intake",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "description": "Translate unstructured customer/CSM/Sales/Support requests into engineering feasibility reports against the codebase",
   "author": {
     "name": "Juan M. Hidalgo"

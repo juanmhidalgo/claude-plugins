@@ -96,6 +96,10 @@ Translate unstructured customer/CSM/Sales/Support requests into engineering sign
 - `gh` CLI installed and authenticated
 - GitHub token with repo scope
 
+## Recommended permissions
+
+These plugins use `git`, `gh`, and standard test-runner CLIs heavily. To avoid per-call permission prompts, merge the rules from [`settings.example.json`](settings.example.json) into your `~/.claude/settings.json` (user-wide) or the project-level `.claude/settings.json`. The example also denies common destructive operations (`rm -rf`, `git push --force`, `git reset --hard`) and reads against `.env`/credentials paths.
+
 ## Disclaimer
 
 This is a community project and is **not affiliated with, endorsed, or supported by Anthropic**.

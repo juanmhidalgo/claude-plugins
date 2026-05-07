@@ -6,7 +6,9 @@ allowed-tools:
   - Bash(grep *)
   - Grep
 argument-hint: [issue-number | "all"]
-description: Verify and mark issues as fixed in REVIEW_FIXES.md
+description: |
+  Use to verify and mark issues as fixed in REVIEW_FIXES.md.
+  Do NOT use without an existing REVIEW_FIXES.md — run /code-review:fixes-plan first.
 keywords:
   - verify-fix
   - mark-fixed

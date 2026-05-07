@@ -1,5 +1,7 @@
 ---
-description: Profile a specific function, endpoint, or component to identify performance bottlenecks with timing data
+description: |
+  Use to profile a specific function, endpoint, or component and identify bottlenecks with timing data.
+  Do NOT use without a specific target — run /performance:audit for codebase-wide scans first.
 argument-hint: "<file:function or endpoint>"
 keywords:
   - profile

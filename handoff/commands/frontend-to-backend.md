@@ -6,7 +6,9 @@ allowed-tools:
   - Bash(git diff *)
   - Bash(git log *)
 argument-hint: "[feature description or file path]"
-description: Generate handoff prompt for backend when frontend needs API changes
+description: |
+  Use to generate a handoff prompt for the backend team when the frontend needs new APIs or schema changes.
+  Do NOT use when frontend requirements are still unclear — use /discuss:feature to clarify scope first.
 keywords:
   - api-handoff
   - frontend-to-backend

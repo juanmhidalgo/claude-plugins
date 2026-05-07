@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.0] - 2026-05-07
+
+### Changed
+- Split `/intake:feasibility` (451 → 164 lines) into core + `feasibility.references/{rationalizations,subagent-schemas,report-format}.md`. Workflow narrative stays inline; subagent schemas, full report templates, the verdict-grid table, and rationalization tables move to references for progressive disclosure.
+- Split `/intake:respond-draft` (294 → 145 lines) into core + `respond-draft.references/translation-and-formats.md`. Translation tables, full Format A/B templates, and rationalization defenses move to references.
+- `/intake:feasibility` now recommends running in plan mode (`Shift+Tab`) so the report is reviewed before any artifact is written to disk.
+
+### Why
+Aligns with Anthropic's Claude Code progressive-disclosure best practice: keep commands lean (<200 lines), move reference content (schemas, templates, anti-pattern catalogs) to `<command>.references/` files that load on demand. No behavior changes.
+
 ## [0.8.0] - 2026-05-06
 
 ### Added

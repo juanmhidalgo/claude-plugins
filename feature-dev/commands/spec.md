@@ -44,6 +44,8 @@ If you were dispatched as a subagent to execute a specific task, skip this comma
 @feature-dev/skills/spec-driven-development/SKILL.md
 </best_practices>
 
+> **Recommended:** run in plan mode (`Shift+Tab` to toggle) so you can review the spec before any files are written.
+
 ## Spec-Driven Development Workflow
 
 You are creating a structured specification for: **$ARGUMENTS**

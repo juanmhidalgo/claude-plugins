@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.2] - 2026-05-07
+
+### Changed
+- Added `Do NOT use for…` boundary to `/performance:profile` description (directs broad scans to `/performance:audit`).
+
+### Why
+Aligns description with Anthropic's Claude Code best practices.
+
 ## [1.1.1] - 2026-05-06
 
 ### Changed

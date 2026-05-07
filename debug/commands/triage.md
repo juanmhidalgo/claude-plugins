@@ -1,5 +1,7 @@
 ---
-description: Quick error classification and diagnosis for test failures, build errors, or runtime issues
+description: |
+  Use for quick error classification and diagnosis of test failures, build errors, or runtime issues.
+  Do NOT use for systematic debugging — use /debug:debug for the full reproduce→fix cycle.
 argument-hint: "<error message or context>"
 keywords:
   - triage

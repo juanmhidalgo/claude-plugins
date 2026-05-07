@@ -1,3 +1,10 @@
+---
+description: Skill testing methodology (TDD-for-documentation)
+paths:
+  - "**/skills/**/SKILL.md"
+  - "**/skills/**/references/*.md"
+---
+
 # Skill Testing Methodology
 
 Test skills before deployment using TDD-for-documentation: RED-GREEN-REFACTOR applied to skill content.

@@ -2,7 +2,9 @@
 allowed-tools:
   - Agent
 argument-hint: [file-path | github-issue-url]
-description: Verify implementation matches PRD acceptance criteria
+description: |
+  Use to verify implementation matches PRD acceptance criteria.
+  Do NOT use before implementation exists — use /prd:analyze for pre-implementation gap analysis.
 keywords:
   - prd-validation
   - acceptance-criteria

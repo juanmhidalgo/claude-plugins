@@ -5,6 +5,15 @@ All notable changes to the claude-md-toolkit plugin will be documented in this f
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] - 2026-05-07
+
+### Changed
+- Split `/claude-md-toolkit:init` (363 → 145 lines) into core + `init.references/standalone-detection-and-templates.md`. Workflow stays inline; framework-detection bash, template selection, the generic-small template body, and error-handling tables move to references.
+- Split `/claude-md-toolkit:optimize-claude-md` (241 → 83 lines) into core + `optimize-claude-md.references/levels-and-strategies.md`. Workflow stays inline; per-level optimization scopes, XML structure target, conciseness moves, and the full success message move to references.
+
+### Why
+Aligns with Anthropic's Claude Code progressive-disclosure best practice. No behavior changes.
+
 ## [0.7.1] - 2026-05-06
 
 ### Changed

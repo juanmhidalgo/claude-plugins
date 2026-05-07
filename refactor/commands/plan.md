@@ -22,6 +22,8 @@ hooks:
 
 # Refactoring Plan
 
+> **Recommended:** run in plan mode (`Shift+Tab` to toggle) so the proposed plan is reviewed before any code changes.
+
 Create a structured refactoring plan.
 
 **Target**: $ARGUMENTS

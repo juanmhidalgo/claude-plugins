@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.12.1 (2026-05-07)
+
+### Changed
+- `/feature-dev:spec` now recommends running in plan mode (`Shift+Tab` to toggle) so the spec is reviewed before files land on disk.
+
+### Why
+Aligns with Anthropic's Claude Code "explore → plan → implement" workflow: planning surfaces should default to plan mode, not write mode.
+
 ## 1.12.0 (2026-05-06)
 
 ### Added

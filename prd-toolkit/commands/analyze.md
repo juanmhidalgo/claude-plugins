@@ -2,7 +2,9 @@
 allowed-tools:
   - Agent
 argument-hint: [file-path | github-issue-url | text]
-description: Identify gaps, edge cases, and ambiguities in requirements before implementation
+description: |
+  Use to identify gaps, edge cases, and ambiguities in requirements before implementation.
+  Do NOT use to validate finished implementation against the PRD — use /prd:validate for that.
 keywords:
   - requirements-analysis
   - gap-analysis

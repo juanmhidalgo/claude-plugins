@@ -1,3 +1,13 @@
+---
+description: Plugin & skill authoring conventions for this marketplace
+paths:
+  - "**/commands/*.md"
+  - "**/agents/*.md"
+  - "**/skills/**/SKILL.md"
+  - "**/.claude-plugin/plugin.json"
+  - ".claude-plugin/marketplace.json"
+---
+
 # Plugin & Skill Creation Guidelines
 
 Lessons learned from Anthropic's official documentation and practical experience.

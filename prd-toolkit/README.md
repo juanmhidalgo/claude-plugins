@@ -109,3 +109,9 @@ PRDs focus on **observable behavior**, not implementation details:
 
 - `gh` CLI installed and authenticated (for GitHub features)
 - ClickUp API token (for ClickUp publishing, optional)
+
+## Optional: ClickUp MCP integration
+
+`/prd:refine` can publish PRDs to ClickUp. By default it uses raw `curl` against the ClickUp REST API with `CLICKUP_API_TOKEN` from your environment. If you prefer an MCP server (cleaner tool calls, no shell quoting), copy [`.mcp.json.example`](.mcp.json.example) to `.mcp.json` and edit `command`/`args` to point to your installed ClickUp MCP server.
+
+The example sets `CLICKUP_API_TOKEN` from your shell environment, so it never lands in the file.

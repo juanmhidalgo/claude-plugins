@@ -1,6 +1,8 @@
 ---
 argument-hint: "[additional context]"
-description: Generate a self-contained prompt based on the current conversation for use in another repository
+description: |
+  Use to generate a self-contained prompt based on the current conversation for another repository.
+  Do NOT use for in-repo task tracking — handoffs are for cross-repo work only.
 keywords:
   - cross-repo
   - handoff

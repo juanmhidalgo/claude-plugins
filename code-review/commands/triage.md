@@ -5,7 +5,9 @@ allowed-tools:
   - Agent
   - Read
 argument-hint: PR#
-description: Triage PR feedback from AI reviewers - verify validity before implementing
+description: |
+  Use to triage PR feedback from AI reviewers and verify validity before implementing.
+  Do NOT use without an open PR with bot comments — use /code-review:branch for local review.
 keywords:
   - ai-feedback
   - copilot-review

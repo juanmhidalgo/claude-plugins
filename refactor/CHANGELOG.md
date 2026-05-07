@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.3.1] - 2026-05-07
+
+### Changed
+- `/refactor:plan` now recommends running in plan mode (`Shift+Tab`) so the proposed plan is reviewed before any code changes.
+
+### Why
+Aligns with Anthropic's Claude Code "explore → plan → implement" workflow.
+
 ## [1.3.0] - 2026-05-06
 
 ### Added

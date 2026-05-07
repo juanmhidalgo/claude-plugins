@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.1.0] - 2026-05-07
+
+### Added
+- `.mcp.json.example` documenting the optional ClickUp MCP server integration. Users can copy and customize for their installed ClickUp MCP server; `/prd:refine` falls back to direct ClickUp REST API calls when no MCP is present.
+- README section documenting the ClickUp MCP option.
+
+### Changed
+- Added `Do NOT use for…` boundaries to `/prd:analyze` and `/prd:validate` descriptions (clarifies the analyze ↔ validate split).
+
+### Why
+Aligns descriptions with Anthropic's Claude Code best practices and makes external dependencies (ClickUp MCP) discoverable per "plugins should bundle their setup" guidance.
+
 ## [2.0.0] - 2026-05-06
 
 ### Removed (BREAKING)

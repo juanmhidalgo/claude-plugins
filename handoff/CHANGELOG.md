@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.4.2] - 2026-05-07
+
+### Changed
+- Added `Do NOT use for…` boundaries to three command descriptions: `/handoff:prompt`, `/handoff:backend-to-frontend`, `/handoff:frontend-to-backend`.
+
+### Why
+Aligns descriptions with Anthropic's Claude Code best practices, reducing mis-triggering.
+
 ## [1.4.1] - 2026-05-06
 
 ### Changed

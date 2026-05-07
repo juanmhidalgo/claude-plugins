@@ -3,7 +3,9 @@ allowed-tools:
   - Bash(git *)
   - Agent
   - Read
-description: Code review of staged changes before committing
+description: |
+  Use to review staged changes before committing.
+  Do NOT use for branch-wide review (use /code-review:branch) or full PR review (use /code-review:pr).
 keywords:
   - staged-changes
   - pre-commit
