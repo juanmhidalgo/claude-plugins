@@ -5,6 +5,15 @@ All notable changes to this plugin will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.19.1] - 2026-05-12
+
+### Fixed
+- Removed unsupported `permissionMode: default` from `branch-reviewer` and `pr-feedback-analyst` agents — plugin sub-agents do not support this field; it is silently ignored.
+- Removed unsupported `hooks:` blocks from `bug-scanner`, `pr-eligibility-checker`, `pr-summarizer`, and `confidence-scorer` agents — plugin sub-agents do not support hooks; the echo statements were cosmetic and never executed.
+
+### Why
+Aligns agent definitions with the Claude Code sub-agent specification. Unsupported frontmatter fields add noise and can mislead future editors into thinking the hooks or permission mode are active.
+
 ## [2.19.0] - 2026-05-07
 
 ### Changed

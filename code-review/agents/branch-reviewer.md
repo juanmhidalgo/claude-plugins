@@ -3,7 +3,6 @@ name: branch-reviewer
 description: "Code review specialist for branch comparisons and PR preparation. Use PROACTIVELY when: (1) Reviewing branch changes before merge, (2) Comparing current branch vs main/develop, (3) Preparing code for PR submission, (4) Analyzing diffs for security/performance issues."
 tools: Bash, Read, Grep, Glob
 model: sonnet
-permissionMode: default
 skills: branch-review
 ---
 

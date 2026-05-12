@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.1.2] - 2026-05-12
+
+### Changed
+- Removed unsupported `permissionMode` frontmatter field from `security-auditor` agent (plugin agents silently ignore `hooks`, `mcpServers`, and `permissionMode`).
+
 ## [1.1.1] - 2026-05-06
 
 ### Changed

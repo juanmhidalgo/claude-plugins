@@ -3,7 +3,6 @@ name: security-auditor
 description: "Security engineer for vulnerability detection and hardening. Use PROACTIVELY when: (1) Reviewing code that handles user input, auth, or sensitive data, (2) Auditing dependencies for CVEs, (3) Checking security headers and CORS config, (4) Assessing OWASP Top 10 compliance."
 tools: Bash, Read, Grep, Glob
 model: sonnet
-permissionMode: default
 skills: security-hardening
 ---
 

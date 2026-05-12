@@ -3,7 +3,6 @@ name: pr-feedback-analyst
 description: "Analyze and triage PR feedback from AI reviewers (Copilot, Gemini). Use when: (1) PR has bot comments to review, (2) Need to separate valid issues from false positives, (3) Prioritizing code review feedback."
 tools: Bash, Read, Grep, Glob
 model: sonnet
-permissionMode: default
 skills: receiving-code-review
 ---
 

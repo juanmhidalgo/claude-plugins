@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.12.2 (2026-05-12)
+
+### Changed
+- Removed unsupported `permissionMode: default` frontmatter field from `spec-plan-validator` agent. Plugin agents do not support `permissionMode`, `hooks`, or `mcpServers` — they are silently ignored by the harness.
+
 ## 1.12.1 (2026-05-07)
 
 ### Changed

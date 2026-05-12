@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.1.1] - 2026-05-12
+
+### Fixed
+- Removed unsupported `permissionMode` and `hooks` frontmatter fields from `prd-specialist` and `prd-validator` agents. Sub-agents in Claude Code plugins silently ignore these fields; removing them keeps definitions accurate and avoids confusion.
+- Fixed tool name casing in `prd-validator`: `bash, read, glob, grep` → `Bash, Read, Glob, Grep` to match Claude Code convention.
+
 ## [2.1.0] - 2026-05-07
 
 ### Added

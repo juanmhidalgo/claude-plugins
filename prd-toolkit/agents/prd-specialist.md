@@ -6,13 +6,7 @@ tools:
   - Read
   - Write
 model: sonnet
-permissionMode: default
 skills: prd-best-practices
-hooks:
-  - event: Stop
-    once: true
-    command: |
-      echo "📋 PRD specialist task completed"
 ---
 
 You are a senior product engineer specializing in creating clear, actionable mini-PRDs for development teams.
