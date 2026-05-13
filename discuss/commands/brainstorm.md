@@ -39,7 +39,7 @@ Generate 4-6 distinct approaches to solve this problem, covering different trade
 ## Phase 1: Understand the Context
 
 <exploration priority="first">
-Use the Agent tool with `agent_type: "Explore"` to understand:
+Use the Agent tool with `subagent_type: "Explore"` to understand:
 1. What tech stack is this project using?
 2. What patterns are already established?
 3. Are there existing solutions to similar problems?

@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.6.0] - 2026-05-13
+
+### Added
+- **`/discuss:feature` now runs on Opus** (`model: opus` in frontmatter). The command's deliverable — critical analysis with confidence-labeled gaps, risks, and counter-positions — is a reasoning-heavy task, distinct from the implementation-heavy work that sonnet handles well. Pre-setting the model on the command guarantees the analysis quality regardless of the caller's default.
+
+### Fixed
+- **`agent_type` → `subagent_type`** across all four commands in the plugin (`feature.md`, `brainstorm.md`, `tradeoffs.md`, `challenge.md`). The Agent tool's parameter is `subagent_type`; the prior wording could have led the model to pass an unrecognized parameter and fail the exploration step. In `feature.md` the fix covered three locations (Phase 1 instructions, the example call, and the blocking rule in `<critical_rules>`); the other three commands each had one occurrence in their Phase 1 exploration block.
+
 ## [2.5.0] - 2026-05-06
 
 ### Added

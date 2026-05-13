@@ -3,6 +3,7 @@ description: |
   Use before writing code when requirements are ambiguous or a feature has non-obvious scope.
   Do NOT use for simple, self-evident changes.
 argument-hint: "<feature or project description>"
+model: opus
 keywords:
   - spec
   - specification
@@ -109,13 +110,14 @@ Follow the gated workflow. Each phase requires user review before advancing.
 
 ### Phase 2: Plan
 
-With the approved spec:
-1. Identify major components and their dependencies
-2. Determine implementation order
-3. Note risks and mitigations
-4. Define verification checkpoints
+With the approved spec, append an **Implementation Plan** section to the SPEC file (after Boundaries, or after Cross-Repo Contracts when multi-repo). It must cover:
 
-Present the plan for review.
+1. Major components and their dependencies
+2. Implementation order
+3. Risks and mitigations
+4. Verification checkpoints
+
+This is a high-level outline only — the codebase-aware, file-level plan lives in `PLAN-<slug>.md` produced by `/feature-dev:explore-plan` downstream. Save the updated SPEC and present the new section for review.
 
 ### Phase 3: Tasks
 

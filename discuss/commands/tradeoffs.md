@@ -39,7 +39,7 @@ Produce a structured comparison of the given options, tailored to this project's
 ## Phase 1: Understand the Context
 
 <exploration priority="first">
-Use the Agent tool with `agent_type: "Explore"` to understand:
+Use the Agent tool with `subagent_type: "Explore"` to understand:
 1. What's the current tech stack and patterns?
 2. What constraints exist (team skills, infrastructure, timeline)?
 3. How would each option integrate with existing code?

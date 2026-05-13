@@ -39,7 +39,7 @@ Build the strongest possible case AGAINST this proposal. Find every reason it co
 ## Phase 1: Understand What You're Attacking
 
 <exploration priority="first">
-Use the Agent tool with `agent_type: "Explore"` to understand:
+Use the Agent tool with `subagent_type: "Explore"` to understand:
 1. What would this proposal change in the codebase?
 2. What exists today that works?
 3. What similar attempts exist (that might have failed)?

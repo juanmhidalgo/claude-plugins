@@ -2,7 +2,7 @@
 name: comment-verifier
 description: "Verifies a single PR review comment against actual code. Returns VALID BUG or FALSE POSITIVE with evidence. Spawned by the pipeline to triage comments in parallel."
 tools: Read, Grep, Glob
-model: haiku
+model: sonnet
 maxTurns: 15
 background: true
 skills:

@@ -5,6 +5,11 @@ All notable changes to this plugin will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.19.2] - 2026-05-13
+
+### Changed
+- **`comment-verifier` agent**: promoted from `haiku` to `sonnet`. The agent verifies AI-generated review comments against actual code and returns `VALID BUG` or `FALSE POSITIVE` — a misclassification at this stage propagates false positives to the human reviewer or dismisses real bugs. The CLAUDE.md principle "AI feedback is NOT valid by default" requires verification depth that haiku does not reliably provide.
+
 ## [2.19.1] - 2026-05-12
 
 ### Fixed

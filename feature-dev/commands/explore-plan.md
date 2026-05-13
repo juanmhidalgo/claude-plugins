@@ -1,5 +1,6 @@
 ---
 disable-model-invocation: true
+model: opus
 allowed-tools:
   - Read
   - Agent

@@ -1,5 +1,26 @@
 # Changelog
 
+## 1.13.0 (2026-05-13)
+
+### Added
+- **`plan-step-executor` agent** — focused implementation specialist that executes ONE step of an approved plan in isolation. Restricted tools (`Read, Edit, Write, Grep, Glob, Bash, NotebookEdit`), explicit Spawner contract (step description, file paths, verification, carry-over), and a fixed return format (Files changed / Verification / Deviations / Carry-over / Blockers).
+- **`feature-implementer` agent** — orchestrator that drives an approved `PLAN-*.md` end-to-end by dispatching each step to `plan-step-executor`, threading carry-over deltas forward, and halting cleanly on blockers. Tools: `Read, Bash, Agent`. Links the `spec-driven-development` skill.
+- **`tdd-runner` agent** — strict red-green-refactor enforcer for one bounded behavior. Caps at 5 cycles, validates the RED failure mode is legitimate before allowing GREEN, gates promotion on coverage. Stack-agnostic (pytest / vitest / jest from path). Links the `tdd-patterns` skill.
+
+### Changed
+- **`/feature-dev:spec` Phase 2**: clarified that the Plan section gets appended to the SPEC file (high-level outline only) and explicitly defers the file-level, codebase-aware plan to `PLAN-<slug>.md` produced by `/feature-dev:explore-plan`. Previously the phase described an activity but did not name its deliverable, leaving the model unsure whether to write to the spec, verbalize, or generate a separate PLAN.
+- **Model selection on new agents**: `feature-implementer`, `plan-step-executor`, and `tdd-runner` set `model: sonnet` (was `inherit`) to align with the 20+ sonnet agents across the marketplace and keep cost/latency predictable when the agents run in loops (TDD cycles, multi-step plans).
+- **`history-explorer` agent**: promoted from `haiku` to `sonnet`. As an exploration agent spawned by `/feature-dev:explore-plan` for parallel codebase analysis, it must produce findings the synthesizer can integrate into a PLAN. The user's global CLAUDE.md states: *"Explore agents use sonnet — Haiku lacks the analysis depth needed for accurate pattern recognition and synthesis across a codebase."* Now matches `backend-explorer`, `frontend-explorer`, `test-explorer`.
+- **`/feature-dev:spec` and `/feature-dev:explore-plan` now run on Opus** (`model: opus` in frontmatter). Both are reasoning-heavy phases — spec formalization with multi-repo detection and gated user reviews, exploration synthesis across four parallel agents into a coherent plan. Pre-setting the model on the command guarantees quality regardless of the caller's default. Implementation-side workhorses (`/feature-dev:tdd`, `feature-implementer`, `plan-step-executor`, `tdd-runner`) intentionally stay on sonnet — they're bounded by tests and acceptance criteria, not by reasoning depth.
+- **`maxTurns` on the three new agents**: `plan-step-executor` (20), `tdd-runner` (25), `feature-implementer` (30). Aligns with the existing pattern (explorers, refactor agents, comment-verifier, fix-implementer all set `maxTurns`) and guards against runaway loops on degenerate plans / TDD cycles.
+- **`feature-implementer` commit discipline section**: documented explicit rules for `commit_per_step` — never `--no-verify`, halt on pre-commit hook failure (no amend, no retry), commit subject = step acceptance criteria, new commit per step (no `--amend`). Inherits the repo's CLAUDE.md commit safety protocol.
+- **`feature-implementer` parallelization clarification**: the "Do not parallelize steps" hard rule now explicitly states that the "Parallelization Hints" section of a PLAN is informational for human readers, not an instruction to dispatch parallel executors.
+- **README workflow**: added an "Alternative implementation path (agent-driven)" subsection documenting `feature-implementer` / `plan-step-executor` / `tdd-runner` as an alternative to the interactive `/feature-dev:tdd` command path.
+- **Example languages**: normalized examples in `feature-implementer.md` and `tdd-runner.md` to English to match the rest of the marketplace.
+
+### Why
+The three compose naturally with the existing `feature-dev` surface: `/feature-dev:spec` and `/feature-dev:explore-plan` produce the artifacts `feature-implementer` consumes; `/feature-dev:tdd` and the `tdd-patterns` skill define the discipline `tdd-runner` enforces; `plan-step-executor` is the atomic unit both higher-level agents (and the main agent) can dispatch to without polluting the orchestrator's context budget. Co-locating them with `backend-explorer`, `frontend-explorer`, `spec-plan-validator` keeps the feature-dev workflow self-contained instead of scattered across user-scope `~/.claude/agents/`.
+
 ## 1.12.2 (2026-05-12)
 
 ### Changed

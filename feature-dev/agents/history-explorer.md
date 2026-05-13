@@ -2,7 +2,7 @@
 name: history-explorer
 description: "Explores git history and open PRs for a feature. Finds recent changes, conflicts, and historical patterns. Spawned by explore-plan for parallel exploration."
 tools: Read, Grep, Glob, Bash
-model: haiku
+model: sonnet
 maxTurns: 15
 background: true
 ---
