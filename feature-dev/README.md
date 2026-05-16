@@ -24,6 +24,15 @@ Feature development workflows with structured phases and quality gates.
 | `test-explorer` | Test files, fixtures, factories, coverage config, test patterns |
 | `history-explorer` | Git history, open PRs, recent changes, conflict risk assessment |
 
+**Opt-in explorers** — not auto-spawned by `explore-plan`; invoke directly via `subagent_type: "feature-dev:<name>"` from any skill in any repo:
+
+| Agent | Focus |
+|-------|-------|
+| `config-explorer` | Env vars, settings modules, feature flags, secrets handling, per-environment overrides |
+| `schema-explorer` | DB migrations, current schema, indexes/constraints, naming conventions, pending migrations |
+| `api-contract-explorer` | OpenAPI, GraphQL, tRPC, protobuf, JSON Schema contracts — distinct from endpoint code |
+| `observability-explorer` | Logging, metrics, tracing, error reporting, alerting, dashboards |
+
 **Review** — backend for `spec-review` and `plan-review`:
 
 | Agent | Focus |

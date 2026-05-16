@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.14.0 (2026-05-16)
+
+### Added
+- **`config-explorer` agent** — locates environment/config surface for a feature: `.env*` files, settings modules, env-var reads, typed-settings loaders (pydantic-settings, viper, zod env schemas), feature-flag providers (LaunchDarkly, GrowthBook, Unleash), secrets handling (vault, SSM, KMS), and per-environment overrides. Read-only; same frontmatter contract as the existing explorers (`tools: Read, Grep, Glob`, `model: sonnet`, `maxTurns: 15`, `background: true`).
+- **`schema-explorer` agent** — maps DB schema and migration state for a feature's domain: migration tool detection (Django / Alembic / Prisma / Knex / Flyway / sqlx / Diesel), domain-touching migrations, current schema definitions, indexes/constraints, naming conventions, pending migrations (detected without executing), and safety patterns (squashing, multi-tenancy, backfills, online-DDL). Read-only; complements `backend-explorer` on the highest-risk layer.
+- **`api-contract-explorer` agent** — maps declared API contracts (OpenAPI, GraphQL SDL, tRPC routers, protobuf, JSON Schema) as a layer distinct from endpoint *code*. Reports operations in the domain, shared DTOs / generated clients, versioning strategy, contract testing (Pact, Dredd, Schemathesis), codegen pipelines, and consumer repos. Critical for multi-repo features that `/feature-dev:spec` already supports via `repos:` frontmatter.
+- **`observability-explorer` agent** — maps logging stack, metrics, tracing SDK, error reporting, alerting config, dashboards, and the codebase's conventions for adding new signals. Helps new feature code match existing logging/metric/trace naming so post-ship visibility doesn't degrade.
+
+### Notes
+- All four agents are **opt-in primitives** — not auto-spawned by `/feature-dev:explore-plan`. They are invokable directly from any skill (in this plugin or elsewhere) via `subagent_type: "feature-dev:<name>"`, matching how the existing explorers are reused outside `explore-plan`.
+- README's agent section gains an "Opt-in explorers" subsection documenting the new agents.
+- No changes to `/feature-dev:explore-plan` — the default 4-agent fan-out stays universal. Wiring an opt-in flag (e.g., `--with=config,schema`) is deferred.
+
 ## 1.13.0 (2026-05-13)
 
 ### Added
