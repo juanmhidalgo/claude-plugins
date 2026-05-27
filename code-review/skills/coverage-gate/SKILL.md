@@ -4,6 +4,7 @@ description: |
   Use when checking code coverage against CI-configured thresholds before pushing or during pipeline execution.
   Do NOT use for general test writing or coverage tool configuration.
 user-invocable: false
+disallowed-tools: [Edit, Write, NotebookEdit]
 keywords:
   - coverage
   - coverage-gate

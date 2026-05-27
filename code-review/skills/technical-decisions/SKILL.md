@@ -14,6 +14,7 @@ triggers:
   - "technical trade-off"
   - "architectural decision"
 user-invocable: true
+disallowed-tools: [Edit, Write, NotebookEdit]
 ---
 
 # Technical Decisions
