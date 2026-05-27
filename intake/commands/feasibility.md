@@ -13,6 +13,8 @@ allowed-tools:
   - Bash(git log:*)
   - Bash(git branch:*)
   - Bash(pwd)
+  - mcp__clickup-local__get_task_details
+  - mcp__clickup-local__get_attachment
 keywords:
   - feasibility
   - customer-request

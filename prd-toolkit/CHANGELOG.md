@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.1.2] - 2026-05-27
+
+### Added
+- `prd-specialist` agent allowlist now includes `mcp__clickup-local__get_task_details`, `mcp__clickup-local__update_task_status`, and `mcp__clickup-local__update_custom_field`. The plugin's description has long promised ClickUp integration, but the agent only had `Bash(gh *)` — it couldn't actually call ClickUp without falling back to curl with an API token. With the MCP tools declared, the agent can fetch existing ClickUp tasks to refine into a PRD and update their status/fields after the PRD is approved. Task creation still goes via curl (no MCP create_task tool available).
+
 ## [2.1.1] - 2026-05-12
 
 ### Fixed

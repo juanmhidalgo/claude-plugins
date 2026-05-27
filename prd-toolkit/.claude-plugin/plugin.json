@@ -1,6 +1,6 @@
 {
   "name": "prd-toolkit",
-  "version": "2.1.1",
+  "version": "2.1.2",
   "description": "Refine, analyze, and validate Product Requirements Documents (PRDs). Publish to GitHub Issues or ClickUp.",
   "author": {
     "name": "Juan M. Hidalgo"

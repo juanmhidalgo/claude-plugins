@@ -40,6 +40,7 @@ allowed-tools:
   - Bash(make *)
   - Bash(cargo test *)
   - Bash(go test *)
+  - mcp__clickup-local__link_pr_to_task
 hooks:
   - event: Stop
     once: true

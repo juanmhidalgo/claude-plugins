@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.1] - 2026-05-27
+
+### Added
+- `/intake:feasibility` allowlist now includes `mcp__clickup-local__get_task_details` and `mcp__clickup-local__get_attachment`. CSM/Sales requests often originate in ClickUp; with these tools available the command can fetch the ticket and any attached spec files directly instead of requiring copy-paste.
+
 ## [0.9.0] - 2026-05-07
 
 ### Changed

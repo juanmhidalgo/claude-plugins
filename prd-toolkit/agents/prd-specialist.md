@@ -5,6 +5,9 @@ tools:
   - Bash(gh *)
   - Read
   - Write
+  - mcp__clickup-local__get_task_details
+  - mcp__clickup-local__update_task_status
+  - mcp__clickup-local__update_custom_field
 model: sonnet
 skills: prd-best-practices
 ---

@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.2 - 2026-05-27
+
+### Added
+- `fix` skill allowlist now includes `mcp__clickup-local__link_pr_to_task`. When a GitHub Issue is mirrored in a ClickUp task, the skill can link the resulting PR back to the task after `gh pr create`. No-op when ClickUp MCP isn't configured.
+
 ## 1.2.1 - 2026-05-06
 
 ### Changed
