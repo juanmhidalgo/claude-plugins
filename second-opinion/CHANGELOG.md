@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.2.1] - 2026-05-27
+
+### Added
+- `PostToolUse` hook (`hooks/strip-info-logs.sh`) that normalizes the output of `ask-*.sh` script invocations. Uses Claude Code 2.1.121's `hookSpecificOutput.updatedToolOutput` to drop the `[ask-XXX]` stderr info logs (e.g. "Ejecutando Codex...", "Prompt: ...") when the script exits successfully, so only the AI's actual response reaches Claude's context. On failure, stderr is preserved so error diagnostics survive.
+
+### Why
+The wrapper scripts log progress to stderr for human visibility when run from a terminal, but those lines are pure noise to Claude — they waste context tokens and dilute the actual external-AI response that we want to evaluate.
+
 ## [1.2.0] - 2026-05-06
 
 ### Added

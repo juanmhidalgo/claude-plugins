@@ -32,6 +32,10 @@ triggers:
   - "ask copilot"
   - "ask claude"
   - "external code review"
+hooks:
+  - event: PostToolUse
+    matcher: Bash
+    command: ${CLAUDE_PLUGIN_ROOT}/hooks/strip-info-logs.sh
 ---
 
 # Second Opinion via External AI
