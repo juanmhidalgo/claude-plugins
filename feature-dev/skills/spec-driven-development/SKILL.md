@@ -55,13 +55,15 @@ ASSUMPTIONS I'M MAKING:
 → Correct me now or I'll proceed with these.
 ```
 
-Write a spec covering six areas:
-1. **Objective** — What, why, who, and what success looks like
-2. **Commands** — Full executable commands (build, test, lint, dev)
-3. **Project Structure** — Where source, tests, and docs live
-4. **Code Style** — One real snippet showing conventions
-5. **Testing Strategy** — Framework, location, coverage, test levels
-6. **Boundaries** — Always do / Ask first / Never do
+Write a spec covering eight areas:
+1. **Objective** — What, why, who
+2. **Acceptance Criteria** — A dedicated, scannable section of observable, user-facing criteria (do not bury them in Objective). Include at least one failure/error-state criterion, not only happy-path outcomes. This is what downstream review, planning, and QA anchor to.
+3. **Commands** — Full executable commands (build, test, lint, dev)
+4. **Project Structure** — Where source, tests, and docs live
+5. **Code Style** — One real snippet showing conventions
+6. **Testing Strategy** — Framework, location, coverage, test levels (the engineering view)
+7. **QA Checklist** — A separate, QA-facing list grouped as happy path / edge cases / error states; distinct from the engineering-oriented Testing Strategy. Every error-state acceptance criterion gets a matching check.
+8. **Boundaries** — Always do / Ask first / Never do
 
 Reframe vague requirements as testable success criteria. Ban these words from acceptance criteria unless you immediately define them concretely: **fast**, **slow**, **easy**, **simple**, **user-friendly**, **intuitive**, **seamless**, **better**, **improved**.
 
@@ -193,8 +195,10 @@ Catches *writing a bad spec*. Different failure mode from skipping. Catch yourse
 ## Verification
 
 Before proceeding to implementation:
-- [ ] Spec covers all six core areas
+- [ ] Spec covers all eight core areas
 - [ ] User has reviewed and approved the spec
+- [ ] Success criteria live in a dedicated **Acceptance Criteria** section (not buried in Objective) and include at least one failure/error-state criterion
+- [ ] A **QA Checklist** (happy path / edge cases / error states) exists, distinct from the engineering Testing Strategy
 - [ ] Success criteria are specific and testable (no banned vague words without concrete definitions)
 - [ ] Boundaries (Always / Ask First / Never) are defined with one-line rationale per Never-do item
 - [ ] P0 list passes the cut-test (≤5 items, each truly required to solve the core problem)

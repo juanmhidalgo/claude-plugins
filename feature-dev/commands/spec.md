@@ -67,12 +67,14 @@ Follow the gated workflow. Each phase requires user review before advancing.
 
 3. **Reframe vague requirements.** If the input is vague, translate it into concrete, testable success criteria. Present these to the user for validation.
 
-4. **Write the spec** covering these six areas:
-   - **Objective**: What we're building, why, who it's for, what success looks like
+4. **Write the spec** covering these eight areas:
+   - **Objective**: What we're building, why, who it's for
+   - **Acceptance Criteria**: A dedicated, scannable `## Acceptance Criteria` section of observable, user-facing criteria — do NOT bury these as a "what success looks like" aside inside Objective. Include **at least one failure/error-state criterion**, not only happy-path outcomes (e.g., "a draft requisition never appears via `GET /public/jobs`", "an invalid/absent `jobId` falls back to `jobTitle` without erroring"). This is the single artifact downstream review, planning, and QA anchor to.
    - **Commands**: Full executable commands (build, test, lint, dev). For multi-repo features, group commands per repo.
    - **Project Structure**: Where code, tests, and docs live (explore each in-scope repo first). For multi-repo features, render one subsection per repo.
    - **Code Style**: One real snippet from each in-scope repo showing conventions
-   - **Testing Strategy**: Framework, test location, coverage expectations (per repo when multi-repo)
+   - **Testing Strategy**: Framework, test location, coverage expectations (per repo when multi-repo) — the *engineering* view of what gets tested and how.
+   - **QA Checklist**: A separate, QA-facing `## QA Checklist` grouped as **happy path / edge cases / error states** — a scannable list of behaviors a human verifies, distinct from the engineering-oriented Testing Strategy. Every error-state acceptance criterion should have a matching check here.
    - **Boundaries**: Always do / Ask first / Never do
 
    **Multi-repo features only** add a seventh section between Boundaries and tasks:

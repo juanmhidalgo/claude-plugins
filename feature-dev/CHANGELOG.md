@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.15.0 (2026-07-02)
+
+### Changed
+- **`/feature-dev:spec` now writes eight spec areas instead of six** — added a dedicated `## Acceptance Criteria` section and a `## QA Checklist` section. Previously the command folded "what success looks like" into `## Objective` and left QA-facing checks implicit inside `## Testing Strategy`, so **every** `/feature-dev:spec-review` run reported the same two findings: a Blocking "no dedicated Acceptance Criteria section" and a Should-Address "no QA Checklist". The generator now emits exactly the sections the `spec-plan-validator` agent checks for, closing the recurring feedback loop.
+  - **Acceptance Criteria**: dedicated, scannable, user-observable criteria — must include at least one failure/error-state criterion, not only happy-path outcomes (matches the validator's Blocking + Should-Address checks).
+  - **QA Checklist**: QA-facing list grouped as happy path / edge cases / error states, distinct from the engineering-oriented Testing Strategy.
+- **`spec-driven-development` skill** updated in lockstep: the Phase 1 area list (six → eight) and the Verification checklist now name the Acceptance Criteria and QA Checklist requirements, keeping the imported best-practices source of truth aligned with the command.
+
+### Notes
+- No change to `spec-plan-validator` / `/feature-dev:spec-review` — the validator's bar was already correct; the generator was under-producing. Alignment was done by raising the generator, not lowering the checker.
+
 ## 1.14.0 (2026-05-16)
 
 ### Added
