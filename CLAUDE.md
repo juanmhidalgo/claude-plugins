@@ -38,8 +38,11 @@ When modifying any plugin, YOU MUST complete these steps IN ORDER:
 1. **Bump the version** in the plugin's `.claude-plugin/plugin.json`
 2. **Use semantic versioning**: patch (0.0.x) for fixes, minor (0.x.0) for features, major (x.0.0) for breaking changes
 3. **Update the CHANGELOG.md** in the plugin's root with the changes made
+4. **Mirror the new version** in `.claude-plugin/marketplace.json` — the registry duplicates every plugin's version, and a stale entry pins installs to the old version
 
-NEVER skip version bumping. A `PostToolUse` hook (`.claude/hooks/version-bump-check.sh`) warns when this rule is violated. Bypass only with `SKIP_VERSION_CHECK=1` for genuinely in-progress work.
+NEVER skip version bumping. Two `PostToolUse` hooks enforce this: `version-bump-check.sh` warns when a plugin file is edited without a bump or CHANGELOG entry, and `marketplace-sync-check.sh` warns when a registry version drifts from its `plugin.json`. Bypass either with `SKIP_VERSION_CHECK=1` for genuinely in-progress work.
+
+When editing `marketplace.json`, change the version lines in place. Re-serializing the file (e.g. `json.dump`) reflows every inline `keywords` array and turns a 3-line change into a 120-line diff.
 
 </rule>
 
