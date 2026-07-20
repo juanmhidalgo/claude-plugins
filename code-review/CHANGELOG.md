@@ -5,6 +5,15 @@ All notable changes to this plugin will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.20.0] - 2026-07-20
+
+### Added
+- **Counter-case (bias check) in the `tech-debt-reviewer` agent.** Every debt finding now requires the strongest opposing reading — the case that the pattern is a deliberate design choice — written before scoring. It feeds the existing **Impact (I)** term of the priority computation rather than adding a parallel field: an unconfirmed-but-nameable design intent caps I at 3; a counter-case that reads the code better drops the finding. Adds a `**Counter-case:**` line to the finding format, and calls out two specific traps (flagging look-alike code that changes for different reasons, and flagging a "missing" abstraction where repetition was chosen on purpose).
+- **Counter-case (bias check) on every finding** in the `branch-review` skill. Each finding now requires an explicit argument against itself — the strongest case that it is a false positive, a deliberate design choice, or an inapplicable edge case — written *before* the Confidence label is assigned. A new `**Counter-case:**` field in the Feedback Format carries it, and a calibration table binds it to the existing Confidence levels: no plausible counter-case → HIGH; a counter-case resting on unverified context → MEDIUM at most; a counter-case as strong as the finding → LOW or drop it. Propagates to `/code-review:staged`, `/code-review:branch`, and `/code-review:pr` via the shared `branch-reviewer` agent.
+
+### Why
+The plugin already verifies findings adversarially, but only in the PR pipeline (`confidence-scorer`, `comment-verifier`). The staged and branch paths emitted findings with no refutation pass at all. Self-critique within a single generation is weaker than a separate verifier agent, so it is deliberately *not* added where those agents already run — that would be redundant token cost. The calibration table exists because an unbound bias check degrades into a token counter-argument that leaves Confidence untouched; requiring the label to move makes the output change, not just grow.
+
 ## [2.19.3] - 2026-05-27
 
 ### Added

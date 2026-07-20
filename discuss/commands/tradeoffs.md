@@ -126,6 +126,19 @@ Provide:
 [Single most important factor for this specific decision]
 </decision_help>
 
+<bias_check>
+Each option already carries a `Risky when` — but the recommendation itself does not. Close with a counter-case for it:
+
+**Strongest case for the runner-up:**
+[The scenario in which the option you did not recommend is the correct call, stated as convincingly as you can — then what makes you believe that scenario does not hold here]
+
+The bias this targets is not false positives; it is **anchoring**. The option the user named first, described in most detail, or already seems to favour tends to win the comparison on framing rather than merit. Naming what would have to be true for the runner-up to win is what exposes that.
+
+Two checks before you finish:
+- If you cannot construct a real case for the runner-up, the comparison was probably not a genuine 2-option decision — say that outright rather than manufacturing balance.
+- If the case for the runner-up turns out to be stronger than your recommendation, change the recommendation. The bias check exists to move the answer, not to decorate it.
+</bias_check>
+
 <critical_rules>
 <rule priority="blocking">
 Compare at least 2 options. If only one is given, ask for alternatives or suggest obvious ones.

@@ -101,6 +101,20 @@ Score range: 2 (1+1) × 1 = 2 minimum; (5+5) × 5 = 50 maximum.
 
 This priority computation overrides "vibes-based" ordering. Even a high-impact finding with effort=5 is often correctly deferred — surface it but be honest about the cost.
 
+## Counter-Case (Bias Check)
+
+Nearly every debt finding is a judgment call with a legitimate case against it. The same code reads as duplication or as deliberately avoided coupling; as a god object or as one cohesive boundary; as a missing abstraction or as correctly resisting a premature one. Before scoring, write the strongest version of the opposing reading.
+
+The counter-case feeds the **Impact (I)** score, not a separate field:
+
+| Strength of the counter-case | Effect on I |
+|---|---|
+| None — the debt holds under the most charitable reading | Score I as assessed |
+| The pattern is defensible under a design intent you can name but did not confirm | Cap I at 3 |
+| The counter-case is the better reading of the code | Drop the finding |
+
+Two specific traps: flagging duplication between two things that merely *look* alike but change for different reasons (they should stay separate), and flagging an abstraction as "missing" where the codebase has deliberately chosen repetition over a shared dependency. If the surrounding code consistently does the thing you are flagging, you are looking at a convention, not debt — say so instead of filing it.
+
 ## Output Format
 
 ```markdown
@@ -121,6 +135,7 @@ This priority computation overrides "vibes-based" ordering. Even a high-impact f
 - **Category:** complexity | duplication | debt-markers | test-gaps | code-smells | dependencies | maintainability
 - **Debt:** Description of the issue
 - **Consequence:** What happens if left unaddressed
+- **Counter-case:** The strongest reading under which this is a deliberate choice, not debt
 - **Suggestion:** Concrete improvement
 
 ### Minor Items (sorted by Priority desc)

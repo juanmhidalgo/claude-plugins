@@ -140,9 +140,24 @@ Label each gap, risk, and red flag with confidence so the user can calibrate the
 
 Format findings as:
 > **[CONFIDENCE]** **Risk:** ... — *Evidence: file:line or "speculation only"*
+> *Doesn't apply if:* the concrete condition under which this risk never materializes
 
 A HIGH-confidence risk is actionable. A LOW-confidence risk is a flag worth raising but should not be over-weighted in the user's decision-making. Mixing both without distinction misleads — calibrated labels prevent that.
 </confidence_labeling>
+
+<bias_check>
+The `Doesn't apply if:` line is a bias check, and it sets the Confidence label — write it before choosing HIGH/MEDIUM/LOW.
+
+Nothing here is verifiable against an implementation yet, so "is this a false positive?" has no answer and invites filler. Ask the answerable question instead: **what would have to be true for this risk to never materialize?**
+
+| What that condition looks like | Confidence |
+|---|---|
+| No such condition, or it contradicts code you read in Phase 1 | HIGH |
+| A realistic condition you could not confirm from the codebase | MEDIUM at most |
+| The condition is more likely than the risk | LOW — or cut the risk |
+
+If the condition is something the user can simply tell you ("we'll never exceed 100 rows"), it belongs in the open-questions table from Phase 4, not buried under the risk. A risk that dissolves on one answer is a question wearing a risk's clothing.
+</bias_check>
 
 <critical_rules>
 <rule priority="blocking">

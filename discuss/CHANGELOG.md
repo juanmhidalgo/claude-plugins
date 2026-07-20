@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.7.0] - 2026-07-20
+
+### Added
+- **Bias check on the recommendation** in `/discuss:tradeoffs`. Phase 4 now closes with a `<bias_check>` block requiring the strongest case for the runner-up option, plus what makes that case not hold here. Targets **anchoring**, not false positives — the option named first or described in most detail tends to win on framing rather than merit. If no real case for the runner-up exists, the command says so instead of manufacturing balance; if the runner-up's case is stronger, the recommendation changes.
+- **Bias check on every risk** in `/discuss:feature`. Findings gain a `*Doesn't apply if:*` line stating the concrete condition under which the risk never materializes, and a new `<bias_check>` block binds that condition to the existing Confidence label: no such condition (or it contradicts Phase 1 exploration) → HIGH; a realistic but unconfirmed condition → MEDIUM at most; a condition likelier than the risk → LOW or cut it. Also routes dissolvable risks to the Phase 4 open-questions table — a risk that disappears on one user answer is a question, not a risk.
+
+### Why
+Extends the code-review counter-case pattern (`code-review` 2.20.0), with the framing adapted to the phase. Nothing in `/discuss:feature` is verifiable against an implementation yet, so asking "is this a false positive?" has no answer and invites filler; "what would have to be true for this never to happen?" is answerable from the proposal and the codebase. Complements the existing `Confirmation-biased risk ranking` anti-pattern, which addressed the *ordering* of the risk list but left each individual risk unchallenged.
+
+Deliberately not added to `/discuss:challenge` — that command is adversarial by construction and has a blocking rule against being balanced, so a self-refutation section would cancel its purpose.
+
 ## [2.6.0] - 2026-05-13
 
 ### Added

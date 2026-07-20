@@ -46,6 +46,20 @@ Severity answers "should this block merge?". Confidence answers "how strong is t
 
 A HIGH-severity / LOW-confidence finding ("this *might* be a security bug") needs different handling than HIGH-severity / HIGH-confidence ("this *is* a security bug — block merge"). Calibrate the response to both dimensions.
 
+## Counter-Case (Bias Check)
+
+Every finding requires an explicit argument against itself, written *before* assigning Confidence. State the strongest case that this is a false positive, an intentional design choice, or an edge case that does not apply here.
+
+The counter-case determines the Confidence label — it is not decorative prose:
+
+| What the counter-case looks like | Confidence |
+|---|---|
+| No plausible counter-case; you read the code path and the defect holds | HIGH |
+| A counter-case exists but depends on context you did **not** verify in the code | MEDIUM at most |
+| The counter-case is as strong as the finding | LOW — or drop the finding entirely |
+
+Two failure modes to avoid: a token counter-case written to satisfy the format ("this could be intentional" with no mechanism), and a counter-case that survives scrutiny but leaves Confidence at HIGH anyway. If you can articulate a real reason the code is correct, the Confidence label must move.
+
 ## Feedback Format
 
 ```markdown
@@ -58,6 +72,8 @@ A HIGH-severity / LOW-confidence finding ("this *might* be a security bug") need
 **Risk:** What could go wrong
 
 **Evidence:** What in the code proves (or suggests) this — required for HIGH; recommended for MEDIUM; explicit "speculation only" if LOW
+
+**Counter-case:** The strongest reason this may be a false positive or a deliberate choice — and what you would need to read to rule it out
 
 **Suggestion:**
 ```python
