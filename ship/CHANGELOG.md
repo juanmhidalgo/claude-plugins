@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.4.0] - 2026-08-23
+
+### Added
+- **Sibling-session notification** after a default-branch push: Phase 5 now uses `ListAgents` to find other local sessions working on the same repo (parallel worktrees included) and sends each one a single concise `SendMessage` saying what landed and whether rebasing is advisable. Best-effort by design: skipped on feature-branch pushes, with `--no-notify`, or when cross-session messaging is unavailable, and a failure never fails the ship workflow.
+
+### Why
+This is the "coordinate parallel worktrees" use case from Claude Code's cross-session messaging: when master moves, sessions building on it should hear about it before their next rebase surprises them.
+
 ## [1.3.0] - 2026-05-06
 
 ### Added

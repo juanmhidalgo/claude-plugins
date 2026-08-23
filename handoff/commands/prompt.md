@@ -16,7 +16,8 @@ hooks:
   - event: Stop
     once: true
     command: |
-      echo "Prompt generated. Copy it to use in the other repository."
+      echo "Prompt generated. Copy it to the other repository, or let Claude"
+      echo "deliver it directly if a session is already running there."
 ---
 
 # Cross-Repository Prompt
@@ -55,3 +56,18 @@ If anything is missing, add it before presenting. Do NOT ask the user — just i
 ## Output
 
 Output a single prompt block ready to copy-paste. Do not include preamble or explanation outside the prompt itself.
+
+## Delivery (after presenting the prompt)
+
+If cross-session messaging is available, offer to deliver the prompt directly instead of relying on copy-paste:
+
+1. Call `ListAgents`. If the tool is unavailable or errors, skip this section silently — the copy-paste output above is the fallback.
+2. Look for a **local session whose working directory is the target repository**. Local session rows show their working directory.
+3. **Exactly one match**: ask the user whether to send the handoff to that session. If they agree, deliver the full prompt verbatim as plain text with `SendMessage`, and set `notify_when_idle: true` on the same call so this session hears back when the receiving session finishes.
+4. **Zero or multiple matches**: list the candidates (if any) and let the user pick or decline. Never guess the target.
+
+Rules for the sent message:
+
+- The message must be **self-contained plain text**. Slash commands inside a cross-session message arrive as text and are NOT executed — never tell the receiving Claude to "run /handoff:receive"; the prompt itself carries everything it needs.
+- Send the prompt exactly as presented — do not summarize it for delivery.
+- A refused or held message is not an error to retry: report it and fall back to copy-paste.

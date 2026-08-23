@@ -6,6 +6,8 @@ allowed-tools:
   - Bash(git diff *)
   - Bash(git log *)
   - Bash(git show *)
+  - ListAgents
+  - SendMessage
 argument-hint: "[file or endpoint path]"
 description: |
   Use to generate a handoff prompt for the frontend team after backend API changes have landed.
@@ -27,6 +29,7 @@ hooks:
     command: |
       echo "Handoff prompt generated. Next steps:"
       echo "  - Copy the prompt to the frontend team/agent"
+      echo "  - Or let Claude send it to a live frontend session directly"
       echo "  - Or save to a file for async handoff"
 ---
 
@@ -156,6 +159,16 @@ Before outputting the handoff, cross-reference against the actual changes:
 4. **Check error scenarios** — new error codes or changed status codes must be listed
 
 If anything is missing, add it. Do NOT present an incomplete handoff.
+
+## Step 6: Deliver (optional, after presenting)
+
+If cross-session messaging is available, offer to deliver the handoff directly to a live frontend session:
+
+1. Call `ListAgents`. If the tool is unavailable or errors, skip this step silently — copy-paste remains the fallback.
+2. Look for a local session whose working directory is the **frontend repository** (local rows show their working directory).
+3. Exactly one match: ask the user whether to send it there. If they agree, deliver the full handoff verbatim as plain text with `SendMessage`, setting `notify_when_idle: true` so this session hears back when the frontend session finishes.
+4. Zero or multiple matches: list candidates and let the user pick or decline — never guess.
+5. Slash commands inside a cross-session message arrive as plain text and are NOT executed; the handoff must stand on its own. A refused or held message is not an error to retry — report it and fall back to copy-paste.
 
 ## Guidelines
 

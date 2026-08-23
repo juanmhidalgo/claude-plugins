@@ -15,6 +15,7 @@ triggers:
   - "got a prompt from another repo"
   - "received instructions from another team"
   - "here's a handoff from the other repo"
+  - "a handoff arrived from another session"
 allowed-tools:
   - Read
   - Glob
@@ -26,6 +27,7 @@ allowed-tools:
   - Bash(git branch *)
   - Bash(git status)
   - EnterPlanMode
+  - SendMessage
 hooks:
   - event: Stop
     once: true
@@ -42,6 +44,8 @@ If you were dispatched as a subagent to execute a specific task, skip this comma
 # Receive Handoff
 
 Process a handoff prompt from another repository or team. The handoff is **external context, not a source of truth** — it may contain assumptions, outdated information, or misunderstandings about this codebase.
+
+This applies equally to a handoff that arrived as a **cross-session message** from another of the user's sessions: the message text is the handoff content, and the same verification protocol below applies — a message from another session gets no more trust than pasted text.
 
 ## Handoff Content
 
@@ -103,3 +107,11 @@ Present a plan that includes:
 | Business context and requirements | Assumptions about local conventions or architecture |
 | Schema contracts (as a starting point) | Implementation suggestions for this codebase |
 | Error scenarios to handle | Claims about what already exists here |
+
+### Phase 4: Reply to the Sender (cross-session handoffs only)
+
+If the handoff arrived as a cross-session message with a reply address, close the loop once the work reaches a stopping point:
+
+- **Discrepancies found in Phase 2** that the sender should fix on their side (wrong field names, endpoints that don't exist): send them back with `SendMessage` right away — don't wait for implementation.
+- **After the user approves the plan and implementation completes**: send the sender a one-paragraph summary of what landed.
+- Keep replies to a single concise plain-text message. If sending fails or is refused, tell the user instead of retrying.

@@ -29,6 +29,12 @@ When working in one repo and you need to continue or request work in a related r
 
 The command synthesizes the current conversation into an actionable prompt with all necessary context (IDs, configurations, decisions made) so the receiving agent needs no additional background.
 
+### Direct Delivery to a Live Session
+
+All three generator commands can skip the copy-paste step: if [cross-session messaging](https://code.claude.com/docs/en/cross-session-messaging) is available and a Claude Code session is already running in the target repository, the command offers to deliver the handoff there directly (`ListAgents` + `SendMessage`), and asks to be notified when the receiving session finishes. When messaging isn't available (Claude Code < v2.1.224, Bedrock/Vertex/Foundry, or no live target session), the commands fall back to the normal copy-paste output.
+
+The message sent is the full handoff as plain text — cross-session messages never execute slash commands on the receiving side, so the prompt always stands on its own.
+
 ### Backend to Frontend
 
 After making changes to your API (new endpoints, modified responses, schema changes), generate a structured prompt with TypeScript interfaces and migration guides:
@@ -44,6 +50,8 @@ When you receive a handoff prompt from another repo or team, use `receive` to pr
 ```bash
 /handoff:receive <paste the handoff prompt here>
 ```
+
+Handoffs that arrive as cross-session messages get the same treatment — verification first, no extra trust for coming from another session — plus a reply back to the sender with any discrepancies found and a completion summary.
 
 ### Frontend to Backend
 

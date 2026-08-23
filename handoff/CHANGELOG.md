@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.5.0] - 2026-08-23
+
+### Added
+- **Cross-session delivery**: `/handoff:prompt`, `/handoff:backend-to-frontend`, and `/handoff:frontend-to-backend` now offer to deliver the generated handoff directly to a live Claude Code session in the target repository via `ListAgents` + `SendMessage`, with `notify_when_idle` so the sending session hears back when the receiver finishes. Falls back silently to copy-paste when cross-session messaging is unavailable (requires Claude Code v2.1.224+; not available on Bedrock/Vertex/Foundry).
+- `/handoff:receive` now covers handoffs arriving as cross-session messages: same verification protocol (a message from another session gets no more trust than pasted text), plus a reply phase that sends discrepancies and a completion summary back to the sender.
+
+### Why
+Cross-session messaging removes the manual copy-paste hop between terminals that the handoff flow was designed around. The sent message is always self-contained plain text — slash commands inside a cross-session message are not executed by the receiver, so the prompt itself must carry everything.
+
 ## [1.4.2] - 2026-05-07
 
 ### Changed

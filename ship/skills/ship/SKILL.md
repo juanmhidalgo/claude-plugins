@@ -4,7 +4,7 @@ description: |
   Use when ready to ship code to remote — handles direct push to main and PR-based feature branch flows.
   Do NOT use for partial workflows like just committing or just pushing.
 disable-model-invocation: true
-argument-hint: "[--skip-tests] [--no-pr] [--draft] [--skip-copilot-review]"
+argument-hint: "[--skip-tests] [--no-pr] [--draft] [--skip-copilot-review] [--no-notify]"
 keywords:
   - ship
   - commit-push-pr
@@ -34,6 +34,8 @@ allowed-tools:
   - Read
   - Grep
   - Glob
+  - ListAgents
+  - SendMessage
 hooks:
   - event: Stop
     once: true
@@ -175,6 +177,15 @@ If no test runner is detected, warn the user and ask whether to proceed without 
 3. Verify with `git status`
 
 If push fails (rejected), inform the user and suggest `git pull --rebase`. Never force push.
+
+### Notify sibling sessions (default-branch pushes only, best-effort)
+
+After a successful push **to the default branch**, tell other live sessions working on this repo that it moved, so parallel worktrees know to rebase. Skip this entirely if `$ARGUMENTS` contains `--no-notify`, if the push went to a feature branch, or if the `ListAgents` tool is unavailable (older Claude Code or unsupported provider) — and never let a failure here fail the ship workflow.
+
+1. Call `ListAgents` and find **local** sessions whose working directory is this repository or another worktree of it (same repo, different path). Exclude subagents, teammates, and remote/cloud sessions.
+2. If none match, say nothing and continue.
+3. For each matching session, send ONE concise plain-text message with `SendMessage`: the commit subject(s) that landed, the branch, and whether rebasing is now advisable (e.g., "`feat(auth): add token refresh` landed on `master` — rebase before continuing if your work touches auth"). Batch multiple commits into a single message per session; never send bursts.
+4. A held or refused message is normal (the receiving session controls its inbox): mention it briefly and move on — do not resend.
 
 ## Phase 6: Pull Request (Feature Branches Only)
 

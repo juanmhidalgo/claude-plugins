@@ -29,8 +29,13 @@ This means zero friction in the common case, but still catches the "I fixed a bu
 /ship --skip-tests       # Skip test phase
 /ship --no-pr            # Don't offer to create PR
 /ship --draft            # Create PR as draft
+/ship --no-notify        # Don't notify sibling sessions after push
 /ship --skip-tests --draft  # Combine flags
 ```
+
+## Sibling Session Notification
+
+After a successful push to the default branch, `/ship` looks for other live Claude Code sessions working on the same repository (e.g., parallel worktrees) via [cross-session messaging](https://code.claude.com/docs/en/cross-session-messaging) and sends each one a short heads-up: what landed and whether rebasing is advisable. Best-effort by design — it's skipped for feature-branch pushes, with `--no-notify`, or when messaging isn't available (Claude Code < v2.1.224, Bedrock/Vertex/Foundry), and it can never fail the ship workflow.
 
 ## Requirements
 
