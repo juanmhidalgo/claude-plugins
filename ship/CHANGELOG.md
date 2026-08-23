@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.4.1] - 2026-08-23
+
+### Fixed
+- Sibling-session matching no longer assumes the `ListAgents` listing shows working directories: dogfooding showed some versions list only name and status. Matching now uses the working directory when shown, falls back to the session's name, and only messages sessions confidently attributable to this repo.
+
 ## [1.4.0] - 2026-08-23
 
 ### Added

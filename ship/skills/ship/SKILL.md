@@ -182,7 +182,7 @@ If push fails (rejected), inform the user and suggest `git pull --rebase`. Never
 
 After a successful push **to the default branch**, tell other live sessions working on this repo that it moved, so parallel worktrees know to rebase. Skip this entirely if `$ARGUMENTS` contains `--no-notify`, if the push went to a feature branch, or if the `ListAgents` tool is unavailable (older Claude Code or unsupported provider) — and never let a failure here fail the ship workflow.
 
-1. Call `ListAgents` and find **local** sessions whose working directory is this repository or another worktree of it (same repo, different path). Exclude subagents, teammates, and remote/cloud sessions.
+1. Call `ListAgents` and find **local** sessions working on this repository or another worktree of it. Match by working directory when the listing shows one; if it doesn't (some versions list only name and status), fall back to the session's name, which usually references its repo. Only message sessions you can attribute to this repo confidently. Exclude subagents, teammates, and remote/cloud sessions.
 2. If none match, say nothing and continue.
 3. For each matching session, send ONE concise plain-text message with `SendMessage`: the commit subject(s) that landed, the branch, and whether rebasing is now advisable (e.g., "`feat(auth): add token refresh` landed on `master` — rebase before continuing if your work touches auth"). Batch multiple commits into a single message per session; never send bursts.
 4. A held or refused message is normal (the receiving session controls its inbox): mention it briefly and move on — do not resend.

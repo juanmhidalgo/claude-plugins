@@ -62,7 +62,7 @@ Output a single prompt block ready to copy-paste. Do not include preamble or exp
 If cross-session messaging is available, offer to deliver the prompt directly instead of relying on copy-paste:
 
 1. Call `ListAgents`. If the tool is unavailable or errors, skip this section silently — the copy-paste output above is the fallback.
-2. Look for a **local session whose working directory is the target repository**. Local session rows show their working directory.
+2. Identify which **local session** is working in the target repository. Match by working directory when the listing shows one; if it doesn't (some versions list only name and status), fall back to the session's name, which usually references its repo. If neither identifies a session confidently, treat it as zero matches.
 3. **Exactly one match**: ask the user whether to send the handoff to that session. If they agree, deliver the full prompt verbatim as plain text with `SendMessage`, and set `notify_when_idle: true` on the same call so this session hears back when the receiving session finishes.
 4. **Zero or multiple matches**: list the candidates (if any) and let the user pick or decline. Never guess the target.
 

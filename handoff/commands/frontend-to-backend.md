@@ -182,7 +182,7 @@ If anything is missing, add it. Do NOT present an incomplete handoff.
 If cross-session messaging is available, offer to deliver the handoff directly to a live backend session:
 
 1. Call `ListAgents`. If the tool is unavailable or errors, skip this step silently — copy-paste remains the fallback.
-2. Look for a local session whose working directory is the **backend repository** (local rows show their working directory).
+2. Identify the local session working in the **backend repository**. Match by working directory when the listing shows one; if it doesn't, fall back to the session's name. If neither is conclusive, treat it as zero matches.
 3. Exactly one match: ask the user whether to send it there. If they agree, deliver the full handoff verbatim as plain text with `SendMessage`, setting `notify_when_idle: true` so this session hears back when the backend session finishes.
 4. Zero or multiple matches: list candidates and let the user pick or decline — never guess.
 5. Slash commands inside a cross-session message arrive as plain text and are NOT executed; the handoff must stand on its own. A refused or held message is not an error to retry — report it and fall back to copy-paste.

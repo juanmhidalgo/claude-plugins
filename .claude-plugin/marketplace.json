@@ -56,7 +56,7 @@
       "name": "handoff",
       "source": "./handoff",
       "description": "Generate self-contained prompts for use in other repositories, including API handoffs between frontend and backend teams",
-      "version": "1.5.0",
+      "version": "1.5.1",
       "author": {
         "name": "Juan M. Hidalgo"
       },
@@ -111,7 +111,7 @@
       "name": "ship",
       "source": "./ship",
       "description": "End-to-end shipping workflow: smart staging with change cohesion analysis, conventional commits, test gates, push, and optional PR creation",
-      "version": "1.4.0",
+      "version": "1.4.1",
       "author": {
         "name": "Juan M. Hidalgo"
       },

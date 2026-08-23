@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.5.1] - 2026-08-23
+
+### Fixed
+- Target-session matching in the delivery steps no longer assumes the `ListAgents` listing shows working directories: dogfooding showed some versions list only name and status. Matching now uses the working directory when shown, falls back to the session's name, and treats anything inconclusive as zero matches (ask the user, never guess).
+
 ## [1.5.0] - 2026-08-23
 
 ### Added
