@@ -37,6 +37,7 @@ hooks:
       echo "  - Spot-check 2 entries in 'Falsification attempts' — grep patterns can be fabricated"
       echo "  - Empty falsification log + zero findings = failed review, re-run it"
       echo "Next steps:"
+      echo "  - Fixed the doc? Re-run this review on it — fix rounds introduce defects too"
       echo "  - /discuss:tradeoffs   if a finding opened a real choice"
       echo "  - /feature-dev:spec-review   for structural completeness (different axis)"
 ---
@@ -72,20 +73,42 @@ mode of this skill.
 
 ## Dispatch
 
-Use the Agent tool with `subagent_type: "discuss:doc-adversary"`.
+Use the Agent tool with `subagent_type: "discuss:doc-adversary"`, as a plain
+blocking call. **Do not give it a `name:` and do not run it as a background or
+long-running agent.** A named agent delivers through the messaging channel and
+notifications; a plain Agent call returns the reviewer's report directly in the
+tool result, which is the path this skill is built on. Getting this wrong is
+the difference between reading a report and watching an idle notification
+arrive with nothing attached.
 
 Pass the reviewer **paths, never content**. Do not summarize the document,
 do not paste excerpts, do not explain what it is trying to do, do not mention
 who wrote it or that it was generated. Every one of those transmits the
 framing you are trying to keep out.
 
-The prompt is three lines and nothing else:
+The prompt is four lines and nothing else:
 
 ```
 DOC_PATH: docs/adr/0007-event-bus.md
 MODE: design
 SOURCES: <repo root>, docs/adr/
+OUTPUT_PATH: <scratchpad dir>/doc-adversary-0007-event-bus.md
 ```
+
+`OUTPUT_PATH` is a file you choose, in your scratchpad directory — never
+inside the repo. The reviewer writes its report there **and** returns it as
+its final message. Read the file; fall back to the returned text only if the
+file is missing or empty. Two paths because a report that does not arrive is
+indistinguishable from a review that found nothing, and this skill instructs
+you to treat "no findings" as suspicious — so a lost report would be read as
+a clean bill of health.
+
+If both paths come back empty, the review did not happen. Say so and re-run
+it. Do not report a silent agent as a clean review.
+
+Running several reviews at once: one Agent call per document, each with its
+own `OUTPUT_PATH`. Never one agent for several documents — the independent
+model in Phase 1 is per-problem, and merging documents merges their framing.
 
 ### Choosing MODE
 
@@ -121,6 +144,31 @@ Do not act on the findings automatically.
    should be treated as questions for the author, not defects.
 5. Findings name decisions at risk, not fixes. Deciding is the user's job.
 
+## After fixes are applied — re-run the review
+
+**When the document is edited in response to the findings, review it again.**
+This is not optional polish and it is where a large share of the value is.
+
+The fix round is written by someone who has just been told what was wrong and
+now believes they understand the problem. That is a worse starting position
+than the original authoring, not a better one: the edits are narrow, made
+under the framing of the findings, and nobody re-reads the whole document
+afterward. Defects introduced while fixing are routinely as material as the
+ones being fixed — a control silently dropped from a section that was only
+meant to be reworded, an interface changed on one side of a contract.
+
+Mechanics:
+
+- Fresh dispatch, new `OUTPUT_PATH`. Same rules — paths, never content, and
+  **do not tell the reviewer that this is a second pass or what the first
+  round found.** That is the strongest framing you could possibly transmit,
+  and it would steer the reviewer straight past whatever the fix round broke.
+- Re-run at the same `MODE`, unless the edits turned a proposal into a
+  description of something now built.
+- Bound it: re-review after each round of edits that touches a decision, and
+  stop when a round produces no HIGH or MEDIUM findings. Editing prose in
+  response to a finding does not start a new round.
+
 ## Known limits
 
 - On greenfield documents with no code to read, Phase 1 has no ground truth
@@ -131,6 +179,10 @@ Do not act on the findings automatically.
   fabrication is checkable — which only works if step 3 above is actually done.
 - Tuned to under-report rather than over-report. It will miss things. It is a
   filter on top of human review, not a replacement for it.
+- The reviewer has exactly one job and one outbox. If you dispatch it in a
+  shape it was not built for — named, backgrounded, or handed several
+  documents — the failure is silent: you get an agent that finishes and a
+  report that never arrives.
 
 ## Related
 

@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.9.0] - 2026-08-25
+
+### Fixed
+- **The reviewer's report could vanish on the way back.** `doc-adversary` had exactly one egress path — its final message — and no fallback, so any hiccup in delivery produced an agent that completed successfully and a dispatcher holding nothing. The failure is silent and, worse, actively misleading: this skill instructs the caller to treat "no findings" as suspicious, so a lost report reads as a clean bill of health. The agent now gets `Write` (scoped to `OUTPUT_PATH` only — it still never touches the repo or the document under review) and delivers the report **twice**: written to a scratchpad file the dispatcher chose, and returned as its final message. The skill reads the file and falls back to the returned text. Both empty means the review did not happen and must be re-run.
+- **Dispatch shape was underspecified.** The skill said "use the Agent tool" without saying *how*. Spawned as a named or background agent, `doc-adversary` delivers through the messaging channel instead of the tool result, and the caller waits on an idle notification with nothing attached. The Dispatch section now says explicitly: plain blocking Agent call, no `name:`, no backgrounding — and one agent per document, never one agent for several, since the Phase 1 independent model is per-problem and merging documents merges their framing.
+
+### Added
+- **Re-run the review after fixes are applied.** The skill previously ended at "present the report, don't act on findings automatically", which left the highest-leverage step unstated. The fix round is written by someone who has just been told what was wrong and now believes they understand the problem — a worse starting position than the original authoring, not a better one. Edits are narrow, made under the framing of the findings, and nobody re-reads the whole document afterward. New section covers the mechanics: fresh dispatch with a new `OUTPUT_PATH`, same `MODE`, and — critically — **do not tell the reviewer it is a second pass or what the first round found**, which would be the strongest framing possible to transmit and would steer it past whatever the fix round broke. Bounded: stop when a round produces no HIGH or MEDIUM findings.
+
+### Why
+Field-tested on 6 technical documents across 3 repos before this release. The review quality held up — findings included a cross-tenant authorization hole that two prior research passes had missed, and no false positives or fabricated `path:line` citations were observed. What broke was delivery, not analysis, which is why the core design is untouched here.
+
+The re-review addition comes from the same exercise: on a second pass over the edited documents, **three of seven findings were defects introduced by the fix round** rather than defects in the originals — two with real consequences, including a control silently dropped from a section that was only meant to be reworded. Nothing in the skill pointed at that, so it is now a named step with its own anti-framing rule.
+
 ## [2.8.0] - 2026-08-25
 
 ### Added

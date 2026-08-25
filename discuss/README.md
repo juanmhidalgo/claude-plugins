@@ -80,6 +80,8 @@ If both apply, `descriptive` runs first — a wrong base state invalidates the d
 
 **Before acting on the report:** spot-check two entries in its *Falsification attempts* section. Zero findings with an empty falsification log is a failed review, not a clean bill of health.
 
+**After fixing the doc, run it again.** This is where a large share of the value is. In field testing, three of seven findings on the second pass were defects introduced by the *fix round*, not by the original document — the fix round is written by someone who has just been told what was wrong and now believes they understand the problem. The re-run must not be told it is a second pass.
+
 **Out of scope:** runbooks and operational procedures (different severity model), READMEs, changelogs, code review, and ideas still in conversation with no file — use `/discuss:challenge` for that last one.
 
 ---
