@@ -176,11 +176,41 @@ Mechanics:
 - Re-review after each round of edits that touches a decision. Editing prose
   in response to a finding does not start a new round.
 
+### Fix the claim, not the file
+
+**A finding is against a claim, not against the document it was reported in.**
+Before you re-review anything, grep the sibling documents for the claim you
+just corrected and correct it everywhere it lives.
+
+This is the single most common way a fix round fails. Documents travel in
+sets — a spec, a plan, per-repo handoffs — all restating the same claims for
+different audiences, and the reviewer only ever sees one of them, because one
+agent per document is what keeps their framings from merging. So a finding
+arrives scoped to a file, gets fixed in that file, and stays wrong in the
+three siblings that repeat it. In field testing this accounted for four of six
+findings in a third round: a retracted instruction corrected in the handoff
+and left verbatim in the plan's exit criteria; a gap written into the spec
+while three sibling findings were promoted into the plan and that one was not.
+
+Two consequences worth holding onto:
+
+- **Reviewing one document tells you nothing about the others.** The sweep
+  repairs claims that were flagged; it does not review the restatements. If a
+  set matters, dispatch a reviewer per document rather than assuming the main
+  one is representative.
+- **Prefer reviewing the document people execute from**, not the most complete
+  one. A claim can be right in the spec's prose and wrong in the two places
+  anyone actually acts on, and it is the executed document where a wrong claim
+  turns into a wrong decision.
+
+### When to stop
+
 Stop when **any** of these is true:
 
 1. The round produces no HIGH or MEDIUM findings.
-2. The round's findings are all in territory an earlier round already flagged.
-   The reviewer is re-finding, not finding, and further rounds will circle.
+2. The round's findings are all ground an earlier round already covered **in
+   the same document** — the reviewer is circling and further rounds will add
+   nothing.
 3. You have run three rounds and the third still opens **new** HIGH territory.
 
 Condition 3 is not a budget, it is a diagnosis. A document that yields fresh
@@ -189,6 +219,17 @@ the fixes are landing on a base that was wrong further up. Stop reviewing and
 say that: the finding is *about* the document, not *in* it, and the answer is
 to rewrite it from the decisions it is trying to make rather than to patch it
 for a fourth time. Re-reviewing a patch of a patch measures the wrong thing.
+
+Note what condition 2 does **not** cover. Old ground resurfacing in a
+*sibling* document is not the reviewer circling — it is a live defect you have
+not fixed yet, and stopping would leave it in place. When a round's findings
+are mostly propagation, the next step is a sweep across the set, not another
+dispatch. Reviewing again before sweeping just pays an agent to re-find what
+you already know.
+
+A HIGH count on its own is never the signal. Ask whether the territory is new;
+a round of HIGHs that are all propagation means your patching process is
+lagging, not that the document is unsound.
 
 ## Known limits
 

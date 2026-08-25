@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.11.0] - 2026-08-25
+
+### Added
+- **"Fix the claim, not the file"** — a propagation step in the fix round. A finding is against a *claim*, not against the document it was reported in. Before re-reviewing, grep the sibling documents for the claim just corrected and fix it everywhere it lives. This is the most common way a fix round fails, and it is structural: documents travel in sets (a spec, a plan, per-repo handoffs) restating the same claims for different audiences, while the reviewer only ever sees one of them — because one agent per document is what keeps their framings from merging. So a finding arrives scoped to a file, gets fixed there, and stays wrong in the siblings.
+- **Two consequences of the set/document asymmetry**, now stated: reviewing one document tells you nothing about the others (the sweep repairs flagged claims, it does not review the restatements — dispatch per document if the set matters), and prefer reviewing the document people *execute from* over the most complete one, since a claim can be right in the spec's prose and wrong in the two places anyone acts on.
+- **A HIGH count on its own is never the stop signal.** Made explicit: ask whether the territory is new. A round of HIGHs that are all propagation means the patching process is lagging, not that the document is unsound.
+
+### Changed
+- **Stopping condition 2 now scopes to the same document.** It read "the round's findings are all in territory an earlier round already flagged" and would have fired on propagation — which is exactly wrong, because old ground resurfacing in a *sibling* is not the reviewer circling, it is a live defect not yet fixed, and stopping leaves it in place. When a round's findings are mostly propagation the next step is a sweep across the set, not another dispatch; reviewing again before sweeping pays an agent to re-find what is already known.
+
+### Why
+Third field-test round, on 2.10.0, two documents. Condition 3 was tested against a prediction written down beforehand — new HIGH territory and the "rewrite from its decisions" diagnosis — and the prediction was wrong. The round produced 2 HIGH + 4 MEDIUM, but **no new HIGH territory**: both HIGHs and two of the MEDIUMs were propagation misses, claims corrected in one document and left verbatim in a sibling. Condition 3 correctly declined to fire where the surface reading ("still producing HIGHs in round three") would have fired it, which is the distinction the rule was written to make.
+
+The documents were converging; the patching process was not. Every propagation miss traced to the same defect — treating a finding as scoped to the file it was reported against — and that gap had no rule anywhere in the skill, which reviews per document (correctly) but said nothing about how to fix across a set. Four of the round's six findings would not have existed with the sweep in place.
+
+Running total across three rounds: **26 findings, zero false positives.** Six were defects introduced while fixing earlier findings, which continues to be the pattern the fix-round re-review exists to catch.
+
 ## [2.10.0] - 2026-08-25
 
 ### Fixed

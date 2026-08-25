@@ -80,7 +80,9 @@ If both apply, `descriptive` runs first — a wrong base state invalidates the d
 
 **Before acting on the report:** spot-check two entries in its *Falsification attempts* section. Zero findings with an empty falsification log is a failed review, not a clean bill of health.
 
-**After fixing the doc, run it again.** This is where a large share of the value is. In field testing the pattern reproduced twice: on both second passes, roughly a third of the findings were defects introduced by the *fix round* rather than by the original document — the fix round is written by someone who has just been told what was wrong and now believes they understand the problem. The re-run must not be told it is a second pass. Stop when a round yields no HIGH/MEDIUM, or when its findings are all in ground an earlier round covered; if a third round still opens new HIGH territory, the document needs rewriting rather than a fourth patch.
+**After fixing the doc, run it again.** This is where a large share of the value is. In field testing the pattern reproduced twice: on both second passes, roughly a third of the findings were defects introduced by the *fix round* rather than by the original document — the fix round is written by someone who has just been told what was wrong and now believes they understand the problem. The re-run must not be told it is a second pass. Stop when a round yields no HIGH/MEDIUM, or when its findings are all ground an earlier round covered *in the same document*; if a third round still opens new HIGH territory, the document needs rewriting rather than a fourth patch.
+
+**Documents travel in sets — fix the claim, not the file.** The reviewer sees one document at a time (deliberately), but a spec, a plan, and per-repo handoffs restate the same claims. Before re-reviewing, grep the siblings for the claim you just corrected. In field testing this was four of six findings in a third round.
 
 **Out of scope:** runbooks and operational procedures (different severity model), READMEs, changelogs, code review, and ideas still in conversation with no file — use `/discuss:challenge` for that last one.
 
