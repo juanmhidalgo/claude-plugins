@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.10.0] - 2026-08-25
+
+### Fixed
+- **Removed a false claim from the Dispatch section.** 2.9.0 justified "no `name:`, no backgrounding" by asserting that a plain Agent call returns the reviewer's report inline in the tool result. On at least one real harness that is not true: `Agent` runs async regardless of how it is invoked, returning a task id and notifying later. The instruction was right and stays; the mechanism it leaned on was wrong and is gone. The rule is now stated without a justification that can rot.
+- **`OUTPUT_PATH` is the primary channel, not a fallback.** 2.9.0 shipped it as belt-and-braces on the assumption the inline path normally works. Field testing showed the inline path carrying nothing at all while the file never failed, so the ordering is now explicit and load-bearing: read the file first, every time, and use whatever came back inline only to fill a missing or empty file.
+
+### Added
+- **Two more stopping conditions for the fix-round re-review.** The single rule from 2.9.0 ("stop when a round produces no HIGH or MEDIUM") has no fixed point when each round reviews the previous round's edits and the reviewer keeps opening *new* territory rather than re-finding old ground. Now: stop also when a round's findings all fall in territory an earlier round flagged (the reviewer is re-finding, not finding), and stop after three rounds if the third still opens new HIGH territory.
+- **Condition 3 is a diagnosis, not a budget.** A document that yields fresh material defects every time it is patched is not converging — the fixes are landing on a base that was wrong further up. The skill now says to stop and name that: the finding is *about* the document, not *in* it, and the answer is to rewrite it from the decisions it is trying to make rather than patch it a fourth time.
+- **Vocabulary quarantine now says when it lifts.** Phase 2 forbade searching the document's nouns but never scoped the ban, leaving the reviewer to guess whether it also applied to verifying the document's own citations — where using its terms is unavoidable and correct, because you are checking a claim rather than discovering a mechanism. The quarantine now binds while building and testing the independent model, lifts for citation checks, and the reviewer states which phase a search belonged to.
+
+### Why
+Second field-test round, 4 documents. All four reports delivered complete on the first try, confirming the 2.9.0 delivery fix. 13 findings (4 HIGH, 9 MEDIUM), every one verified against code before applying, **zero false positives — n=20 across both rounds**.
+
+Two findings worth recording for what they say about the reviewer's reach, since neither is a factual-accuracy catch: it identified that a recommendation to escape a per-day API cap reinstated that exact ceiling, because the cap counts per host userId and every shape the plan mirrored was single-host — a defect in the *reasoning behind a recommendation*. And it re-measured an SDK method that had been elevated for removing a round-trip, pointing out the deciding property was provenance rather than round-trips: the method is client-asserted and unverifiable server-side, and email was the key selecting the org.
+
+The 2.9.0 anti-framing rule held: dispatched cold, two reviewers independently re-derived a finding from round one, which is only meaningful because they were not told. And the fix-round pattern reproduced — three of this round's findings were again defects introduced while fixing the previous round's, including one that would have removed the only clickjacking control on two shipped products.
+
+Also confirmed and deliberately unchanged: the falsification-log rule (substantive logs from all four, including "tried and dropped" entries with reasoning) and the citation spot-check rule (3 of ~40 citations off by a line or pointing at an adjacent block — all immaterial, each self-flagged by the reviewer, and enough to keep the rule).
+
 ## [2.9.0] - 2026-08-25
 
 ### Fixed

@@ -153,6 +153,11 @@ Operational rule: every search must be capable of returning something that
 contradicts the document. If by construction it can only confirm, it does not
 count as verification.
 
+The quarantine binds while you are building and testing your own model. Once
+that is done it lifts for one purpose only: **checking the document's
+citations**, where you have to use its terms because you are verifying its
+claims, not discovering the mechanism. Say which phase a search belonged to.
+
 If a quarantined search returns nothing useful, you may then search the
 document's own terms — but log both searches in your report, and treat a
 result found only by the document's vocabulary as weaker evidence.

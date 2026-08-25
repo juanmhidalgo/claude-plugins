@@ -73,13 +73,15 @@ mode of this skill.
 
 ## Dispatch
 
-Use the Agent tool with `subagent_type: "discuss:doc-adversary"`, as a plain
-blocking call. **Do not give it a `name:` and do not run it as a background or
-long-running agent.** A named agent delivers through the messaging channel and
-notifications; a plain Agent call returns the reviewer's report directly in the
-tool result, which is the path this skill is built on. Getting this wrong is
-the difference between reading a report and watching an idle notification
-arrive with nothing attached.
+Use the Agent tool with `subagent_type: "discuss:doc-adversary"`. **Do not
+give it a `name:`, and do not deliberately background it.**
+
+Do not assume that gets you a blocking call that hands back the report inline.
+Depending on the harness, an Agent call may run async no matter how you invoke
+it, returning a task id and notifying you later. **Never build the review
+around the report coming back in the tool result.** `OUTPUT_PATH` below is the
+channel that works everywhere; treat anything the tool result happens to
+contain as a bonus.
 
 Pass the reviewer **paths, never content**. Do not summarize the document,
 do not paste excerpts, do not explain what it is trying to do, do not mention
@@ -97,14 +99,20 @@ OUTPUT_PATH: <scratchpad dir>/doc-adversary-0007-event-bus.md
 
 `OUTPUT_PATH` is a file you choose, in your scratchpad directory — never
 inside the repo. The reviewer writes its report there **and** returns it as
-its final message. Read the file; fall back to the returned text only if the
-file is missing or empty. Two paths because a report that does not arrive is
-indistinguishable from a review that found nothing, and this skill instructs
-you to treat "no findings" as suspicious — so a lost report would be read as
-a clean bill of health.
+its final message.
 
-If both paths come back empty, the review did not happen. Say so and re-run
-it. Do not report a silent agent as a clean review.
+**Read the file. That is the primary channel, not a fallback.** Use whatever
+came back inline only to fill in a file that is missing or empty. This
+ordering is deliberate: the inline path has been observed to carry nothing at
+all on a real harness, while the file has not failed. Do not invert it on the
+assumption that your harness returns the report directly — verify by reading
+the file first, every time.
+
+If the agent has finished and the file is still empty with nothing inline,
+the review did not happen. Say so and re-run it. Never report a silent agent
+as a clean review: a report that does not arrive is indistinguishable from a
+review that found nothing, and this skill tells you to treat "no findings" as
+suspicious — so a lost report would be read as a clean bill of health.
 
 Running several reviews at once: one Agent call per document, each with its
 own `OUTPUT_PATH`. Never one agent for several documents — the independent
@@ -165,9 +173,22 @@ Mechanics:
   and it would steer the reviewer straight past whatever the fix round broke.
 - Re-run at the same `MODE`, unless the edits turned a proposal into a
   description of something now built.
-- Bound it: re-review after each round of edits that touches a decision, and
-  stop when a round produces no HIGH or MEDIUM findings. Editing prose in
-  response to a finding does not start a new round.
+- Re-review after each round of edits that touches a decision. Editing prose
+  in response to a finding does not start a new round.
+
+Stop when **any** of these is true:
+
+1. The round produces no HIGH or MEDIUM findings.
+2. The round's findings are all in territory an earlier round already flagged.
+   The reviewer is re-finding, not finding, and further rounds will circle.
+3. You have run three rounds and the third still opens **new** HIGH territory.
+
+Condition 3 is not a budget, it is a diagnosis. A document that yields fresh
+material defects every time it is patched is not converging on correctness —
+the fixes are landing on a base that was wrong further up. Stop reviewing and
+say that: the finding is *about* the document, not *in* it, and the answer is
+to rewrite it from the decisions it is trying to make rather than to patch it
+for a fourth time. Re-reviewing a patch of a patch measures the wrong thing.
 
 ## Known limits
 
