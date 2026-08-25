@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.12.0] - 2026-08-25
+
+### Added
+- **`Self-certifying failure` in Grid 1** — the document's own verification step passes *because* the defect is present. A checklist item that goes green when a control is removed, an exit criterion satisfied by the shortcut it was meant to prevent. Worse than a missing success criterion: there is one, and it reports success while the damage lands. The reviewer is told to trace every check to what it would do in the broken state, not the intended one.
+- **Materiality point 4 now checks the direction of the mechanism it relies on.** Naming a test or validation only discharges "does not self-correct" if that mechanism *fails* in the defective state. Where the defect is what makes the check pass, point 4 is not merely unsatisfied — it is inverted, and the finding must be raised rather than dropped, naming the check as the delivery mechanism.
+- **`SCOPE` input on `doc-adversary`** — optional, narrows what counts as reviewable. Usual value `restated claims only`. Knowing a document's *role* is not framing; framing is being told what the problem is or what the document argues, and `SCOPE` tells the reviewer neither.
+
+### Changed
+- **Runbooks are now out of scope *as runbooks*, not as files.** The blanket exclusion created a coverage hole: checklists and procedures inherit design claims from the documents around them, so excluding the whole file left those claims unreviewed in the one document somebody executes with the failure in front of them. Dispatch such a file with `SCOPE: restated claims only` — its design claims in scope, its procedure not. The exclusion was always about the severity model of *procedures*, never a licence for a claim to hide inside one.
+- **"Prefer the document people execute from" sharpened to an anti-signal.** Completeness is now stated as close to an inverse indicator of review priority: executed documents are usually the short derived ones — a checklist, a paste-into-a-session handoff — where a claim converts straight into an action with nobody re-deriving it, while the long complete document is likeliest to already carry the correction precisely because everybody reads it.
+
+### Why
+The 2.11.0 propagation sweep ran on a seven-document set and confirmed the coverage/repair split it introduced — a sweep repairs *known* claims in *unknown* locations and cannot touch *unknown* claims. Two documents in the set had never been reviewed by any round, and one carried a `beta`/`private` definition swap that predated every edit and that no grep could have found, because it was never flagged anywhere.
+
+One of the unreviewed documents was excluded under the runbook rule — and it was the spike checklist, the document whose reader is standing in front of the failure when the instruction fires. It carried a retracted instruction ("if the panel is blocked, remove the directive") that had been corrected in two sibling documents and left verbatim there. That instruction self-conceals: removing the directive makes the checkbox pass, so the spike reports success while two shipped products lose their only clickjacking control. That single case motivated all three additions above — the grid entry, the point-4 inversion, and the runbook rescope.
+
+Field-test totals across three review rounds plus the sweep: **26 findings, zero false positives**, 6 propagation sites repaired afterwards, and 6 of the 26 were defects introduced while fixing earlier findings.
+
 ## [2.11.0] - 2026-08-25
 
 ### Added

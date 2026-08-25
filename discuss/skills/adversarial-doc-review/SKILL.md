@@ -97,6 +97,9 @@ SOURCES: <repo root>, docs/adr/
 OUTPUT_PATH: <scratchpad dir>/doc-adversary-0007-event-bus.md
 ```
 
+Add a fifth `SCOPE:` line only for a runbook or checklist inside a set — see
+below.
+
 `OUTPUT_PATH` is a file you choose, in your scratchpad directory — never
 inside the repo. The reviewer writes its report there **and** returns it as
 its final message.
@@ -133,9 +136,23 @@ first — a wrong base state invalidates the design review that would follow.
 When the mode is genuinely unclear from the doc's path and title alone, use
 AskUserQuestion rather than reading the document to decide.
 
-Runbooks and operational procedures are **out of scope**. Their failure mode
-is an operator doing the wrong thing under pressure, which is a different
-severity model. Say so rather than reviewing them badly.
+Runbooks and operational procedures are **out of scope as runbooks**. Their
+failure mode is an operator doing the wrong thing under pressure, which is a
+different severity model. Say so rather than reviewing them badly.
+
+**But a runbook inside a set is still a restatement site.** Checklists and
+procedures inherit design claims from the documents around them, and excluding
+the whole file leaves those claims unreviewed in the one document somebody
+executes with the failure in front of them. Review it for the claims it
+restates by adding one line to the dispatch:
+
+```
+SCOPE: restated claims only — procedural content is out of scope
+```
+
+Its design claims are then in scope and its procedure is not. The exclusion
+was always about the severity model of *procedures*, never a licence for a
+claim to hide inside one.
 
 ## After the report
 
@@ -201,7 +218,12 @@ Two consequences worth holding onto:
 - **Prefer reviewing the document people execute from**, not the most complete
   one. A claim can be right in the spec's prose and wrong in the two places
   anyone actually acts on, and it is the executed document where a wrong claim
-  turns into a wrong decision.
+  turns into a wrong decision. Treat completeness as close to an *anti*-signal
+  for review priority: the executed documents are usually the short derived
+  ones — a checklist, a paste-into-a-session handoff — where a claim converts
+  straight into an action with nobody re-deriving it, while the long complete
+  document is the likeliest to already carry the correction precisely because
+  it is the one everybody reads.
 
 ### When to stop
 

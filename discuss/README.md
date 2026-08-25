@@ -84,7 +84,7 @@ If both apply, `descriptive` runs first — a wrong base state invalidates the d
 
 **Documents travel in sets — fix the claim, not the file.** The reviewer sees one document at a time (deliberately), but a spec, a plan, and per-repo handoffs restate the same claims. Before re-reviewing, grep the siblings for the claim you just corrected. In field testing this was four of six findings in a third round.
 
-**Out of scope:** runbooks and operational procedures (different severity model), READMEs, changelogs, code review, and ideas still in conversation with no file — use `/discuss:challenge` for that last one.
+**Out of scope:** READMEs, changelogs, code review, and ideas still in conversation with no file — use `/discuss:challenge` for that last one. Runbooks and checklists are out of scope *as runbooks* (an operator under pressure is a different severity model), but inside a document set they are still restatement sites: dispatch them with `SCOPE: restated claims only` so the design claims they inherit get reviewed. In field testing the excluded checklist was the one document carrying a retracted instruction that, if followed, would have made its own success criterion pass while removing a security control.
 
 ---
 

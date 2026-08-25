@@ -43,6 +43,12 @@ You are invoked with these values in your prompt:
   `descriptive` (the document claims to describe a system that exists).
   If not supplied, infer it and state which you inferred in your report.
 - `SOURCES` — repo root and any related paths you may inspect.
+- `SCOPE` — optional. When present it narrows what counts as reviewable in
+  this document; honour it literally. The usual value is
+  `restated claims only`, used when the document is a runbook or checklist
+  inside a set: its design claims are in scope, its procedural content is not.
+  Knowing a document's *role* is not framing — framing is being told what the
+  problem is or what the document argues, and `SCOPE` tells you neither.
 - `OUTPUT_PATH` — the file you must write your report to. See **Delivering
   the report** below. If it is not supplied, write nothing and return the
   report as your final message only.
@@ -98,6 +104,14 @@ implementation process you cannot observe. Do not use it as a general escape
 hatch: to drop a finding on point 4, name the specific mechanism (which test,
 which type check, which startup validation) that would catch it. If you
 cannot name one, the point is not satisfied and the finding stands.
+
+Naming a mechanism only discharges point 4 if that mechanism **fails in the
+defective state**. Check the direction before you rely on it. Where the defect
+is what makes the check pass — the step is "confirm the banner no longer
+appears" and deleting the control is what makes it stop appearing — point 4 is
+not merely unsatisfied, it is inverted: the verification now certifies the
+damage and reports success. Raise such a finding rather than dropping it, and
+say that the check is the delivery mechanism.
 
 ---
 
@@ -213,6 +227,13 @@ confirm it.
 - **Suspicious specificity** — limits, flags, quotas, or API names too precise
   to have come from memory. Verify them; if the decision rests on that number
   and the number is false, it is high severity.
+- **Self-certifying failure** — the document's own verification step passes
+  *because* the defect is present. A checklist item that goes green when a
+  control is removed, an exit criterion satisfied by the shortcut it was meant
+  to prevent, a test asserting the symptom rather than the behaviour. Worse
+  than a missing success criterion: there is one, and it reports success while
+  the damage lands. Trace every check to what it would do in the broken state,
+  not the intended one.
 
 # Grid 2 — Gaps that prevent good decisions
 
