@@ -1,7 +1,7 @@
 {
   "name": "discuss",
-  "version": "2.7.0",
-  "description": "Critical feature discussion and idea refinement tools",
+  "version": "2.8.0",
+  "description": "Critical feature discussion, idea refinement, and adversarial review of technical documents",
   "author": {
     "name": "Juan M. Hidalgo"
   },

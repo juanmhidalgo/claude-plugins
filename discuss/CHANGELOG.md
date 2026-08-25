@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.8.0] - 2026-08-25
+
+### Added
+- **`adversarial-doc-review` skill + `doc-adversary` agent** — adversarial review of a technical document that exists as a *file* (PRD, ADR, spec, RFC, architecture doc), run in a fresh context. The reviewer has one question: will someone make a worse architecture/design/implementation decision because of what this document says or fails to say? Everything else — style, missing examples, uneven detail — is explicitly out of scope.
+  - **Materiality gate**: a finding must name the affected decision, show the outcome would have differed, cost real work to reverse, and not self-correct in the first hour of implementation. Dropping a finding on that last point requires naming the specific test or check that would catch it, so it can't be used as a blanket escape hatch.
+  - **Anti-anchoring procedure**: blind read → independent model built from code/domain *before* re-reading the doc → **vocabulary quarantine** (never grep the document's own nouns; every search must be capable of returning something that contradicts the doc) → falsification → self-falsification with a mandatory Steelman → verdict written last.
+  - **Falsification log is the credibility floor**: zero findings is a valid outcome, but only when the report shows the attempts that failed with concrete grep patterns and `path:line`. No log means the honest answer is "I was unable to review this", not "no findings".
+  - **Two modes**: `design` (decisions not yet built — materiality by cost of reversal) and `descriptive` (claims to describe an existing system — materiality also counts divergence from code). Both apply → run `descriptive` first.
+  - Severity by cost of reversal, not indignation: HIGH touches persisted data, public contracts, or several modules; MEDIUM is contained to one module; cheaper than that goes unreported.
+
+### Why
+Fills a gap no existing plugin covered. `/feature-dev:spec-review` validates *structure and completeness* of SPEC/PLAN artifacts and states outright that it does not judge technical merit. `/prd:analyze` finds gaps in PRD-shaped requirements without an adversarial method. `/discuss:challenge` is the closest sibling but attacks a proposal *in conversation* and runs in the main context — which is exactly the framing contamination this skill exists to avoid. Nothing reviewed a written document, in a fresh context, filtered by decision-materiality and anchored in the code.
+
+The skill is dispatch-only on purpose: the review depends on the reviewer building its own model of the problem before absorbing the document's framing, which is impossible in a context that already holds the document or the discussion that produced it. The skill passes the subagent **paths, never content**, and refuses to silently downgrade when subagents are unavailable.
+
+Known limit, documented in the skill rather than hidden: on greenfield docs with no code to read, the independent model is domain-derived and the review degrades toward opinion — the agent must say so in its verdict and treat its own findings as one severity level less certain.
+
 ## [2.7.0] - 2026-07-20
 
 ### Added

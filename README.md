@@ -51,19 +51,20 @@ For creating new specs from scratch, use `/feature-dev:spec`.
 /plugin install prd-toolkit@juanmhidalgo-plugins
 ```
 
-### discussion-toolkit
+### discuss
 
-Critical feature discussion and idea refinement with a skeptical Staff Engineer perspective.
+Critical feature discussion, idea refinement, and adversarial review of technical documents.
 
 **Commands:**
-- `/discuss [feature or idea]` - Critical analysis, identify gaps and risks
+- `/discuss:feature [feature or idea]` - Critical analysis, identify gaps and risks
 - `/discuss:brainstorm [problem]` - Generate 4-6 alternative approaches
-- `/discuss:devils-advocate [proposal]` - Argue against to stress-test
+- `/discuss:challenge [proposal]` - Argue against to stress-test
 - `/discuss:tradeoffs [A vs B]` - Compare options with pros/cons matrix
+- `/discuss:adversarial-doc-review [doc-path]` - Red-team a written PRD/ADR/spec in a fresh context, reporting only what would cause a bad design decision
 
 **Install:**
 ```bash
-/plugin install discussion-toolkit@juanmhidalgo-plugins
+/plugin install discuss@juanmhidalgo-plugins
 ```
 
 ### intake
