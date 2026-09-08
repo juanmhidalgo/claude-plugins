@@ -68,6 +68,18 @@ Low and medium give fewer findings you can trust; high and max give broader
 coverage including findings that may not hold. Pick by what the diff costs to
 get wrong.
 
+### Verification
+
+| Command | Verifies findings? |
+|---------|--------------------|
+| `:pr`, `:staged-pipeline`, `:receive` | Always, at every level |
+| `:branch`, `:staged` | **Only at `high` / `max`** |
+
+A verifier is an independent agent that re-derives the finding's mechanism and
+must attempt to refute it before confirming. It costs roughly what the review
+did, which is why `low` and `medium` skip it and stay a fast gate. The protocol
+lives in `skills/branch-review/references/verification.md`.
+
 ### Branch Review (before PR)
 ```
 /code-review/branch         → Identify issues in branch

@@ -35,6 +35,7 @@ triggers:
   - "review fix commit"
   - "fix staged issues"
 skills:
+  - branch-review
   - receiving-code-review
   - technical-decisions
   - coverage-gate
@@ -99,42 +100,24 @@ report as a clean one.
 
 ## Phase 2: Verify (dispatched)
 
-Every finding gets verified by an agent that did not produce it.
+Every finding is verified by an agent that did not produce it. Follow
+**`references/verification.md` in the `branch-review` skill** for the dispatch
+shape, verdict handling, the empty-refutation rule and the silent-verifier rule.
 
-**Do not verify findings yourself here.** Self-verification in this context is
-the pipeline's weakest link: the conversation that wrote the code is the one
-best equipped to explain away a real defect, and it is holding the pen.
-
-For each finding, launch a `code-review:finding-verifier` in parallel, each
-with its own `OUTPUT_PATH`:
-
-```
-FINDING: <the finding, verbatim, including claimed file:line>
-SCOPE: staged
-OUTPUT_PATH: <scratchpad dir>/staged-verdict-<n>.md
-```
-
-Each returns `CONFIRMED`, `PLAUSIBLE`, `REFUTED`, or `REFUSED`, with a
-mandatory refutation attempt. **Discard any verdict with an empty refutation
-attempt** and re-verify that finding once.
+**This pipeline always verifies, at every effort level** — unlike `:staged`,
+which stops at the review. The reason is what happens next: Phase 4 edits files.
+A finding that goes unverified here becomes a code change, and the conversation
+about to make that change is the same one that wrote the code.
 
 Then:
 
-- `CONFIRMED` → carries to Phase 3 as a proposed fix
-- `PLAUSIBLE` → carries to Phase 3 as a question for the user, never as a fix
+- `CONFIRMED` → Phase 3 as a proposed fix
+- `PLAUSIBLE` → Phase 3 as a question for the user, never as a fix
 - `REFUTED` → dropped, **and counted**
 - `REFUSED` → surfaced at the top of Phase 3 regardless of anything else
 
-<rule id="no-silent-drops" priority="critical">
-
-**Never drop a finding silently.** Report `N dropped (refuted)` with a one-line
-reason each. A silently dropped finding is indistinguishable from a review that
-never looked, and this pipeline then commits on that basis.
-
-</rule>
-
-If nothing survives, report `No findings.` plus what was examined and the
-dropped count — then stop. Skip Phases 3-5.
+If nothing survives, report `No findings.` with what was examined and the
+dropped count, then stop. Skip Phases 3-5.
 
 ## Phase 3: Present & Approve (Plan Mode)
 

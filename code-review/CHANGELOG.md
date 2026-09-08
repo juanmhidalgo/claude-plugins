@@ -5,6 +5,22 @@ All notable changes to this plugin will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.0] - 2026-09-08
+
+### Added
+- **Verification in `/code-review:branch` and `:staged`, gated on effort level.** At `high` and `max` each finding is now verified by a `finding-verifier` before it reaches the user; `low` and `medium` are unchanged and still present the reviewer's output directly. Those two levels are the fast pre-commit gate, and a verifier costs roughly what the review that produced the finding cost — four findings means four more agents, which is exactly the price `low`/`medium` decline to pay.
+- **`references/verification.md` in the `branch-review` skill** — one definition of what happens between a reviewer producing findings and a user reading them: dispatch shape, verdict handling, the empty-refutation and silent-verifier rules, the two pre-presentation checks, carrying the refutation, and no silent drops. `:branch`, `:staged`, `:pr`, `:staged-pipeline` and `:receive` now reference it instead of restating it, and each declares `branch-review` in `skills:` so the chain actually loads. `:tech-debt` keeps its inline copy on purpose: its findings have a different shape, and loading a skill with a competing format would bleed the wrong rubric into it.
+
+### Changed
+- `:pr`, `:staged-pipeline` and `:receive` verify at **every** level, and now say why they differ from `:branch`/`:staged`: `:pr` merges up to five dimensions that never read each other, `:staged-pipeline` turns findings into file edits in the next phase, and verifying is the whole job of `:receive`.
+
+### Why
+Two field runs settled this. Both times a `:branch` or `:staged` report was passed by hand to `:receive`, and both times verification changed the result materially — it corrected an exception type the finding had named wrongly (the suggested fix would not have caught it), checked and eliminated an obvious refutation the reviewer had not considered, caught that a naive fix would break behavior a code comment documented as deliberate, and found a sibling instance of the same defect elsewhere in the tree. Two for two, on reports that were otherwise good.
+
+That manual step was the design telling us something. Three of five review paths already verified; `:branch` and `:staged` fell back to the reviewer critiquing its own finding, which this plugin's own 2.20.0 entry calls the weaker option.
+
+The gate is the effort level rather than the command because the level already means this. At `high`/`max` the reviewer surfaces findings it *could not confirm* — and shipping those straight to the user handed the verification burden to the human at precisely the level that was supposed to buy more certainty. That was backwards.
+
 ## [3.1.0] - 2026-09-08
 
 ### Added

@@ -182,6 +182,16 @@ An empty result is a real, reportable outcome — but a silent one is
 indistinguishable from a review that failed to run. Never let dropped findings
 vanish without a count: report `N dropped (M incorrect, K pre-existing)`.
 
+## After the findings exist
+
+What happens between a reviewer producing findings and a user reading them —
+verification at `high`/`max`, the two pre-presentation checks, carrying the
+refutation, and the no-silent-drops rule — is defined once in
+[verification.md](references/verification.md).
+
+It is not restated in the commands. Six copies of a protocol is one copy that
+drifts, which already happened to this plugin's analysis-focus block.
+
 ## Accounting block
 
 Close every report with this, even an empty one:

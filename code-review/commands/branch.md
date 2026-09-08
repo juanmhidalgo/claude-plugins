@@ -107,32 +107,27 @@ must never be reported as one.
 `OUTPUT_PATH` also keeps this conversation clean: the full report lives in the
 file, and what you bring back here is the distilled finding list.
 
-## Presenting the report
+## Verify, then present
 
-Findings, severity, confidence, labels and the required failure-scenario format
-all come from the **`branch-review` skill** — it is the single source of truth,
-so do not restate the rubric here.
+Everything from here — whether to verify, how to dispatch verifiers, the two
+pre-presentation checks, carrying the refutation, and the no-silent-drops rule
+— follows **`references/verification.md` in the `branch-review` skill**, which
+this command already loads. Follow it; do not restate it here.
 
-**Carry the counter-case.** Each finding you present keeps one line of its
-counter-case — the strongest reason it might be wrong. The reviewer writes the
-full version to `OUTPUT_PATH`, which nobody reads; a counter-case that survives
-only in that file cannot calibrate anyone. It is also what lets a reader judge a
-clean-looking report at a glance.
+The one thing this command decides is the trigger:
 
-Two checks before presenting, both cheap:
+| Effort | Verification |
+|--------|--------------|
+| `low` / `medium` | **None.** The reviewer's counter-case is the check. Present directly. |
+| `high` / `max` | **One `code-review:finding-verifier` per finding**, in parallel, before anything reaches the user. |
 
-1. **Citations** — spot-check two cited `file:line` references against the real
-   files. A fabricated citation invalidates the finding resting on it.
-2. **Execution claims** — the reviewer is read-only and cannot run anything. If
-   the report says "reproduced", quotes test or linter output, reports a probe's
-   result, or cites an exit code, **that claim is fabricated** — regardless of
-   whether the finding it supports is true. Strike the claim, keep the finding
-   only if it stands on what was read, and say in your summary that the report
-   carried a fabricated claim. That is a signal about the whole report's
-   reliability, not a typo to quietly fix.
+The split is deliberate. `low`/`medium` keep this a fast gate. `high`/`max`
+surface findings the reviewer *could not confirm*, and shipping those straight
+to you would hand the verification burden to the human at exactly the level
+meant to buy more certainty.
 
-Report `N dropped` explicitly if you discard any finding. Never let one vanish
-without a count.
+The finding format, severity, confidence and labels also come from that skill —
+it is the single source of truth for all of it.
 
 ## Next Step
 

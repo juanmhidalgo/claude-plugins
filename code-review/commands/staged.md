@@ -92,32 +92,22 @@ Never present a missing report as a clean one.
 Keeping the full report in the file is also what keeps this conversation clean
 for the commit you are about to make.
 
-## Presenting the report
+## Verify, then present
 
-The finding format, severity/confidence rubric, labels, and the mandatory
-failure-scenario field live in the **`branch-review` skill**. Do not restate
-them here.
+Follow **`references/verification.md` in the `branch-review` skill**, which this
+command already loads: whether to verify, how to dispatch verifiers, the two
+pre-presentation checks, carrying the refutation, and the no-silent-drops rule.
+Do not restate it here.
 
-**Carry the counter-case.** Each finding you present keeps one line of its
-counter-case — the strongest reason it might be wrong. The reviewer writes the
-full version to `OUTPUT_PATH`, which nobody reads; a counter-case that survives
-only in that file cannot calibrate anyone. It is also what lets a reader judge a
-clean-looking report at a glance.
+The trigger this command sets:
 
-Two checks before presenting, both cheap:
+| Effort | Verification |
+|--------|--------------|
+| `low` / `medium` | **None.** Present directly — this is the pre-commit gate and it has to stay fast. |
+| `high` / `max` | **One `code-review:finding-verifier` per finding**, in parallel, before anything reaches you. |
 
-1. **Citations** — spot-check two cited `file:line` references against the real
-   files. A fabricated citation invalidates the finding resting on it.
-2. **Execution claims** — the reviewer is read-only and cannot run anything. If
-   the report says "reproduced", quotes test or linter output, reports a probe's
-   result, or cites an exit code, **that claim is fabricated** — regardless of
-   whether the finding it supports is true. Strike the claim, keep the finding
-   only if it stands on what was read, and say in your summary that the report
-   carried a fabricated claim. That is a signal about the whole report's
-   reliability, not a typo to quietly fix.
-
-Report `N dropped` explicitly if you discard any finding. Never let one vanish
-without a count.
+If you asked for `high` on staged changes you have accepted the wait; `medium`
+is the default precisely so the common case stays quick.
 
 **Do NOT** modify code, stage, or commit as part of this command. To review and
 fix in one pass, that is `/code-review:staged-pipeline`.

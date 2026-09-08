@@ -24,6 +24,7 @@ allowed-tools:
   - Bash(git status)
   - EnterPlanMode
 skills:
+  - branch-review
   - receiving-code-review
 hooks:
   - event: Stop
@@ -80,22 +81,13 @@ If the review format is unclear or unstructured, do your best to identify indivi
 
 ### Phase 2: Verify Against Actual Code
 
-**Dispatch the verification.** Launch one `code-review:finding-verifier` per
-finding, in parallel, each with its own `OUTPUT_PATH`:
+**Dispatch the verification.** Follow **`references/verification.md` in the
+`branch-review` skill** for dispatch shape and verdict handling. `:receive`
+always verifies at every level — verifying is the entire job of this command.
 
-```
-FINDING: <the finding, verbatim, including its claimed file:line>
-SCOPE: <branch, staged, or PR the review covered>
-OUTPUT_PATH: <scratchpad dir>/receive-verdict-<n>.md
-```
-
-Verify inline yourself only when subagents are unavailable — and say so in the
+Verify inline yourself only when subagents are unavailable, and say so in the
 report. The review arrived from elsewhere, but the *code* may well have been
-written in this conversation, and that is the case where inline verification is
-weakest.
-
-**Read each `OUTPUT_PATH` first.** A verifier that finished leaving nothing did
-not verify: re-run it, and never let its silence read as a rejected finding.
+written in this conversation, and that is where inline verification is weakest.
 
 Each verifier checks:
 
