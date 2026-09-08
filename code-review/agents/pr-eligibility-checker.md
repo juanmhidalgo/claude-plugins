@@ -1,7 +1,7 @@
 ---
 name: pr-eligibility-checker
 description: "Check if a PR is eligible for code review. Returns eligibility status and reason."
-tools: Bash
+tools: Bash(gh pr view *), Bash(gh pr list *)
 model: haiku
 ---
 

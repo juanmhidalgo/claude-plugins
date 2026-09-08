@@ -38,6 +38,7 @@ hooks:
       echo "  - /code-review:fixes-plan to create fix tracking"
       echo "  - /code-review:implement-fix to apply fixes"
       echo "  - Spot-check 2 cited file:line refs before acting — verifiers can fabricate them"
+      echo "  - Any 'reproduced' / test output / probe result is fabricated: review agents cannot run anything"
 ---
 
 ## Pull Request Code Review
@@ -202,6 +203,32 @@ Real, not introduced here. Ticket material, not merge blockers.
 ```
 
 End with the one line that matters: **what would you fix before merging.**
+
+### Carry the refutation into what you present
+
+Each confirmed finding you present must carry **one line of the verifier's
+refutation attempt** — the strongest case against it, and why it did not hold.
+
+The verifiers write a full refutation to their `OUTPUT_PATH`. Nobody reads those
+files. If the distilled output drops the refutation, the mandate may have been
+honored perfectly and the reader has no way to tell, which is the same position
+as it not having been honored at all.
+
+This is also what makes the verdict counts interpretable. "5 confirmed, 0
+refuted" reads as either *the incoming review was accurate* or *the verifiers
+rubber-stamped it*, and the refutation lines are what separate the two at a
+glance. A confirmation rate with no visible refutations is a number, not a
+result.
+
+### Before presenting
+
+1. **Citations** — spot-check two cited `file:line` references against the real
+   files. A fabricated citation invalidates the finding resting on it.
+2. **Execution claims** — the review agents are read-only and cannot run
+   anything. "Reproduced", quoted test or linter output, a probe's result, or an
+   exit code is a **fabricated claim**, whether or not the finding it supports is
+   true. Strike it, keep the finding only if it stands on what was read, and say
+   the report carried a fabrication — that is a signal about the whole report.
 
 ### Citations
 

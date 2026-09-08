@@ -101,6 +101,27 @@ clean — bring back the verdict and the items, not the reasoning.
 6. **Dependencies & Infrastructure** — New deps, version pinning, ad-hoc reimplementation of shared patterns, undocumented config
 7. **Maintainability** — Missing docs on public APIs, implicit dependencies, tight coupling
 
+**Carry the counter-case.** Each finding you present keeps one line of its
+counter-case — the strongest reason it might be wrong. The reviewer writes the
+full version to `OUTPUT_PATH`, which nobody reads; a counter-case that survives
+only in that file cannot calibrate anyone. It is also what lets a reader judge a
+clean-looking report at a glance.
+
+**Before presenting:** Two checks before presenting, both cheap:
+
+1. **Citations** — spot-check two cited `file:line` references against the real
+   files. A fabricated citation invalidates the finding resting on it.
+2. **Execution claims** — the reviewer is read-only and cannot run anything. If
+   the report says "reproduced", quotes test or linter output, reports a probe's
+   result, or cites an exit code, **that claim is fabricated** — regardless of
+   whether the finding it supports is true. Strike the claim, keep the finding
+   only if it stands on what was read, and say in your summary that the report
+   carried a fabricated claim. That is a signal about the whole report's
+   reliability, not a typo to quietly fix.
+
+Report `N dropped` explicitly if you discard any finding. Never let one vanish
+without a count.
+
 **Output requirements:**
 
 - Verdict: CLEAN / MINOR DEBT / SIGNIFICANT DEBT / BLOCKING DEBT

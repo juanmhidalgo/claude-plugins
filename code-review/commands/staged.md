@@ -32,6 +32,7 @@ hooks:
     command: |
       echo "Staged changes review complete."
       echo "  - Spot-check 2 cited file:line refs before acting — reviewers can fabricate them"
+      echo "  - Any 'reproduced' / test output / probe result in the report is fabricated: the reviewer cannot run anything"
       echo "  - Fix issues, then commit with /commit"
       echo "  - /code-review:fixes-plan to create fix tracking"
 ---
@@ -97,8 +98,26 @@ The finding format, severity/confidence rubric, labels, and the mandatory
 failure-scenario field live in the **`branch-review` skill**. Do not restate
 them here.
 
-Spot-check two cited `file:line` references before presenting. Report `N
-dropped` explicitly rather than quietly discarding.
+**Carry the counter-case.** Each finding you present keeps one line of its
+counter-case — the strongest reason it might be wrong. The reviewer writes the
+full version to `OUTPUT_PATH`, which nobody reads; a counter-case that survives
+only in that file cannot calibrate anyone. It is also what lets a reader judge a
+clean-looking report at a glance.
+
+Two checks before presenting, both cheap:
+
+1. **Citations** — spot-check two cited `file:line` references against the real
+   files. A fabricated citation invalidates the finding resting on it.
+2. **Execution claims** — the reviewer is read-only and cannot run anything. If
+   the report says "reproduced", quotes test or linter output, reports a probe's
+   result, or cites an exit code, **that claim is fabricated** — regardless of
+   whether the finding it supports is true. Strike the claim, keep the finding
+   only if it stands on what was read, and say in your summary that the report
+   carried a fabricated claim. That is a signal about the whole report's
+   reliability, not a typo to quietly fix.
+
+Report `N dropped` explicitly if you discard any finding. Never let one vanish
+without a count.
 
 **Do NOT** modify code, stage, or commit as part of this command. To review and
 fix in one pass, that is `/code-review:staged-pipeline`.

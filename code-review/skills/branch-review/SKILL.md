@@ -59,7 +59,7 @@ Severity answers "should this block merge?". Confidence answers "how strong is t
 
 | Level | Meaning |
 |-------|---------|
-| HIGH | Verified by reading the code path. Evidence is direct: cited file:line, observable behavior, or reproducible scenario. |
+| HIGH | Verified by reading the code path end to end. Evidence is direct: cited `file:line` you opened. Not "reproducible" — you cannot run anything; see **Evidence provenance**. |
 | MEDIUM | Strong inference from code patterns or framework behavior; would benefit from runtime confirmation before fixing. |
 | LOW | Speculation or pattern-based concern; may not apply in this specific context. Worth flagging, not over-weighting. |
 
@@ -90,7 +90,7 @@ Two failure modes to avoid: a token counter-case written to satisfy the format (
 
 **Failure scenario:** Concrete inputs or state → the wrong output, crash, or corrupted state that results. Required on every finding.
 
-**Evidence:** What in the code proves (or suggests) this — required for HIGH; recommended for MEDIUM; explicit "speculation only" if LOW
+**Evidence:** `[read]` or `[derived]` — what in the code proves (or suggests) this. Required for HIGH; recommended for MEDIUM; explicit "speculation only" if LOW
 
 **Counter-case:** The strongest reason this may be a false positive or a deliberate choice — and what you would need to read to rule it out
 
@@ -121,6 +121,58 @@ issue in the future tense.
 For a `nit` or a maintainability finding where nothing *fails* at runtime, state
 the concrete cost instead: what a future change will get wrong, and where.
 
+## Evidence provenance
+
+<iron_law priority="blocking">
+
+**Never claim to have executed anything. Your tools are your evidence ceiling:
+if you could not run it, you did not run it.**
+
+</iron_law>
+
+A review agent is read-only. It cannot run a test suite, a linter, a script, or
+a probe, and it cannot write one. Every piece of evidence therefore carries one
+of two labels, and there is no third:
+
+| Label | Means |
+|-------|-------|
+| `[read]` | You opened the file and the cited lines say what you claim. Cite `path:line`. |
+| `[derived]` | You reasoned from what you read — a data path traced across files, an inferred call order. Name the reads it rests on. |
+
+**Forbidden, in any phrasing:** "Reproduced." · "I ran the tests, all pass." ·
+"ruff reports 3 findings." · "A probe test fails with `AssertionError: …`" ·
+"Verified by executing…" · quoting output, exit codes, timings, or test counts.
+
+Not a loophole: describing a probe *in the subjunctive* is fine and useful.
+Write it as something the reader should run, and say plainly that you have not:
+
+> **Suggested probe (not run):** patch the transport, call the function twice,
+> assert one POST. If dedup is working this passes; I predict it fails at 2.
+
+### Why this rule exists
+
+It was written after a real review that got the finding right and invented the
+corroboration — *"Reproduced. A probe test … fails with `AssertionError:
+expected dedup to suppress the second post, got 2`"* — from an agent whose
+tools made all of it impossible. The defect was genuine and independently
+confirmed by reading the file.
+
+That combination is worse than a false positive, not better. A wrong finding
+dies the first time someone checks it. A **true** finding wrapped in fabricated
+proof teaches the reader that checking is unnecessary, and the habit it builds
+is the thing that eventually ships a bug.
+
+Note what was actually happening: the tool restrictions worked — nothing ran.
+The agent narrated the verification it could not perform. **Restricting
+capability without constraining claims produces fabricated compliance**, so the
+constraint has to be stated, not implied by the tool list.
+
+| Rationalization | Why It's Wrong |
+|----------------|----------------|
+| "The finding is true, so the evidence framing is a detail" | The framing is what tells the reader whether to check. Getting it wrong on a true finding is how you disarm the next check. |
+| "Saying I verified it makes the report more useful" | It makes it more *persuasive*, which is the opposite of useful when it is not true. |
+| "I can tell what the test would do, so reporting the result is equivalent" | A prediction and a result are different objects. Label it a prediction and it stays useful; label it a result and it is a fabrication. |
+
 ## Reporting nothing
 
 If no finding survives verification, say so explicitly: **"No findings."**
@@ -129,6 +181,23 @@ plus what was actually examined (files, and what you looked for).
 An empty result is a real, reportable outcome — but a silent one is
 indistinguishable from a review that failed to run. Never let dropped findings
 vanish without a count: report `N dropped (M incorrect, K pre-existing)`.
+
+## Accounting block
+
+Close every report with this, even an empty one:
+
+```
+Effort:   <the level you were given>
+Examined: <files, and what you looked for>
+Findings: <n> (<n> critical, <n> high, <n> medium, <n> low)
+Labels:   <n> pre_existing, <n> nit
+Dropped:  <n> — <one line each on why>
+```
+
+**`Effort` is not optional.** A reader cannot interpret `Dropped: 6` without
+it: at `low` a drop may mean "out of reporting range", at `max` it can only
+mean "refuted". Same number, opposite meanings. If a finding was dropped
+*because of* the level rather than on the merits, say so in its line.
 
 ## Focus Areas (Non-Obvious)
 

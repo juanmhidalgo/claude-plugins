@@ -140,6 +140,22 @@ For each: the claim, and exactly what could not be verified. Questions, not fixe
 For each: brief reason (stale / refuted / non-issue)
 ```
 
+### Carry the refutation into what you present
+
+Each confirmed finding you present must carry **one line of the verifier's
+refutation attempt** — the strongest case against it, and why it did not hold.
+
+The verifiers write a full refutation to their `OUTPUT_PATH`. Nobody reads those
+files. If the distilled output drops the refutation, the mandate may have been
+honored perfectly and the reader has no way to tell, which is the same position
+as it not having been honored at all.
+
+This is also what makes the verdict counts interpretable. "5 confirmed, 0
+refuted" reads as either *the incoming review was accurate* or *the verifiers
+rubber-stamped it*, and the refutation lines are what separate the two at a
+glance. A confirmation rate with no visible refutations is a number, not a
+result.
+
 Include a summary table:
 
 ```
@@ -151,8 +167,15 @@ Include a summary table:
 | Rejected  | X     | None     |
 ```
 
-Spot-check two cited `file:line` references before presenting. A review from
-another session can cite code that does not exist here.
+Two checks before presenting:
+
+1. **Citations** — spot-check two cited `file:line` references. A review from
+   another session can cite code that does not exist here.
+2. **Execution claims** — the review agents are read-only and cannot run
+   anything. "Reproduced", quoted test or linter output, a probe's result, or an
+   exit code is a **fabricated claim**, whether or not the finding it supports is
+   true. Strike it, keep the finding only if it stands on what was read, and say
+   the report carried a fabrication — that is a signal about the whole report.
 
 **Do NOT start implementing until the user approves which findings to act on.**
 

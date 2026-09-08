@@ -5,6 +5,25 @@ All notable changes to this plugin will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.0] - 2026-09-08
+
+### Added
+- **Evidence provenance rule.** Every review agent is read-only, and now says so about its own claims: evidence is labeled `[read]` (a file opened, `path:line` cited) or `[derived]` (reasoned from reads), and claiming execution is forbidden in any phrasing — no "Reproduced", no test counts, no linter output, no quoted `AssertionError`, no exit codes. A probe worth running is written in the subjunctive and marked *(not run)*. Stated as an Iron Law with a rationalization table in the `branch-review` skill and inlined in all ten finding-producing agents, because safety text must not depend on a skill load.
+- **`Effort:` line in the accounting block**, required. Without it `Dropped: 6` is uninterpretable — at `low` a drop can mean "outside reporting range", at `max` it can only mean "refuted". Drops caused by the level must say so.
+- **Refutation and counter-case carried into the distilled output.** Each confirmed finding presented by `:receive`, `:pr` and `:staged-pipeline` now carries one line of the verifier's refutation attempt; `:branch`, `:staged` and `:tech-debt` carry one line of the reviewer's counter-case. Both fields already existed and were already mandatory — but they lived only in the `OUTPUT_PATH` files, which nobody reads, so the mandate could be perfectly honored and remain unverifiable from the report. It also makes verdict counts legible: "5 confirmed, 0 refuted" reads as either an accurate incoming review or a rubber stamp, and the refutation lines are what separate the two at a glance.
+- **Execution-claim check** alongside the citation spot-check in `:branch`, `:staged`, `:pr`, `:tech-debt`, `:staged-pipeline` and `:receive`, and in the Stop hooks. A fabricated claim is reported as a signal about the whole report, not quietly stripped.
+
+### Changed
+- **Read-only agents scoped to read-only verbs.** Seven agents still held bare `Bash`, and the three already narrowed to `Bash(git *)` could still have run `git push` or `git commit`. All eleven now carry an explicit list — `git log|diff|show|blame|rev-parse|symbolic-ref`, `git branch --show-current`, `git status`, and `gh pr view|diff|list` — following the pattern `discuss:doc-adversary` already used. `fix-implementer` keeps full `Bash` by design and is governed by its containment rules.
+- `HIGH` confidence no longer described as "reproducible scenario", which read as licence to claim reproduction.
+
+### Why
+The first real run of 3.0.0 produced a report that was right about the defect and invented the proof: *"Reproduced. A probe test … fails with `AssertionError: expected dedup to suppress the second post, got 2`"*, plus a count of tests run and linter findings — from an agent whose tools made every one of those impossible. The finding itself was genuine and independently confirmed by reading the file.
+
+That ordering is what makes it serious. A false positive dies the first time someone checks it; a true finding wrapped in fabricated corroboration teaches the reader that checking is unnecessary, and the habit that builds is what eventually ships a bug.
+
+The mechanism generalizes past this plugin: **the tool restrictions worked.** Nothing ran. The agent narrated the verification it could not perform. Restricting capability without constraining claims produces fabricated compliance, so the constraint has to be written down rather than left implied by the tool list — and the reader-side check has to cover claimed execution, not only claimed citations, because this report's citations were accurate.
+
 ## [3.0.0] - 2026-09-08
 
 ### Security

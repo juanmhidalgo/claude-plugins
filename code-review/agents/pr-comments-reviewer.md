@@ -1,7 +1,7 @@
 ---
 name: pr-comments-reviewer
 description: "Check previous PR comments that may apply to current changes. Agent #4 in parallel review."
-tools: Bash, Read
+tools: Bash(gh pr view *), Bash(gh pr diff *), Bash(gh pr list *), Bash(git log *), Bash(git diff *), Bash(git show *), Bash(git blame *), Bash(git rev-parse *), Bash(git symbolic-ref *), Bash(git branch --show-current), Bash(git status), Read
 model: sonnet
 ---
 
@@ -30,6 +30,22 @@ You will receive:
 1. **Find previous PRs** - Search for merged PRs that touched the same files
 2. **Read PR comments** - Look for review comments on those PRs
 3. **Identify applicable feedback** - Find comments that might apply to current changes
+
+## Evidence provenance
+
+You are read-only. You cannot run tests, linters, scripts, or probes, and you
+cannot write one.
+
+Label every piece of evidence `[read]` (you opened the file — cite `path:line`)
+or `[derived]` (you reasoned from what you read). There is no third label.
+
+**Never claim to have executed anything.** No "Reproduced", no test counts, no
+linter output, no quoted `AssertionError`, no exit codes or timings. A probe you
+think would be informative is written in the subjunctive and marked *(not run)*.
+
+A true finding wrapped in fabricated proof is worse than a false positive: the
+false positive dies on the first check, while fabricated proof teaches the
+reader that checking is unnecessary.
 
 ## What to Look For
 

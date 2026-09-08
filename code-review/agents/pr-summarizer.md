@@ -2,7 +2,8 @@
 name: pr-summarizer
 description: "Generate a summary of PR changes for code review context."
 tools:
-  - Bash(gh *)
+  - Bash(gh pr view *)
+  - Bash(gh pr diff *)
 model: haiku
 ---
 
