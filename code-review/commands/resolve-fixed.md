@@ -1,4 +1,5 @@
 ---
+disable-model-invocation: true
 allowed-tools:
   - Read
   - Edit

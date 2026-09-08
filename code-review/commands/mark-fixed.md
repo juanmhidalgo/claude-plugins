@@ -56,7 +56,15 @@ Based on `$ARGUMENTS`:
    - **FIXED** - Solution implemented, problem resolved
    - **PARTIALLY FIXED** - Some changes made, but incomplete
    - **NOT FIXED** - Problem still exists
+   - **NO CHANGE NEEDED** - The issue does not hold against the current code:
+     it was already handled elsewhere, refuted on closer reading, or made moot
+     by an unrelated change. The code is correct as it stands.
    - **CANNOT VERIFY** - File changed significantly, manual review needed
+
+   **NO CHANGE NEEDED is not a softer NOT FIXED.** `NOT FIXED` means the defect
+   is still there and someone has to act. `NO CHANGE NEEDED` means there is
+   nothing to act on. Collapsing the two either invents work or buries a real
+   bug — record which one you mean, with the evidence that settles it.
 
 ### Step 4: Update the File
 
@@ -97,6 +105,7 @@ Show summary:
 ✅ Issue #5: Missing validation - FIXED
 ⚠️ Issue #7: Race condition - PARTIALLY FIXED (missing transaction)
 ❌ Issue #2: Data migration - NOT FIXED
+➖ Issue #9: Unchecked index - NO CHANGE NEEDED (guarded by the caller at api/views.py:88)
 
 Progress: 5/11 completed (was 3/11)
 ```

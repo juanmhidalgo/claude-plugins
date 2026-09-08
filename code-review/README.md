@@ -7,9 +7,9 @@ Comprehensive code review workflow for Claude Code: branch reviews, PR feedback 
 | Command | Description |
 |---------|-------------|
 | `/code-review:pipeline PR#` | **Autonomous pipeline**: triage, fix, dismiss, test, commit, push, resolve |
-| `/code-review:pr <PR>` | **Multi-agent PR review** with confidence scoring |
-| `/code-review:branch [base]` | Review current branch vs base (default: main) |
-| `/code-review:staged` | Review staged changes before commit |
+| `/code-review:pr <PR> [level]` | **Multi-agent PR review**, reported in session — never posts to GitHub |
+| `/code-review:branch [base] [level]` | Review current branch vs base, in a reviewer that has not seen this conversation |
+| `/code-review:staged [level]` | Review staged changes, in a reviewer that has not seen this conversation |
 | `/code-review:coverage-gate [base]` | Check coverage against CI thresholds locally before push |
 | `/code-review:receive <report>` | Process review feedback from another session with verification |
 | `/code-review:triage PR#` | Triage AI feedback (Copilot, Gemini) with skeptical verification |
@@ -40,17 +40,33 @@ Fully autonomous - only stops if tests fail after retries or coverage is below C
 ### Multi-Agent PR Review (recommended)
 
 ```
-/code-review:pr 123         → Full PR review with 5 parallel agents
+/code-review:pr 123          → PR review at the default effort level
+/code-review:pr 123 high     → broader coverage, includes unverified findings
 ```
 
 **Workflow steps:**
 1. Eligibility check (skip drafts, bots, trivial PRs)
 2. CLAUDE.md discovery (via Glob)
 3. PR summary generation
-4. **5 parallel reviews**: CLAUDE.md compliance, bug scan, git history, previous PR comments, code comments
-5. Confidence scoring (0-100) for each issue
-6. Filter issues below 80 confidence
-7. Post review comment on PR
+4. **Parallel reviews**, 2 to 5 dimensions depending on effort level
+5. Deduplicate findings across dimensions
+6. **Verification**: one `finding-verifier` per finding → CONFIRMED / PLAUSIBLE / REFUTED
+7. Filter by effort level
+8. **Report in this session** — nothing is written to GitHub
+
+**Effort levels** (`low` | `medium` | `high` | `max`, default `medium`, remembered
+in `.claude/code-review.local.md`):
+
+| Level | Dimensions | Surfaced |
+|-------|-----------|----------|
+| `low` | 2 | `CONFIRMED` only |
+| `medium` | 3 | `CONFIRMED`, plus `pre_existing` grouped separately |
+| `high` | 5 | `CONFIRMED` + `PLAUSIBLE`, each marked |
+| `max` | 5 | Everything, every label shown |
+
+Low and medium give fewer findings you can trust; high and max give broader
+coverage including findings that may not hold. Pick by what the diff costs to
+get wrong.
 
 ### Branch Review (before PR)
 ```
@@ -108,6 +124,37 @@ Session A:
 
 Detects coverage thresholds from `.github/workflows/*.yml` (orgoro/coverage, codecov, etc.), categorizes files as new/modified, runs coverage locally, and writes tests to fix gaps.
 
+## This plugin vs. the built-in `/code-review`
+
+Claude Code ships its own `/code-review`. The two are not interchangeable, and
+the boundary is worth knowing before reaching for either.
+
+**Use the built-in `/code-review`** for interactive review of a diff you are
+looking at: it scales effort from `low` to `max`, renders findings in the host
+UI, applies them with `--fix`, posts inline PR comments with `--comment`, and
+runs a deep multi-agent pass in the cloud with `ultra`.
+
+**Use this plugin** for the things it does not do:
+
+| Need | Why the built-in does not cover it |
+|------|-----------------------------------|
+| A reviewer that has **not** seen this conversation | It runs forked, so it inherits the session that wrote the code |
+| Triaging **incoming** bot feedback (Copilot, Gemini) | It emits its own findings; it does not consume anyone else's |
+| Dismissing false positives with justification, resolving threads | No feedback-lifecycle commands |
+| Tracking findings across sessions (`REVIEW_FIXES.md`) | Findings live in the session |
+| Reviewing code that is **not** in a diff | Its targets are always diff-scoped |
+| Technical debt as its own axis, with a merge verdict | Its categories are correctness / simplification / efficiency / test-coverage |
+| Coverage gated against thresholds parsed from CI config | Coverage is a finding category, not a gate |
+| An autonomous triage → fix → test → push → resolve pipeline | No such orchestration |
+
+The short version: **the built-in finds problems in a diff; this plugin manages
+the lifecycle of the feedback around one** — and reviews from a context that did
+not write the code.
+
+They compose. A reasonable habit is the built-in while iterating, and
+`/code-review:branch` before opening the PR, precisely because by then this
+session has been reasoning about the code for an hour.
+
 ## Core Principle
 
 **AI feedback is NOT valid by default.** Every comment from AI reviewers (Copilot, Gemini, etc.) must be verified against actual code behavior before acting on it.
@@ -149,11 +196,11 @@ Output includes `resolved` and `outdated` status for inline comments, with stats
 | `git-history-reviewer` | Sonnet | Analyzes git blame/history |
 | `pr-comments-reviewer` | Sonnet | Checks previous PR feedback |
 | `code-comments-reviewer` | Sonnet | Verifies code comment guidance |
-| `confidence-scorer` | Haiku | Scores issues 0-100 |
+| `finding-verifier` | Sonnet | Verifies one finding → CONFIRMED / PLAUSIBLE / REFUTED |
 
 ### Other Agents
 
-- **comment-verifier** - Haiku agent for parallel comment verification (used by pipeline triage)
+- **comment-verifier** - Sonnet agent for parallel comment verification (used by pipeline and triage)
 - **fix-implementer** - Focused Sonnet agent for implementing individual fixes (used by pipeline)
 - **branch-reviewer** - Code review specialist for branch comparisons
 - **pr-feedback-analyst** - Skeptical AI feedback analyst

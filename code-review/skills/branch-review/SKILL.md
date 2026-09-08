@@ -34,6 +34,25 @@ user-invocable: true
 | MEDIUM | Recommend | Code smells, minor perf issues, missing non-critical tests |
 | LOW | Optional | Style issues, refactoring opportunities, docs |
 
+## Labels (orthogonal to severity)
+
+Two labels change how a finding is *read*, not how severe it is. Both exist so
+that findings get **surfaced and marked** instead of silently dropped — a
+dropped finding is indistinguishable from a review that never looked.
+
+| Label | Meaning | Effect |
+|-------|---------|--------|
+| `nit` | Correct, but below the bar a senior engineer would raise in review | Never blocks. Reported in its own group, collapsed by default. |
+| `pre_existing` | Real, but not introduced by these changes | Never blocks *this* merge. Reported so it can become a ticket. |
+
+Do not use `nit` as a hedge on a finding you believe matters — that is what
+LOW severity is for. `nit` means *"I am reporting this only for completeness"*.
+
+**Never suppress a `pre_existing` finding to keep the report clean.** The rule
+is "do not *block* on pre-existing issues", not "do not mention them". If the
+changes made an existing problem materially worse, it is not `pre_existing` —
+it is a finding against these changes.
+
 ## Confidence Classification
 
 Severity answers "should this block merge?". Confidence answers "how strong is the evidence?". They are orthogonal — always pair both on every finding.
@@ -63,13 +82,13 @@ Two failure modes to avoid: a token counter-case written to satisfy the format (
 ## Feedback Format
 
 ```markdown
-**[SEVERITY] · [CONFIDENCE]** Brief title
+**[SEVERITY] · [CONFIDENCE]** Brief title  `[nit]` `[pre_existing]` (labels only if they apply)
 
 📍 `path/to/file.py:42`
 
 **Issue:** Clear description of the problem
 
-**Risk:** What could go wrong
+**Failure scenario:** Concrete inputs or state → the wrong output, crash, or corrupted state that results. Required on every finding.
 
 **Evidence:** What in the code proves (or suggests) this — required for HIGH; recommended for MEDIUM; explicit "speculation only" if LOW
 
@@ -80,6 +99,36 @@ Two failure modes to avoid: a token counter-case written to satisfy the format (
 # Recommended fix
 ```
 ```
+
+### Failure scenario is the vagueness filter
+
+`**Failure scenario:**` replaces the old `**Risk:**` field, and the change is
+not cosmetic. "Risk" accepts an abstraction — *"this could cause data
+integrity problems"* — which is exactly the shape a plausible-sounding false
+positive takes. A failure scenario does not: it demands specific inputs or
+state, and the specific wrong result.
+
+**If you cannot write one, you do not have a finding yet.** Either go read
+enough code to write it, or drop the finding. Do not fall back to restating the
+issue in the future tense.
+
+| Not a failure scenario | A failure scenario |
+|---|---|
+| "Could lead to a race condition" | "Two requests calling `claim()` between the `SELECT` at :41 and the `UPDATE` at :47 both see `status='open'`; both succeed; the row is assigned twice" |
+| "Missing validation could cause errors" | "`POST /items` with `qty: -1` passes the serializer, reaches `reserve_stock()`, and increments available stock" |
+| "May not handle empty input" | "`summarize([])` hits `max()` on an empty sequence at :88 and raises `ValueError` instead of returning 0" |
+
+For a `nit` or a maintainability finding where nothing *fails* at runtime, state
+the concrete cost instead: what a future change will get wrong, and where.
+
+## Reporting nothing
+
+If no finding survives verification, say so explicitly: **"No findings."**
+plus what was actually examined (files, and what you looked for).
+
+An empty result is a real, reportable outcome — but a silent one is
+indistinguishable from a review that failed to run. Never let dropped findings
+vanish without a count: report `N dropped (M incorrect, K pre-existing)`.
 
 ## Focus Areas (Non-Obvious)
 

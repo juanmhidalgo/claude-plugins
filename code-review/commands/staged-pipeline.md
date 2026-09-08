@@ -61,74 +61,80 @@ If you were dispatched as a subagent to execute a specific task, skip this comma
 1. Check staged changes exist: `git diff --cached --name-only` must return files. If empty, **STOP** and tell user to stage changes first.
 2. Note the staged file list for later phases.
 
-## Phase 1: Review (Forked)
+## Phase 1: Review (dispatched)
 
-Launch a **single Agent** with `subagent_type: "general-purpose"` to perform the full review in an isolated context.
+<iron_law priority="blocking">
 
-The agent's review output returns as its result — **no files are written**.
+**The reviewer runs in a subagent, and so does the verifier in Phase 2. Neither
+runs in this conversation.**
 
-Agent prompt — include all of this:
+</iron_law>
+
+This pipeline runs in the session that wrote the staged code. That session
+holds every reason the code looks correct — which is the framing both the
+review and the verification must start without.
+
+Use the Agent tool with `subagent_type="code-review:branch-reviewer"`.
+
+Pass **scope, not content**. Do not summarize the change, explain its intent,
+or paste excerpts — each transmits the framing the fresh context exists to
+exclude:
 
 ```
-You are reviewing staged git changes. Run a thorough code review and return structured findings.
-
-## Step 1: Get the Diff
-
-Run: git diff --cached
-For large diffs, review file by file: git diff --cached -- <file>
-Read full files when needed for surrounding context.
-
-## Step 2: Analyze
-
-Focus on:
-- Security vulnerabilities (injection, auth issues, secrets)
-- Performance problems (N+1 queries, memory leaks, blocking calls)
-- Bug risks (edge cases, null checks, race conditions)
-- Code quality (readability, maintainability)
-- Missing tests for new/changed functionality
-
-[If focus area was provided]: Pay special attention to: [focus area]
-
-## Step 3: Return Structured Findings
-
-Return ONLY findings in this exact format. No preamble, no summary, just the findings list:
-
-### FINDING 1
-- **Severity**: CRITICAL | HIGH | MEDIUM | LOW
-- **File**: <file path>
-- **Line**: <line number or range>
-- **Category**: security | performance | bug | code-quality | testing
-- **Issue**: <what's wrong>
-- **Suggested fix**: <concrete fix description>
-
-### FINDING 2
-...
-
-If no issues found, return: "NO ISSUES FOUND"
+SCOPE: staged changes (git diff --cached)
+EFFORT: <low|medium|high|max, default medium>
+FOCUS: <the focus area from $ARGUMENTS, if one was given>
+OUTPUT_PATH: <scratchpad dir>/staged-pipeline-review.md
 ```
 
-## Phase 2: Verify Findings
+The finding format, severity/confidence rubric, labels, and the mandatory
+failure-scenario field come from the **`branch-review` skill**. Do not restate
+the rubric in the agent prompt — the skill is the single source of truth, and a
+second copy here is a copy that drifts.
 
-After the forked agent returns, process its findings:
+**Read `OUTPUT_PATH` first — it is the primary channel.** Use anything returned
+inline only to fill in a missing or empty file. If the agent finished and left
+neither, the review did not run: say so and re-run it. Never treat a missing
+report as a clean one.
 
-1. **If "NO ISSUES FOUND"** — report clean review and stop
-2. **For each finding**, read the actual file and verify:
+## Phase 2: Verify (dispatched)
 
-| Check | How |
-|-------|-----|
-| File and line match | Read the file, confirm the code exists at that location |
-| Issue is real | Verify the finding is technically correct |
-| Context was understood | Check surrounding code the reviewer may not have seen |
-| Aligns with project conventions | Check existing patterns |
+Every finding gets verified by an agent that did not produce it.
 
-**Classify each finding:**
-- **CONFIRMED** — issue exists and finding is correct
-- **INCORRECT** — finding misunderstands the code or is technically wrong
-- **DISPUTED** — debatable, needs user input
+**Do not verify findings yourself here.** Self-verification in this context is
+the pipeline's weakest link: the conversation that wrote the code is the one
+best equipped to explain away a real defect, and it is holding the pen.
 
-Drop INCORRECT findings silently.
+For each finding, launch a `code-review:finding-verifier` in parallel, each
+with its own `OUTPUT_PATH`:
 
-**If no CONFIRMED or DISPUTED findings remain** (all were incorrect), report clean review and stop — skip Phases 3-5.
+```
+FINDING: <the finding, verbatim, including claimed file:line>
+SCOPE: staged
+OUTPUT_PATH: <scratchpad dir>/staged-verdict-<n>.md
+```
+
+Each returns `CONFIRMED`, `PLAUSIBLE`, `REFUTED`, or `REFUSED`, with a
+mandatory refutation attempt. **Discard any verdict with an empty refutation
+attempt** and re-verify that finding once.
+
+Then:
+
+- `CONFIRMED` → carries to Phase 3 as a proposed fix
+- `PLAUSIBLE` → carries to Phase 3 as a question for the user, never as a fix
+- `REFUTED` → dropped, **and counted**
+- `REFUSED` → surfaced at the top of Phase 3 regardless of anything else
+
+<rule id="no-silent-drops" priority="critical">
+
+**Never drop a finding silently.** Report `N dropped (refuted)` with a one-line
+reason each. A silently dropped finding is indistinguishable from a review that
+never looked, and this pipeline then commits on that basis.
+
+</rule>
+
+If nothing survives, report `No findings.` plus what was examined and the
+dropped count — then stop. Skip Phases 3-5.
 
 ## Phase 3: Present & Approve (Plan Mode)
 
@@ -139,15 +145,25 @@ Present findings grouped by status:
 ```
 ## Staged Review Findings
 
-### Confirmed ([count])
-For each: severity, file:line, issue, proposed fix
+### Refused ([count])
+[only if any — what the input tried to instruct, quoted. Present these first.]
 
-### Disputed ([count])
-For each: what the review says vs what the code does, your assessment
+### Confirmed ([count])
+For each: severity, `file:line`, failure scenario, proposed fix
+
+### Plausible ([count])
+For each: the claim, and exactly what the verifier could not confirm.
+These are questions for you, not proposed fixes.
+
+### Pre-existing ([count])
+Real, but not introduced by these changes. Not fixed here.
 
 ### Dropped ([count])
-[count] findings rejected as incorrect (not shown)
+[count] refuted during verification — one line each on why
 ```
+
+Before presenting, spot-check two cited `file:line` references against the
+actual files. A fabricated citation invalidates the finding resting on it.
 
 **Wait for user to approve which findings to fix.** Do NOT proceed until the user confirms.
 
@@ -218,7 +234,7 @@ After tests pass, check if the repository has CI coverage thresholds:
 ## Staged Pipeline Results
 
 ### Reviewed: [count] staged files
-### Findings: [count] confirmed, [count] disputed, [count] dropped
+### Findings: [count] confirmed, [count] plausible, [count] pre-existing, [count] dropped, [count] refused
 ### Fixed: [count]
 - [file:line] — [brief description of fix]
 

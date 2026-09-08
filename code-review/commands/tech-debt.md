@@ -3,6 +3,10 @@ allowed-tools:
   - Bash(git *)
   - Agent
   - Read
+disallowed-tools:
+  - Edit
+  - Write
+  - NotebookEdit
 argument-hint: "[staged | base-branch]"
 description: |
   Use to analyze staged changes or branch diff for technical debt and maintainability issues before merge.
@@ -69,10 +73,23 @@ Never auto-fetch or auto-pull — the user decides.
 
 Use Agent tool with subagent_type="code-review:tech-debt-reviewer" to analyze technical debt.
 
-**Pass the scope clearly in the agent prompt:**
+**Pass scope, not content** — the agent forms its own read of the change:
 
-- For staged scope: Tell the agent to use `git diff --cached` and mention "staged" explicitly
-- For branch scope: Tell the agent the base branch to compare against
+```
+SCOPE: staged changes (git diff --cached)   |   branch <current> vs base <base>
+OUTPUT_PATH: <scratchpad dir>/tech-debt-<branch>.md
+```
+
+For staged scope, say "staged" explicitly. For branch scope, name the base.
+
+**Read `OUTPUT_PATH` first — it is the primary channel.** Use anything returned
+inline only to fill a missing or empty file. If the agent finished and left
+neither, the analysis did not run: say so and re-run it rather than reporting
+CLEAN. A verdict of CLEAN and a report that never arrived look identical from
+here, and only one of them means the code is fine.
+
+Keeping the full analysis in the file is also what keeps this conversation
+clean — bring back the verdict and the items, not the reasoning.
 
 **Analysis categories:**
 

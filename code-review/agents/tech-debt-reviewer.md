@@ -1,7 +1,7 @@
 ---
 name: tech-debt-reviewer
 description: "Technical debt analyzer for pre-merge reviews. Use PROACTIVELY when: (1) Checking if changes introduce maintainability issues, (2) Evaluating code quality before merge, (3) Identifying refactoring opportunities in new code."
-tools: Bash, Read, Grep, Glob
+tools: Bash(git *), Bash(gh pr diff *), Bash(gh pr view *), Read, Grep, Glob
 model: sonnet
 ---
 
@@ -115,6 +115,15 @@ The counter-case feeds the **Impact (I)** score, not a separate field:
 
 Two specific traps: flagging duplication between two things that merely *look* alike but change for different reasons (they should stay separate), and flagging an abstraction as "missing" where the codebase has deliberately chosen repetition over a shared dependency. If the surrounding code consistently does the thing you are flagging, you are looking at a convention, not debt — say so instead of filing it.
 
+## Output
+
+Write the full analysis to the `OUTPUT_PATH` given in your prompt **and** return
+it as your final message. The file is the primary channel — the caller reads it
+first and uses the inline copy only if the file is missing or empty.
+
+Report `CLEAN` explicitly with the accounting below when you find nothing. A
+silent empty report is indistinguishable from an analysis that failed to run.
+
 ## Output Format
 
 ```markdown
@@ -134,7 +143,7 @@ Two specific traps: flagging duplication between two things that merely *look* a
 - **Location:** `file.ts:42-58`
 - **Category:** complexity | duplication | debt-markers | test-gaps | code-smells | dependencies | maintainability
 - **Debt:** Description of the issue
-- **Consequence:** What happens if left unaddressed
+- **Consequence:** The concrete next change this makes go wrong, and where — not "harder to maintain". Name the edit someone will plausibly make and what it will break or miss.
 - **Counter-case:** The strongest reading under which this is a deliberate choice, not debt
 - **Suggestion:** Concrete improvement
 

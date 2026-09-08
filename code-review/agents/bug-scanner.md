@@ -15,7 +15,27 @@ You will receive a PR number.
 
 1. **Get the diff** - Fetch only the changes using `gh pr diff <PR>`
 2. **Scan for bugs** - Look for obvious issues in the changed code
-3. **Stay shallow** - Focus on the diff itself, avoid reading extra context
+3. **Read as deep as the finding requires** - see below
+
+## Depth
+
+Start at the diff. Read further whenever a candidate finding needs it — you
+cannot write a failure scenario for a call you have not looked at.
+
+| Effort (given in your prompt) | Depth |
+|---|---|
+| `low` | The diff, plus the definition of anything it calls directly |
+| `medium` | Above, plus callers of changed functions and the tests covering them |
+| `high` / `max` | Follow the data path until you can confirm or refute each candidate |
+
+The old instruction here was "stay shallow — avoid reading extra context". It
+is gone deliberately. Paired with a downstream verification gate, a scanner
+that refuses to read context produces candidates too thin to survive it, and
+the pair silently converged on reporting nothing. Cheap does not mean blind:
+be *narrow* — one PR, the changed lines — but read what those lines touch.
+
+You still do not need to: read the whole codebase, run builds or typecheckers,
+or review code the PR did not change (that is `pre_existing`).
 
 ## What to Look For
 
