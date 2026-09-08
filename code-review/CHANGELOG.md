@@ -30,7 +30,7 @@ The pipeline read attacker-reachable text, then edited files, committed and push
 - Analysis-focus and output-format blocks deduplicated: the `branch-review` skill is now the single source of truth. The four copies had already drifted (the commands never picked up Confidence or Counter-case).
 - `disable-model-invocation: true` on `:dismiss` and `:resolve-fixed` (both write to GitHub).
 - Read-only agents scoped from bare `Bash` to `Bash(git *)` / `Bash(gh pr diff|view *)`; `disallowed-tools` on the read-only review commands.
-- Removed unsupported `background: true` from `comment-verifier` and `fix-implementer`.
+- Removed `background: true` from `comment-verifier` and `fix-implementer` — a deliberate design choice, not a compatibility fix. The field *is* supported for plugin agents; it is dropped because both agents are consumed synchronously (the pipeline needs every verdict before Phase 2, and every fix before Phase 5), and a backgrounded agent hands back a task id instead of a result. `OUTPUT_PATH` makes the report durable; it does not make a detached agent finish sooner.
 - **`bug-scanner` no longer instructed to stay shallow.** Depth now scales with the effort level, from "the diff plus what it calls directly" at `low` to "follow the data path until each candidate is confirmed or refuted" at `high`/`max`. Paired with a verification gate, a scanner told to avoid context produced candidates too thin to survive it — the two filters compounded into a path tuned to report almost nothing.
 - Silent drops eliminated throughout: every path now reports an explicit count, and `No findings.` must carry an accounting of what was examined.
 
