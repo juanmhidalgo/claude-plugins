@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.18.0 (2026-09-10)
+
+### Changed
+- **`/feature-dev:explore-plan` now selects its explorers instead of hardcoding four.** v1.14.0 added `config-explorer`, `schema-explorer`, `api-contract-explorer` and `observability-explorer`, documented as "opt-in primitives — invoke directly from any skill". Nothing invoked them: no command and no skill in the plugin referenced any of the four, and `explore-plan` dispatched exactly `backend` / `frontend` / `test` / `history`, always the same four regardless of the feature. The practical cost was not dead code but blind planning — a feature with a migration got planned without anyone reading the migration state, and a multi-repo feature got planned without anyone reading the API contracts, with the right agent sitting unused next door.
+  - **New Phase 0 step 4** picks the additional explorers from signals in the feature description and, when `source_spec` is set, the spec **body** (frontmatter alone is too thin a signal). Selection table: persistence → `schema-explorer`; settings / environment variables / credentials / feature flags → `config-explorer`; 2+ `repos:` entries or a declared-contract change → `api-contract-explorer`; silent-failure surfaces (background jobs, queue consumers, scheduled tasks, webhook handlers, auth and payment paths) → `observability-explorer`. Ties break toward including the explorer — they are read-only, parallel, and capped at `maxTurns: 15`.
+  - The selection is stated to the user in one line before the fork, and passed into the Phase 1 agent prompt. All selected explorers launch in the **same** response as the base four, so the added ones cost wall-clock only, not extra rounds.
+  - **Plan template** gained matching optional subsections under Exploration Findings (Schema & Migrations, Configuration, API Contracts, Observability), emitted only for explorers that actually ran — no "N/A" placeholder headings.
+  - Template placeholders now name the explorers (`[Key findings from backend-explorer]`) instead of positions (`[Key findings from Agent 1]`), which stopped being stable once the batch size varies.
+
 ## 1.17.0 (2026-09-10)
 
 ### Changed

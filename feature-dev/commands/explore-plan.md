@@ -51,6 +51,18 @@ If you were dispatched as a subagent to execute a specific task, skip this comma
      - **2+ specs** → use AskUserQuestion to let the user pick (label = `feature:` value, description = `<filename> — status: <status>`). Use the chosen spec's `feature:` as the feature description and record its path as `source_spec`.
 2. Parse the feature into a one-line summary for agent prompts.
 3. Generate a plan filename: `PLAN-<slug>.md` (slug = lowercase, hyphenated, max 4 words from the feature name. E.g., `PLAN-scheduled-notifications.md`). If `source_spec` is set, reuse its `slug:` value for consistency.
+4. **Select the explorers.** Four always run: `backend-explorer`, `frontend-explorer`, `test-explorer`, `history-explorer`. Add any of the four below whose signal is present in the feature description or, if `source_spec` is set, in the spec body (read it — the frontmatter alone is not enough signal).
+
+   | Explorer | Add when the feature… |
+   |---|---|
+   | `schema-explorer` | touches persistence: a new/changed model, table, column, index, constraint, or migration; a data backfill; anything with a storage shape |
+   | `config-explorer` | introduces or reads a setting, an environment variable, a credential, or a feature flag; behaves differently per environment; needs a rollout toggle |
+   | `api-contract-explorer` | is consumed across a repo boundary: `source_spec` frontmatter has 2+ `repos:` entries, or the feature changes a declared contract (OpenAPI, GraphQL SDL, tRPC router, protobuf, JSON Schema) |
+   | `observability-explorer` | ships something whose failure is silent: a background job, queue consumer, scheduled task, webhook handler, payment or auth path — anywhere post-ship visibility is how you learn it broke |
+
+   These are cheap (read-only, parallel, `maxTurns: 15`) and the cost of omitting one is planning blind on the highest-risk layer. **When a signal is borderline, include the explorer.** Record the selected list; you pass it into the Phase 1 agent prompt.
+
+   State the selection to the user in one line: "Explorers: backend, frontend, test, history + schema (new model), config (feature flag)."
 
 ## Phase 1: Explore and Generate Plan (Forked)
 
@@ -70,19 +82,37 @@ Source spec: [source_spec path from Phase 0, or "none"]
 
 ## Step 1: Parallel Exploration
 
-Launch all four agents in a single response. Do NOT use run_in_background.
+Launch every agent below in a SINGLE response so they run concurrently. Do NOT use run_in_background.
 
-Agent 1 — subagent_type: "feature-dev:backend-explorer"
+Always:
+
+Agent — subagent_type: "feature-dev:backend-explorer"
 Prompt: "Explore the backend/API layer for: [feature summary]"
 
-Agent 2 — subagent_type: "feature-dev:frontend-explorer"
+Agent — subagent_type: "feature-dev:frontend-explorer"
 Prompt: "Explore the frontend/UI layer for: [feature summary]"
 
-Agent 3 — subagent_type: "feature-dev:test-explorer"
+Agent — subagent_type: "feature-dev:test-explorer"
 Prompt: "Explore the test suite for: [feature summary]"
 
-Agent 4 — subagent_type: "feature-dev:history-explorer"
+Agent — subagent_type: "feature-dev:history-explorer"
 Prompt: "Explore git history and open PRs for: [feature summary]"
+
+Additionally, launch each explorer the caller selected in Phase 0 — [selected explorers from Phase 0, or "none"] — in the SAME response as the four above:
+
+Agent (only if selected) — subagent_type: "feature-dev:schema-explorer"
+Prompt: "Explore database schema and migration state for: [feature summary]"
+
+Agent (only if selected) — subagent_type: "feature-dev:config-explorer"
+Prompt: "Explore the configuration surface for: [feature summary]"
+
+Agent (only if selected) — subagent_type: "feature-dev:api-contract-explorer"
+Prompt: "Explore declared API contracts for: [feature summary]"
+
+Agent (only if selected) — subagent_type: "feature-dev:observability-explorer"
+Prompt: "Explore logging, metrics, tracing, error reporting and alerting conventions for: [feature summary]"
+
+Do NOT launch an explorer the caller did not select, and do NOT skip one it did.
 
 ## Step 2: Synthesize and Write Plan
 
@@ -107,16 +137,31 @@ source_spec: [source_spec path, or null if none]
 ### Exploration Findings
 
 #### Backend
-[Key findings from Agent 1]
+[Key findings from backend-explorer]
 
 #### Frontend
-[Key findings from Agent 2]
+[Key findings from frontend-explorer]
 
 #### Tests
-[Key findings from Agent 3]
+[Key findings from test-explorer]
 
 #### History & Conflicts
-[Key findings from Agent 4 — flag any potential conflicts]
+[Key findings from history-explorer — flag any potential conflicts]
+
+<!-- One subsection per ADDITIONAL explorer that ran. Omit the heading entirely
+     if that explorer was not selected — do not write "N/A". -->
+
+#### Schema & Migrations
+[Key findings from schema-explorer: migration tool, domain-touching migrations, current schema, indexes and constraints, pending migrations, naming conventions]
+
+#### Configuration
+[Key findings from config-explorer: settings modules, per-environment overrides, feature flags, how credentials are handled]
+
+#### API Contracts
+[Key findings from api-contract-explorer: operations in the domain, shared DTOs, versioning, contract testing, codegen, consumer repos]
+
+#### Observability
+[Key findings from observability-explorer: logging stack, metrics, tracing, error reporting, alerting, conventions for adding new signals]
 
 ### Files to Modify
 | File | Change | Layer |
