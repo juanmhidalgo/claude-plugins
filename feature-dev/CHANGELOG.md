@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.17.0 (2026-09-10)
+
+### Changed
+- **`PLAN-*.md` steps now carry a dispatchable contract.** `/feature-dev:explore-plan` emitted its Implementation Order as free prose (`1. [Step 1 — with rationale]`) — one sentence per step, no acceptance criterion, no file paths, no verification command. Every consumer requires those: `plan-step-executor` demands *"exact commands that prove the step works"*, and `feature-implementer` has it as a hard rule — *"A step's verification command is missing from the plan → halt. Verification is non-negotiable."* The plugin's own generator was producing plans its own implementer agent was contractually required to reject on step 1, which is why the agent path was effectively unreachable. Each step now emits `Accept` / `Impl` / `Test` / `Verify` / `Depends on` / `Rationale`, mirroring the `Task / Accept / Verify / Files` convention the SPEC template has used since v1.0.
+  - Five non-negotiable generation rules added to the plan-writing agent's prompt: `Verify` must be a real runnable command derived from test-explorer findings (never "run the tests"), `Accept` must be a single criterion (an "and" means split the step), `Impl`/`Test` must be paths that also appear in the Files tables, non-behavioral steps still need `Verify` with `Test: n/a — <reason>`, and ordering follows dependency rather than layer.
+- **`spec-plan-validator` now enforces the step contract.** The plan checklist replaced one prose-quality row ("with rationale or dependency note") with six structural rows — `Accept`, `Verify`, `Impl`/`Test` as Blocking; path cross-reference, `Depends on`/`Rationale`, and compound-criterion detection as Should Address. Previously `/feature-dev:plan-review` returned "ready for `/feature-dev:tdd`" on plans that no agent could execute.
+- **`/feature-dev:tdd` Phase 2 reads the contract instead of inferring it.** With a plan in use it takes the six fields verbatim and halts if a step lacks `Accept`/`Verify` or if `Verify` is a description rather than a command, pointing the user at `/feature-dev:plan-review`. Inference is now confined to the no-plan path (`$ARGUMENTS` only). Re-deriving fields from a reviewed plan silently discards that review.
+
+### Added
+- **`/feature-dev:tdd` routes non-behavioral steps to `plan-step-executor`.** A step whose `Test:` is `n/a` (migration, config wiring, dependency bump) has nothing to assert test-first, but still has a `Verify` gate. Previously the command had no path for these at all — it dispatched `tdd-runner` for everything or nothing. This also makes `plan-step-executor` reachable from a command for the first time.
+
 ## 1.16.0 (2026-09-10)
 
 ### Changed

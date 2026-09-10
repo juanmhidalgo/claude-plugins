@@ -91,56 +91,79 @@ Summarize findings before proceeding. Include:
 - Key files to modify/create
 - Existing patterns to follow
 
-## Phase 2: Decompose into Acceptance Criteria
+## Phase 2: Resolve Acceptance Criteria
 
-**You are the orchestrator from here on. You do not write tests or production code — `tdd-runner` does.**
+**You are the orchestrator from here on. You do not write tests or production code — the runners do.**
 
-Break the feature into an ordered list of **acceptance criteria**. Each one becomes a single `tdd-runner` invocation.
+Every criterion needs six fields before anything is dispatched. Where they come from depends on whether a plan is in use.
 
-A criterion is correctly sized when it is:
+### If a `PLAN-*.md` is in use (the normal path)
+
+The plan's **Implementation Order** already carries them, one block per step:
+
+```
+1. **[Step name]**
+   - Accept: ...      → behavior
+   - Impl: ...        → impl target path
+   - Test: ...        → test target path (or `n/a — <reason>`)
+   - Verify: ...      → verification command
+   - Depends on: ...  → dispatch order
+```
+
+**Take these verbatim. Do not re-derive, re-word, or "improve" them** — the plan was reviewed; re-deriving silently drops that review. The spec reference is the plan path + step number (or its `source_spec:` if set). Cycle cap is 5 unless the step is a tight bug fix.
+
+**If a step is missing `Accept:` or `Verify:`, or `Verify:` is a description rather than a runnable command** → **STOP**. The plan predates the step contract or was hand-edited. Tell the user to run `/feature-dev:plan-review` and re-generate with `/feature-dev:explore-plan`. Do not fill the gap by inference — that is the improvisation the runner contracts exist to prevent.
+
+### If no plan exists (spec came from `$ARGUMENTS`)
+
+Derive the criteria yourself from the spec and the Phase 1 exploration, producing the same six fields per criterion. A criterion is correctly sized when it is:
+
 - **Specific and testable** — not "add the booking flow", but "when contact has no active subjects, `start_booking` returns `NO_SUBJECTS` error code"
-- **Independently verifiable** — one test command proves it
+- **Independently verifiable** — one command proves it
 - **Bounded to one impl target** — if it needs edits in two unrelated modules, split it
 
-Source the criteria from the plan's implementation order (if a `PLAN-*.md` is in use) or from the spec. Preserve dependency order: a criterion that consumes a symbol introduced by another comes after it.
+`Verify` must be a real command built from the runner and path conventions Phase 1 reported — never a placeholder.
 
-For each criterion, resolve the six fields the `tdd-runner` spawner contract requires. **A runner halts immediately if any of behavior / spec reference / verification command is missing — resolve them now, not mid-loop:**
+### Before dispatching
 
-| Field | Where it comes from |
-|---|---|
-| Behavior | The criterion, verbatim |
-| Spec reference | Plan or `SPEC-*.md` path + section |
-| Test target path | Plan's file list, or inferred from the impl path + project test convention (Phase 1) |
-| Impl target path | Plan's "files to modify/create" |
-| Verification command | The exact runner command from Phase 1, scoped to the test file |
-| Cycle cap | 5 by default; lower for a tight bug fix |
+Present the numbered criteria list to the user, each with its route (see Phase 3). If the source is too coarse to yield testable criteria, **STOP** and say so — TDD on a vague target produces tests that lie.
 
-Present the numbered criteria list to the user before dispatching. If the plan is too coarse to yield testable criteria, **STOP** and say so — TDD on a vague target produces tests that lie.
+## Phase 3: Execute (delegated, sequential)
 
-## Phase 3: Execute TDD Cycles (delegated, sequential)
+Work through the criteria **one at a time, in `Depends on` order**. Never dispatch two runners concurrently — they collide on overlapping files, and later criteria consume symbols earlier ones introduce.
 
-Work through the criteria **one at a time, in order**. Never dispatch two runners concurrently — they collide on overlapping files, and later criteria depend on symbols earlier ones introduce.
+### Routing
+
+| Step shape | Agent | Why |
+|---|---|---|
+| `Test:` names a test file | `feature-dev:tdd-runner` | Behavioral change — drive it red-green-refactor |
+| `Test: n/a — <reason>` | `feature-dev:plan-step-executor` | Migration, config wiring, dependency bump — nothing to assert test-first, but `Verify` still gates it |
+
+Non-behavioral steps are not exempt from verification. If such a step has no `Verify` command, it fails Phase 2 and the run stops there.
+
+### Loop
 
 For each criterion:
 
-1. **Spawn** the Agent tool with `subagent_type: "feature-dev:tdd-runner"`, passing the six contract fields plus the **accumulated carry-over** from all prior runners in this run.
-2. **Parse its report**: Behavior / Cycles run / Tests added / Production changes / Verification / Halt reason / Carry-over / Blockers.
-3. **Decide based on the halt reason:**
+1. **Spawn** the Agent tool with the routed `subagent_type`, passing that agent's contract fields plus the **accumulated carry-over** from all prior steps in this run.
+2. **Parse its report.** `tdd-runner`: Behavior / Cycles run / Tests added / Production changes / Verification / Halt reason / Carry-over / Blockers. `plan-step-executor`: Files changed / Verification / Deviations / Carry-over / Blockers.
+3. **Decide:**
 
-| Halt reason | Action |
+| Outcome | Action |
 |---|---|
-| `criteria met` | Accumulate carry-over, advance to next criterion |
+| `criteria met` / verification passed, no blockers | Accumulate carry-over, advance |
 | `RED passed early` | Behavior already exists. Note it, advance — do **not** re-dispatch |
 | `cycle cap` | Re-dispatch **once** with the remaining slice and accumulated carry-over. If it caps again, **STOP** and report |
-| `GREEN unreachable` | **STOP**. Report the runner's diagnosis verbatim |
-| `scope mismatch` | **STOP**. The criterion's impl target was wrong — the plan needs revision |
+| `GREEN unreachable` / verification failed | **STOP**. Report the diagnosis verbatim |
+| `scope mismatch` | **STOP**. The step's impl target was wrong — the plan needs revision |
 | `blocker` | **STOP**. Report the blocker verbatim |
+| Deviation but verification passed | Accept, note it in the final report, continue |
 
-Thread only the **carry-over deltas** forward (new symbols, new fixtures, new test markers, schema changes) — not the full prior reports. The next runner needs the deltas, not a retrospective.
+Thread only the **carry-over deltas** forward (new symbols, new fixtures, new test markers, schema changes) — not the full prior reports. The next agent needs the deltas, not a retrospective.
 
-Do not re-dispatch a failed runner with a "better" prompt. That masks a defect in the criterion or the plan; halt and let the user re-scope.
+Do not re-dispatch a failed step with a "better" prompt. That masks a defect in the step or the plan; halt and let the user re-scope.
 
-**RED-GREEN-REFACTOR all happen inside each runner** — including the per-cycle refactor pass and the validation that RED failed for the right reason. There is no separate refactor phase in this command.
+**RED-GREEN-REFACTOR all happen inside each `tdd-runner`** — including the per-cycle refactor pass and the validation that RED failed for the right reason. There is no separate refactor phase in this command.
 
 ## Phase 4: Coverage Check
 

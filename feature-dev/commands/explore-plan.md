@@ -129,9 +129,21 @@ source_spec: [source_spec path, or null if none]
 | [path] | [what it does] | backend/frontend/test |
 
 ### Implementation Order
-1. [Step 1 — with rationale]
-2. [Step 2 — with dependency notes]
-3. ...
+
+<!-- Each step is ONE bounded, independently verifiable change. This is the unit
+     /feature-dev:tdd dispatches to a tdd-runner and feature-implementer dispatches
+     to a plan-step-executor. A step without Accept + Verify is not dispatchable. -->
+
+1. **[Step name]**
+   - Accept: [one specific, testable acceptance criterion — observable behavior, not "implement X"]
+   - Impl: [path to the production file this step changes]
+   - Test: [path to the test file that proves it, or `n/a — <reason>` for non-behavioral steps]
+   - Verify: [exact runnable command scoped to this step]
+   - Depends on: [step numbers, or `none`]
+   - Rationale: [why this step sits here in the order]
+
+2. **[Step name]**
+   - ...
 
 ### Key Decisions
 | Decision | Options | Recommendation | Rationale |
@@ -150,6 +162,16 @@ source_spec: [source_spec path, or null if none]
 
 ### Estimated Test Cases
 - [Category]: [count] tests ([brief description])
+
+## Step 2b: Rules for Implementation Order (non-negotiable)
+
+The downstream agents halt on a step that violates these. A plan that fails them is a TODO list, not a plan. Re-read your Implementation Order against this list before writing the file.
+
+1. **`Verify` must be a real, runnable command** — built from the test runner, config, and path conventions the test-explorer reported. `pytest tests/test_booking.py::test_no_active_subjects`, `npm run test:run -- src/composables/useBooking.spec.ts`. Never a description (`run the tests`, `check it works`), never a command you did not confirm the project actually has.
+2. **`Accept` is one criterion, testable in isolation.** If stating it needs an "and", split the step. "when contact has no active subjects, `start_booking` returns `NO_SUBJECTS`" — not "add the booking flow".
+3. **`Impl` and `Test` are file paths, not layers.** Each must also appear in the Files to Modify / Files to Create tables above. If a step's impl spans two unrelated modules, split it.
+4. **Non-behavioral steps still need `Verify`.** A migration, a config wiring, or a dependency bump has no test file — write `Test: n/a — <reason>` and give `Verify` a command that proves the step landed (`python manage.py migrate --check`, `npm run typecheck`, `make lint`). These steps route to `plan-step-executor` instead of `tdd-runner`.
+5. **Order by dependency, not by layer.** A step consuming a symbol another step introduces comes after it, and names it in `Depends on`.
 
 ## Step 3: Update .gitignore
 
