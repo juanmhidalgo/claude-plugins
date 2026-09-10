@@ -45,7 +45,7 @@ Feature development workflows with structured phases and quality gates.
 |-------|-------|
 | `plan-step-executor` | Executes ONE step of an approved plan in isolation; returns a fixed-format report (Files / Verification / Deviations / Carry-over / Blockers) |
 | `feature-implementer` | Orchestrates an approved `PLAN-*.md` end-to-end by dispatching steps to `plan-step-executor`, threading carry-over forward, halting on blockers |
-| `tdd-runner` | Strict red-green-refactor enforcer for one bounded behavior; caps at 5 cycles, validates RED failure mode, gates promotion on coverage. Stack-agnostic (pytest / vitest / jest) |
+| `tdd-runner` | Strict red-green-refactor enforcer for one bounded behavior; caps at 5 cycles, validates RED failure mode, gates promotion on coverage. Stack-agnostic (pytest / vitest / jest). **Dispatched per acceptance criterion by `/feature-dev:tdd`** |
 
 ## Skills
 
@@ -64,15 +64,20 @@ The commands are designed to chain:
 
 Each command can also be used independently.
 
-### Alternative implementation path (agent-driven)
+### How `/feature-dev:tdd` executes
 
-Once a `PLAN-*.md` exists from `/feature-dev:explore-plan`, the main agent can dispatch implementation through agents instead of running `/feature-dev:tdd` interactively:
+The command is an **orchestrator, not an implementer**. After loading the plan it decomposes the feature into ordered acceptance criteria and dispatches one **`tdd-runner`** per criterion, sequentially, threading carry-over forward and halting on the first blocker. Test bodies and implementation diffs stay in the runners' contexts; the main agent keeps the criteria list, the reports, and the final lint/coverage pass.
+
+Dispatch is sequential by design — later criteria depend on symbols earlier ones introduce, and concurrent runners collide on overlapping files.
+
+### Alternative implementation path (non-TDD)
+
+When a `PLAN-*.md` is approved but the work isn't test-first (migrations, config wiring, mechanical refactors), dispatch the plan agents directly instead of running `/feature-dev:tdd`:
 
 - **`feature-implementer`** drives the whole plan: dispatches each step to `plan-step-executor`, threads carry-over forward, halts on blockers.
 - **`plan-step-executor`** can be dispatched directly for a single qualifying step (multi-file scope, own verification).
-- **`tdd-runner`** enforces strict red-green-refactor for one bounded behavior (caps at 5 cycles).
 
-Use the command path when you want interactive review gates between phases. Use the agent path when the plan is approved and you want a single delegate to drive execution end-to-end without polluting the main agent's context.
+Neither enforces red-green-refactor — that's `tdd-runner`'s job, and `/feature-dev:tdd` is how you reach it.
 
 ## Installation
 

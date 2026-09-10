@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.16.0 (2026-09-10)
+
+### Changed
+- **`/feature-dev:tdd` now delegates implementation to the `tdd-runner` agent instead of doing it in the main context.** The command shipped three implementation agents (`tdd-runner`, `plan-step-executor`, `feature-implementer`) that no command ever dispatched — they were reachable only by the user naming them directly. Phases 2–6 were written as imperatives to whoever ran the command, so every run implemented the whole feature inline, burning the main context on test bodies and impl diffs. The Agent tool was already in `allowed-tools` and used in Phase 1 for `Explore`; only the implementation half was missing.
+  - **New Phase 2 — Decompose into Acceptance Criteria**: the main agent breaks the feature into ordered, independently verifiable criteria and resolves the six fields `tdd-runner`'s spawner contract requires (behavior, spec reference, test target, impl target, verification command, cycle cap) *before* dispatching. A runner halts on a missing contract field, so resolving up front converts a mid-loop halt into an early stop.
+  - **New Phase 3 — Execute TDD Cycles**: one `tdd-runner` per criterion, dispatched sequentially with accumulated carry-over deltas threaded forward. Explicit halt-reason routing table (`criteria met` / `RED passed early` / `cycle cap` / `GREEN unreachable` / `scope mismatch` / `blocker`) so the orchestrator's decision is not left to judgment.
+  - **Stricter RED**: the old Phase 2 wrote the full test suite up front and expected all of it to fail — big-bang RED. Each `tdd-runner` now does incremental RED per behavior *and* validates the failure mode (test fails because the behavior is missing, not because of an import error or a missing fixture). That check — which `tdd-runner.md` calls "the most common way TDD agents fail" — had no equivalent in the command.
+  - **Phase 5 (Refactor) removed as a standalone phase**: `tdd-runner` runs REFACTOR inside every cycle, gated on green. A separate end-of-run refactor pass would have been a second, unsynchronized one.
+  - **Coverage (now Phase 4) is aggregate-only**: per-line coverage is gated inside each runner; the command checks the union of changed files and dispatches an extra runner per meaningful gap rather than writing catch-up tests inline.
+  - **Report (now Phase 6)** gains a per-criterion table (cycles run, outcome) and a Blockers section. Spec `status:` flipping and `PLAN-*.md` deletion now happen **only** when every criterion was met — a halted run leaves both intact so it can be resumed.
+- **README**: the "Alternative implementation path (agent-driven)" section no longer lists `tdd-runner` as an alternative to the command — it is now the command's execution engine. `feature-implementer` / `plan-step-executor` remain the non-TDD agent path.
+
+- **`tdd-patterns` skill**: the iteration limit now reads "5 cycles per bounded behavior (one acceptance criterion), not per feature". The skill is loaded by both the orchestrator and every `tdd-runner`; under the old wording a feature with N criteria would have read as sharing a single 5-cycle budget.
+
+### Notes
+- Sequential dispatch is deliberate and unchanged in spirit from `explore-plan.md`'s note that "TDD requires sequential discipline": criteria depend on symbols earlier criteria introduce, and concurrent runners collide on overlapping files. The delegation is for context hygiene and RED discipline, not for parallelism.
+- No change to `tdd-runner.md` itself — its contract was already correct and complete; the command was simply never calling it.
+
+
 ## 1.15.0 (2026-07-02)
 
 ### Changed

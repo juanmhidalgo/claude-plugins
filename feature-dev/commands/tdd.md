@@ -91,71 +91,75 @@ Summarize findings before proceeding. Include:
 - Key files to modify/create
 - Existing patterns to follow
 
-## Phase 2: Write Failing Tests (RED)
+## Phase 2: Decompose into Acceptance Criteria
 
-Based on the spec and codebase exploration:
+**You are the orchestrator from here on. You do not write tests or production code — `tdd-runner` does.**
 
-1. Write **comprehensive tests** covering:
-   - Happy path (core behavior)
-   - Edge cases
-   - Error paths
-   - Integration points
-2. Follow existing test patterns exactly (naming, structure, fixtures)
-3. Place tests next to source files or in the project's test directory (match convention)
+Break the feature into an ordered list of **acceptance criteria**. Each one becomes a single `tdd-runner` invocation.
 
-Run the tests — they should **ALL FAIL**. If any pass, they're testing existing behavior, not new behavior. Review and adjust.
+A criterion is correctly sized when it is:
+- **Specific and testable** — not "add the booking flow", but "when contact has no active subjects, `start_booking` returns `NO_SUBJECTS` error code"
+- **Independently verifiable** — one test command proves it
+- **Bounded to one impl target** — if it needs edits in two unrelated modules, split it
 
-Report: "X tests written, all failing as expected."
+Source the criteria from the plan's implementation order (if a `PLAN-*.md` is in use) or from the spec. Preserve dependency order: a criterion that consumes a symbol introduced by another comes after it.
 
-## Phase 3: Implement Feature (GREEN)
+For each criterion, resolve the six fields the `tdd-runner` spawner contract requires. **A runner halts immediately if any of behavior / spec reference / verification command is missing — resolve them now, not mid-loop:**
 
-Implement the minimum code to make tests pass:
+| Field | Where it comes from |
+|---|---|
+| Behavior | The criterion, verbatim |
+| Spec reference | Plan or `SPEC-*.md` path + section |
+| Test target path | Plan's file list, or inferred from the impl path + project test convention (Phase 1) |
+| Impl target path | Plan's "files to modify/create" |
+| Verification command | The exact runner command from Phase 1, scoped to the test file |
+| Cycle cap | 5 by default; lower for a tight bug fix |
 
-1. Make changes incrementally — run tests after each meaningful change
-2. Focus on making tests green, not on code elegance
-3. If a test failure reveals a gap in understanding, fix the implementation, not the test
+Present the numbered criteria list to the user before dispatching. If the plan is too coarse to yield testable criteria, **STOP** and say so — TDD on a vague target produces tests that lie.
 
-### Iteration loop (max 5 cycles):
-```
-1. Implement/modify code
-2. Run tests
-3. If all pass → move to Phase 4
-4. If some fail → analyze failures, fix implementation, go to step 2
-5. If stuck after 3 cycles on same failure → STOP and report the issue
-```
+## Phase 3: Execute TDD Cycles (delegated, sequential)
+
+Work through the criteria **one at a time, in order**. Never dispatch two runners concurrently — they collide on overlapping files, and later criteria depend on symbols earlier ones introduce.
+
+For each criterion:
+
+1. **Spawn** the Agent tool with `subagent_type: "feature-dev:tdd-runner"`, passing the six contract fields plus the **accumulated carry-over** from all prior runners in this run.
+2. **Parse its report**: Behavior / Cycles run / Tests added / Production changes / Verification / Halt reason / Carry-over / Blockers.
+3. **Decide based on the halt reason:**
+
+| Halt reason | Action |
+|---|---|
+| `criteria met` | Accumulate carry-over, advance to next criterion |
+| `RED passed early` | Behavior already exists. Note it, advance — do **not** re-dispatch |
+| `cycle cap` | Re-dispatch **once** with the remaining slice and accumulated carry-over. If it caps again, **STOP** and report |
+| `GREEN unreachable` | **STOP**. Report the runner's diagnosis verbatim |
+| `scope mismatch` | **STOP**. The criterion's impl target was wrong — the plan needs revision |
+| `blocker` | **STOP**. Report the blocker verbatim |
+
+Thread only the **carry-over deltas** forward (new symbols, new fixtures, new test markers, schema changes) — not the full prior reports. The next runner needs the deltas, not a retrospective.
+
+Do not re-dispatch a failed runner with a "better" prompt. That masks a defect in the criterion or the plan; halt and let the user re-scope.
+
+**RED-GREEN-REFACTOR all happen inside each runner** — including the per-cycle refactor pass and the validation that RED failed for the right reason. There is no separate refactor phase in this command.
 
 ## Phase 4: Coverage Check
 
-Run the project's coverage tool:
+Each runner gates coverage on the lines it added. This phase checks the aggregate.
 
-1. Check coverage on the **changed files** specifically
+1. Run the project's coverage tool across the **changed files** from all runners
 2. Compare against project thresholds (from config) or 80% minimum
-3. If below threshold:
-   - Identify uncovered lines
-   - Write additional tests for meaningful uncovered paths
-   - Re-run until coverage meets threshold
-4. If no coverage tool configured, skip with a note
+3. If below threshold: identify the uncovered paths and dispatch one more `tdd-runner` per meaningful gap, treating each as a new criterion. Do not write the tests inline
+4. If no coverage tool is configured, skip with a note
 
-## Phase 5: Refactor (REFACTOR)
+## Phase 5: Lint and Format
 
-With all tests green and coverage met:
-
-1. Review the implementation for:
-   - Code duplication
-   - Naming clarity
-   - Unnecessary complexity
-2. Make small refactoring changes, running tests after each
-3. Do NOT over-engineer — keep changes minimal
-
-## Phase 6: Lint and Format
-
-Run the project's linter and formatter:
+Run the project's linter and formatter once, across everything the runners touched:
 
 1. Detect tool: `ruff`/`black`/`eslint`/`prettier`/`rustfmt`/`gofmt`
-2. Fix any issues
-3. Re-run tests to confirm nothing broke
+2. Fix any issues — this is mechanical, handle it inline
+3. Re-run the full test suite to confirm nothing broke
 
-## Phase 7: Report
+## Phase 6: Report
 
 Output a final summary:
 
@@ -163,6 +167,12 @@ Output a final summary:
 ## TDD Results
 
 ### Feature: [brief description]
+
+### Criteria: [N] total — [N] met, [N] already satisfied, [N] halted
+
+| # | Criterion | Cycles | Outcome |
+|---|-----------|--------|---------|
+| 1 | [criterion] | 2/5 | met |
 
 ### Tests Written: [count]
 - [test file]: [count] tests ([brief categories])
@@ -174,10 +184,14 @@ Output a final summary:
 
 ### Test Run: ALL PASSING
 
+### Blockers: [verbatim, or None]
+
 ### Ready to commit: Yes/No
 ```
 
-If all phases passed:
+If every criterion was met and the suite is green:
 1. **Close the loop on the source spec (if any):** if the plan's frontmatter had a `source_spec:` pointing to a `SPEC-*.md` file, use Edit to set that spec's `status:` field to `implemented`. This prevents auto-discovery from re-surfacing a completed feature on future runs.
 2. **Delete the `PLAN-*.md` file** that was used (it has served its purpose — the implementation is done).
 3. Suggest a commit message following the project's convention.
+
+If any criterion halted, do **none** of the above — leave the plan and spec intact so the run can be resumed.

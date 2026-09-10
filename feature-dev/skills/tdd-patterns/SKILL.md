@@ -14,7 +14,7 @@ keywords:
 
 ### Iteration Limits
 
-- **Maximum 5 RED-GREEN cycles** per feature. If tests still fail after 5 cycles, STOP and report the blocking issue to the user.
+- **Maximum 5 RED-GREEN cycles** per bounded behavior (one acceptance criterion), not per feature. A feature with N criteria gets N separate budgets. If tests still fail after 5 cycles on the same criterion, STOP and report the blocking issue to the user.
 - **Stuck-after-3 rule**: If the same test failure persists after 3 consecutive cycles with different fix attempts, STOP immediately. Do not keep trying the same approach.
 
 ### Phase Ordering
