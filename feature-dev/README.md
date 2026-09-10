@@ -70,6 +70,16 @@ The command is an **orchestrator, not an implementer**. After loading the plan i
 
 Dispatch is sequential by design — later criteria depend on symbols earlier ones introduce, and concurrent runners collide on overlapping files.
 
+Steps whose `Test:` is `n/a` (migrations, config wiring, dependency bumps) route to **`plan-step-executor`** instead — nothing to drive test-first, but the step's `Verify` command still gates it.
+
+### Resuming a halted run
+
+`/feature-dev:tdd` records progress in the plan's frontmatter (`run_status`, `completed_steps`) as it goes. When a step halts, the plan and spec stay on disk and the working tree keeps the finished steps.
+
+Re-running `/feature-dev:tdd` picks it up: it re-runs the `Verify` command of each recorded step, skips the ones that are still green, re-dispatches any that regressed, and resumes from the halt point. A dirty working tree is only a hard stop when there is no in-progress plan to explain it.
+
+**Do not `git stash` a halted run** — the recorded progress points at work that would no longer be in the tree. `/feature-dev:cleanup` will not offer an `in-progress` or `halted` plan for deletion, for the same reason.
+
 ### Alternative implementation path (non-TDD)
 
 When a `PLAN-*.md` is approved but the work isn't test-first (migrations, config wiring, mechanical refactors), dispatch the plan agents directly instead of running `/feature-dev:tdd`:

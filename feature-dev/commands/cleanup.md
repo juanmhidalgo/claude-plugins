@@ -34,7 +34,7 @@ If you were dispatched as a subagent to execute a specific task, skip this comma
 1. Use Glob with pattern `SPEC-*.md` in the repo root.
 2. Use Glob with pattern `PLAN-*.md` in the repo root.
 3. For each SPEC, Read its YAML frontmatter and capture `feature`, `slug`, `date`, `status`.
-4. For each PLAN, Read its YAML frontmatter and capture `feature`, `slug`, `date`, `source_spec`. If `source_spec` is set to a path, Read that file's frontmatter and capture its `status`.
+4. For each PLAN, Read its YAML frontmatter and capture `feature`, `slug`, `date`, `source_spec`, `run_status`, `completed_steps`. If `source_spec` is set to a path, Read that file's frontmatter and capture its `status`.
 
 If both Globs return zero files, STOP and tell the user: "No SPEC or PLAN files found at the project root. Nothing to clean up." Do not proceed.
 
@@ -45,9 +45,10 @@ Build three lists.
 **Safe to delete:**
 - SPECs with `status: implemented` — feature is done; auto-discovery already filters these out.
 - PLANs whose `source_spec` file does not exist — orphaned, source spec was deleted.
-- PLANs whose `source_spec` points to a SPEC with `status: implemented` — leftover from an interrupted `/feature-dev:tdd` run that didn't reach the auto-delete step.
+- PLANs whose `source_spec` points to a SPEC with `status: implemented` **and** whose `run_status` is not `in-progress` / `halted` — leftover from an interrupted `/feature-dev:tdd` run that didn't reach the auto-delete step.
 
 **Active work (never offer for deletion):**
+- PLANs with `run_status: in-progress` or `run_status: halted` — a `/feature-dev:tdd` run is mid-flight or resumable. **This overrides every "safe to delete" rule above.** Deleting one of these discards the `completed_steps:` record and strands a dirty working tree with no way to tell which steps already landed.
 - SPECs with `status: draft` or `status: approved` — work in progress.
 - PLANs whose `source_spec` points to a SPEC with `status: draft` or `status: approved` — active work.
 

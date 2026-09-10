@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.19.0 (2026-09-10)
+
+### Added
+- **`/feature-dev:tdd` runs are now resumable.** A halted run was previously unrecoverable in practice: it left the working tree dirty with the criteria that *had* passed, and Phase 0's `Working tree is clean. If dirty, STOP` gate then refused to start again. The user had to hand-commit partial work the command never tracked, and the re-run re-decomposed the feature from scratch with no idea which criteria were already green — re-implementing over existing code, one wasted `RED passed early` runner per finished step. `feature-implementer` solved this for its own path with `start_at_step`; the command had no equivalent.
+  - **`PLAN-*.md` frontmatter gained `run_status:` and `completed_steps:`**, written by the plan generator as `not-started` / `[]` and owned thereafter by `/feature-dev:tdd`. Phase 3 appends each passing step and flips `run_status: in-progress`; a halt writes `run_status: halted` plus `halted_at:` and a one-line `halt_reason:`.
+  - **Phase 0's dirty-tree gate is now resume-aware.** Dirty + an `in-progress`/`halted` plan is the command's own unfinished work, not stray edits, and routes to the new Phase 1b. Dirty with no such plan still stops. Plans without `run_status:` predate this version and fall back to the plain stop.
+  - **New Phase 1b re-verifies before trusting.** `completed_steps:` is a claim about a tree that has been sitting dirty, so each recorded step's `Verify:` command is re-run: green skips, red re-dispatches. If every recorded step re-verifies red the tree is not what the plan describes, and the command stops rather than attempting a partial repair. This is the first thing the v1.17.0 step contract bought that could not be built before it — the check is only possible because every step now carries a real command.
+  - **The halt message tells the user not to stash.** Stashing is the one action that makes recorded progress unrecoverable.
+
+### Changed
+- **`/feature-dev:cleanup` will not offer an in-progress or halted plan for deletion.** It now reads `run_status:` / `completed_steps:` and classifies those plans as active work, overriding the "safe to delete" rules — including the `source_spec` is `implemented` rule that would otherwise sweep up a resumable run. Deleting one discards the progress record and strands a dirty tree with no way to tell which steps landed.
+- **`spec-plan-validator`** flags a plan missing `run_status:` / `completed_steps:` as Nice to Have, noting it cannot be resumed if a run halts.
+
+### Notes
+- Progress recording is deliberately not commit-per-step. `feature-implementer` defaults `commit_per_step: false`, and the command's contract is one reviewable change set handed to `/commit` and `/code-review:branch` via the Stop hook. Resume is built on re-verification instead, which also catches hand-edits between runs.
+
 ## 1.18.0 (2026-09-10)
 
 ### Changed

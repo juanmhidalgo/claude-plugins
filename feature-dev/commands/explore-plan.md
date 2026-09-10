@@ -127,6 +127,8 @@ slug: [feature-slug]
 date: [YYYY-MM-DD]
 branch: [current branch]
 source_spec: [source_spec path, or null if none]
+run_status: not-started
+completed_steps: []
 ---
 
 ## Implementation Plan: [Feature Name]
@@ -207,6 +209,10 @@ source_spec: [source_spec path, or null if none]
 
 ### Estimated Test Cases
 - [Category]: [count] tests ([brief description])
+
+<!-- run_status and completed_steps are owned by /feature-dev:tdd, which updates
+     them as it dispatches steps. Write them exactly as shown above; do not
+     populate them. -->
 
 ## Step 2b: Rules for Implementation Order (non-negotiable)
 

@@ -61,7 +61,12 @@ If you were dispatched as a subagent to execute a specific task, skip this comma
      - **0 plans found** → **STOP** and ask the user for a feature description.
      - **1 plan found** → read it, extract the `feature:` value from its frontmatter, and use that as the spec. Record the plan path as the **pre-selected plan** for Phase 1. Inform the user: "Auto-selected plan: `PLAN-<slug>.md` (feature: <name>)".
      - **2+ plans found** → read each plan's frontmatter to extract the `feature:` value. Use AskUserQuestion to let the user pick one (label = feature name, description = filename). The chosen plan's `feature:` becomes the spec and its path is the **pre-selected plan** for Phase 1.
-2. **Working tree is clean.** If dirty, **STOP** and ask the user to commit or stash.
+2. **Check the working tree.**
+   - **Clean** → proceed normally.
+   - **Dirty** → this may be a halted run, not stray edits. Read the frontmatter of the plan resolved in step 1. If it has `run_status: in-progress` or `run_status: halted` with a non-empty `completed_steps:`, the dirty tree is *this command's own* unfinished work → go to **Phase 1b: Resume** after Phase 1.
+   - **Dirty with no in-progress plan** → **STOP** and ask the user to commit or stash.
+
+   A plan with no `run_status:` field predates v1.19.0. Treat it as `not-started` and apply the plain dirty-tree stop.
 
 ## Phase 1: Load Plan or Explore Codebase
 
@@ -90,6 +95,25 @@ Summarize findings before proceeding. Include:
 - Coverage tool and current thresholds (if configured)
 - Key files to modify/create
 - Existing patterns to follow
+
+## Phase 1b: Resume (only if Phase 0 detected a halted run)
+
+The plan's `completed_steps:` records what a prior run finished. Do not trust it blindly — the tree has been sitting dirty and may have been edited since.
+
+1. **Re-verify each completed step.** Run its `Verify:` command from the plan. This is exactly why the step contract requires a real command.
+   - **Green** → genuinely done, skip it.
+   - **Red** → the step regressed or was reverted by hand. Drop it from the completed set and re-dispatch it in Phase 3.
+2. **Report the resume point** to the user before dispatching anything:
+
+   ```
+   Resuming PLAN-<slug>.md — halted at step <N> (<halt reason from frontmatter>)
+     Steps 1-<N-1>: re-verified green, skipping
+     Step <M>: re-verify FAILED, will re-run
+     Resuming at step <N>
+   ```
+3. If **every** completed step re-verifies red, the tree is not what the plan thinks it is → **STOP**. Ask the user to reset or re-plan; do not attempt a partial repair.
+
+Then continue into Phase 2 with the remaining steps only.
 
 ## Phase 2: Resolve Acceptance Criteria
 
@@ -159,6 +183,10 @@ For each criterion:
 | `blocker` | **STOP**. Report the blocker verbatim |
 | Deviation but verification passed | Accept, note it in the final report, continue |
 
+4. **Record progress.** After each step that passes, use Edit on the `PLAN-*.md` frontmatter to append the step number to `completed_steps:` and set `run_status: in-progress`. On a halt, set `run_status: halted` and add `halted_at: <step number>` plus a one-line `halt_reason:`. This is what makes the run resumable — a halted run that recorded nothing is a lost run.
+
+   Do **not** commit between steps. The command's contract is one reviewable change set at the end; `/commit` and `/code-review:branch` come after, via the Stop hook.
+
 Thread only the **carry-over deltas** forward (new symbols, new fixtures, new test markers, schema changes) — not the full prior reports. The next agent needs the deltas, not a retrospective.
 
 Do not re-dispatch a failed step with a "better" prompt. That masks a defect in the step or the plan; halt and let the user re-scope.
@@ -217,4 +245,8 @@ If every criterion was met and the suite is green:
 2. **Delete the `PLAN-*.md` file** that was used (it has served its purpose — the implementation is done).
 3. Suggest a commit message following the project's convention.
 
-If any criterion halted, do **none** of the above — leave the plan and spec intact so the run can be resumed.
+If any criterion halted, do **none** of the above. Leave the plan and spec on disk with `run_status: halted`, and tell the user verbatim:
+
+> Halted at step `<N>`. Fix the blocker, then re-run `/feature-dev:tdd` — it will re-verify steps 1-`<N-1>` and resume from `<N>`. The dirty working tree is expected; do not stash it.
+
+The stash instruction matters: stashing is the one action that makes the recorded progress unrecoverable.

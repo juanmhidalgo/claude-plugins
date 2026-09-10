@@ -75,6 +75,7 @@ Check each item below. Flag the severity if missing or malformed.
 | Body has a **Risks** section, non-empty | Should Address |
 | Body has an **Estimated Test Cases** section | Should Address |
 | Body has a **Parallelization Hints** section (added in feature-dev v1.9.0) | Nice to Have |
+| Frontmatter has `run_status:` and `completed_steps:` (added in feature-dev v1.19.0; absent means the plan predates resume support and cannot be resumed if a `/feature-dev:tdd` run halts) | Nice to Have |
 
 ### 3. Generate the report
 
