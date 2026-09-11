@@ -67,7 +67,8 @@ Check each item below. Flag the severity if missing or malformed.
 | Body has an **Implementation Order** numbered list | Blocking (a plan without it is not actionable) |
 | **Every step** carries `Accept:` — one specific, testable acceptance criterion | Blocking (a step without it cannot be dispatched to `tdd-runner` or `plan-step-executor`) |
 | **Every step** carries `Verify:` with a real runnable command, not a description | Blocking (`feature-implementer` halts on a step with no verification command — "run the tests" or "check it works" fails this check) |
-| **Every step** carries `Impl:` and `Test:` as file paths (`Test: n/a — <reason>` is valid for non-behavioral steps) | Blocking |
+| **Every step** carries `Impl:` and `Test:` as file paths (`Test: n/a — <reason>` is valid for non-behavioral steps; `Impl: n/a` **and** `Test: n/a` together mark an environment precondition) | Blocking |
+| A step whose `Test:` path is created by an earlier step marks it `(written by step N)` | Should Address (without the marker the step is routed as if it must write the test, and the executor stalls on a test that already exists) |
 | Paths named in `Impl:` / `Test:` also appear in the Files to Modify / Files to Create tables | Should Address |
 | **Every step** carries `Depends on:` and `Rationale:` | Should Address |
 | Each `Accept:` states a single criterion — no compound "X and Y" criteria | Should Address (a compound criterion means the step is too coarse to dispatch) |

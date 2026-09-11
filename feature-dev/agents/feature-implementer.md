@@ -109,6 +109,8 @@ When you halt (success or failure), your final message has these sections:
 
 **Suggested next action** — one of: ready to commit, ready to PR, blocker needs decision, plan needs revision.
 
+**Your final message IS the delivery.** Return the report as your last message and stop. Do not attempt to send, post, message, or otherwise hand it to anyone — not to a "team lead", not to the agent that spawned you, not through any messaging tool. You have none, you need none, and the spawner receives your final message automatically. Trying costs a failed tool call and two wasted turns.
+
 ## Edge cases
 
 - **Plan has only one step** → halt at spawner contract validation and tell the caller to just spawn `plan-step-executor` directly.

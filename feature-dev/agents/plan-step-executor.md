@@ -65,6 +65,8 @@ Your final message must be a concise report with these sections, in this order:
 
 **Blockers / open questions** — anything that stopped you, anything ambiguous, anything the main agent must decide before the next step. "None" is valid.
 
+**Your final message IS the delivery.** Return the report as your last message and stop. Do not attempt to send, post, message, or otherwise hand it to anyone — not to a "team lead", not to the agent that spawned you, not through any messaging tool. You have none, you need none, and the spawner receives your final message automatically. Trying costs a failed tool call and two wasted turns.
+
 ## Edge cases
 
 - **Step under-specified** → minimum reasonable interpretation, flag in "Deviations".

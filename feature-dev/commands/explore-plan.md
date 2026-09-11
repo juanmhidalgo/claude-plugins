@@ -184,7 +184,7 @@ completed_steps: []
 1. **[Step name]**
    - Accept: [one specific, testable acceptance criterion — observable behavior, not "implement X"]
    - Impl: [path to the production file this step changes]
-   - Test: [path to the test file that proves it, or `n/a — <reason>` for non-behavioral steps]
+   - Test: [path to the test file that proves it; add `(written by step N)` if an earlier step creates it; or `n/a — <reason>` for non-behavioral steps]
    - Verify: [exact runnable command scoped to this step]
    - Depends on: [step numbers, or `none`]
    - Rationale: [why this step sits here in the order]
@@ -223,6 +223,7 @@ The downstream agents halt on a step that violates these. A plan that fails them
 3. **`Impl` and `Test` are file paths, not layers.** Each must also appear in the Files to Modify / Files to Create tables above. If a step's impl spans two unrelated modules, split it.
 4. **Non-behavioral steps still need `Verify`.** A migration, a config wiring, or a dependency bump has no test file — write `Test: n/a — <reason>` and give `Verify` a command that proves the step landed (`python manage.py migrate --check`, `npm run typecheck`, `make lint`). These steps route to `plan-step-executor` instead of `tdd-runner`.
 5. **Order by dependency, not by layer.** A step consuming a symbol another step introduces comes after it, and names it in `Depends on`.
+6. **Say who writes the test.** When one step writes a test file and a later step makes it pass, the later step's `Test:` must carry `(written by step N)`. Without that marker the executor cannot tell "write this test" from "make this existing test pass", and will try to write a test that already exists. A step whose `Test:` and `Impl:` are BOTH `n/a` is an environment precondition (rebase, migration check, dependency install) — legitimate, but it still needs a `Verify` command.
 
 ## Step 3: Update .gitignore
 

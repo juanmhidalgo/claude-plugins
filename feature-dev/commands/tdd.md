@@ -111,7 +111,8 @@ The plan's `completed_steps:` records what a prior run finished. Do not trust it
      Step <M>: re-verify FAILED, will re-run
      Resuming at step <N>
    ```
-3. If **every** completed step re-verifies red, the tree is not what the plan thinks it is → **STOP**. Ask the user to reset or re-plan; do not attempt a partial repair.
+3. **Reject a gapped record.** If `completed_steps` skips a number that exists in the plan, the prior run advanced past an unfinished step and the record is unreliable — **STOP** and report the gap. Resume from the gap, not from the highest recorded number.
+4. If **every** completed step re-verifies red, the tree is not what the plan thinks it is → **STOP**. Ask the user to reset or re-plan; do not attempt a partial repair.
 
 Then continue into Phase 2 with the remaining steps only.
 
@@ -154,16 +155,33 @@ Present the numbered criteria list to the user, each with its route (see Phase 3
 
 ## Phase 3: Execute (delegated, sequential)
 
-Work through the criteria **one at a time, in `Depends on` order**. Never dispatch two runners concurrently — they collide on overlapping files, and later criteria consume symbols earlier ones introduce.
+Work through the criteria **one at a time, in `Depends on` order**.
+
+### The dependency gate — check this before every dispatch
+
+**Every step number in a step's `Depends on` must already be in `completed_steps`.** If any is missing, **STOP**. Do not dispatch. Report which dependency is outstanding and why you cannot proceed.
+
+This is not advisory. Two rationalizations look reasonable in the moment and are both wrong:
+
+- *"The dependency is still running, but this step touches a different repo / different files, so there is no overlap."* `Depends on` encodes a **decision gate**, not a file-locking concern. A step that depends on a verification step is waiting for an *answer* — if that answer turns out to be "red", the work you dispatched in the meantime was built on a contract that does not hold, and you now have to unpick it.
+- *"The dependency will almost certainly pass."* Then waiting costs you nothing. If it fails, dispatching early cost you the whole downstream branch.
+
+Never dispatch two agents concurrently. Beyond the dependency gate, concurrent agents collide on overlapping files and on the working tree itself — including any `git stash` window one of them opens.
 
 ### Routing
 
+Route on **who writes the test**, not on whether `Test:` names a path. A step that only makes an already-written test pass has no RED to drive — its RED was written by an earlier step.
+
 | Step shape | Agent | Why |
 |---|---|---|
-| `Test:` names a test file | `feature-dev:tdd-runner` | Behavioral change — drive it red-green-refactor |
-| `Test: n/a — <reason>` | `feature-dev:plan-step-executor` | Migration, config wiring, dependency bump — nothing to assert test-first, but `Verify` still gates it |
+| `Test:` names a path this step creates | `feature-dev:tdd-runner` | New behavior with a test to write — drive it red-green-refactor |
+| `Test:` names a path marked `(written by step N)` | `feature-dev:plan-step-executor` | RED already exists and is failing. A `tdd-runner` would try to write a test that is already there and stall on its own "did RED fail for the right reason" check |
+| `Test: n/a — <reason>`, `Impl:` names a path | `feature-dev:plan-step-executor` | Migration, config wiring, dependency bump — nothing to assert test-first, but `Verify` still gates it |
+| `Test: n/a` **and** `Impl: n/a` | **You, inline** | A precondition on the environment or the working tree (rebase, `makemigrations --check`, a dependency install). `plan-step-executor` is forbidden from committing and owns no git state, so dispatching one is wrong. Run the `Verify` command yourself and record the step like any other |
 
-Non-behavioral steps are not exempt from verification. If such a step has no `Verify` command, it fails Phase 2 and the run stops there.
+Non-behavioral steps are not exempt from verification. If a step of any shape has no `Verify` command, it fails Phase 2 and the run stops there.
+
+A precondition step that fails its `Verify` is a **hard stop**, not a step to work around — the plan assumed a baseline that does not hold.
 
 ### Loop
 
@@ -182,14 +200,21 @@ For each criterion:
 | `scope mismatch` | **STOP**. The step's impl target was wrong — the plan needs revision |
 | `blocker` | **STOP**. Report the blocker verbatim |
 | Deviation but verification passed | Accept, note it in the final report, continue |
+| Verification ran but you **cannot attribute** the result | **STOP**. See below — this is a blocker, not a pass |
 
-4. **Record progress.** After each step that passes, use Edit on the `PLAN-*.md` frontmatter to append the step number to `completed_steps:` and set `run_status: in-progress`. On a halt, set `run_status: halted` and add `halted_at: <step number>` plus a one-line `halt_reason:`. This is what makes the run resumable — a halted run that recorded nothing is a lost run.
+**An unattributable verification is a failure, not a pass.** If a step's `Verify` produced failures you cannot confidently assign to this change rather than to a pre-existing baseline — because the baseline is red, because the output was truncated, because you stopped waiting, because a parallel runner distributes names only in a final summary you never saw — then the step is **not verified**. Halt and say so plainly, naming the unresolved failures or the fact that you could not name them.
+
+Do **not**: advance to the next step, mark the step in `completed_steps`, commit, or describe the run as complete with a caveat attached. "N tests pass and 2 failures are probably pre-existing" is an unverified step wearing a verified step's clothes. Hand the ambiguity to the user — they can tell you the baseline in one sentence, which is cheaper than you guessing.
+
+4. **Record progress.** After each step that passes, use Edit on the `PLAN-*.md` frontmatter to append the step number to `completed_steps:` and set `run_status: in-progress`. **`completed_steps` must never contain a gap** — a recorded `[0,1,2,4]` claims step 3 was completed-and-skipped, which is not a state this command can produce. If you are about to write a gap, you have advanced past an unfinished step: stop and fix that instead. On a halt, set `run_status: halted` and add `halted_at: <step number>` plus a one-line `halt_reason:`. This is what makes the run resumable — a halted run that recorded nothing is a lost run.
 
    Do **not** commit between steps. The command's contract is one reviewable change set at the end; `/commit` and `/code-review:branch` come after, via the Stop hook.
 
 Thread only the **carry-over deltas** forward (new symbols, new fixtures, new test markers, schema changes) — not the full prior reports. The next agent needs the deltas, not a retrospective.
 
 Do not re-dispatch a failed step with a "better" prompt. That masks a defect in the step or the plan; halt and let the user re-scope.
+
+**Do not substitute a step's `Verify` command on your own.** If a plan's `Verify` turns out to be defective — it fails on pre-existing errors, it would rewrite unrelated files, it names a gate that is unusable in this repo — that is a real finding and you should surface it. But a narrower command you chose yourself is a **different gate than the one the plan was reviewed against**. Halt, state the defect, propose the substitute, and let the user accept it. Running your own substitute and recording the step as passed converts a plan defect into a silent scope reduction.
 
 **RED-GREEN-REFACTOR all happen inside each `tdd-runner`** — including the per-cycle refactor pass and the validation that RED failed for the right reason. There is no separate refactor phase in this command.
 

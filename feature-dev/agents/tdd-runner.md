@@ -115,6 +115,8 @@ If the project has tenancy markers, fixture conventions, or required env vars (v
 
 **Blockers / open questions** — "None" is valid.
 
+**Your final message IS the delivery.** Return the report as your last message and stop. Do not attempt to send, post, message, or otherwise hand it to anyone — not to a "team lead", not to the agent that spawned you, not through any messaging tool. You have none, you need none, and the spawner receives your final message automatically. Trying costs a failed tool call and two wasted turns.
+
 ## Edge cases
 
 - **Spec is ambiguous on the acceptance criterion** → halt at spawner contract validation. TDD on a vague target produces tests that lie.
