@@ -134,6 +134,7 @@ When detected, the spec gains:
 
 - A `repos:` block in frontmatter listing each in-scope repo with `name`, `path` (relative to spec's repo), and `role` (`owns-contract` | `consumes-contract`).
 - A **Cross-Repo Contracts** section: endpoint(s), request/response shape, error codes, breaking-change flag. This is the artifact every repo commits to.
+- A **Decisions Log** section (see below). In a multi-repo feature this is not optional bookkeeping: each repo is implemented by a separate run, and the log is the only thing those runs share besides the contract.
 - Per-repo subsections under Commands, Project Structure, Code Style, and Testing Strategy.
 - Tasks tagged with `Repo:` and ordered so contract-owners ship before consumers.
 
@@ -165,6 +166,24 @@ Operational tests, not definitions. Apply them in real time when writing a spec 
 - Update when decisions or scope change
 - Keep as a local working artifact; do not commit
 - Reference spec sections in PRs
+
+### Decisions Log
+
+The spec states what was decided *before* the work. The Decisions Log records what got decided *during* it — and it lives in the spec because the spec is the one artifact that outlives the run. A `PLAN-<slug>.md` is deleted when it completes; a decision written only there dies with it, and an implementation session's context dies sooner than that.
+
+Append to a `## Decisions Log` section at the end of the spec, newest last:
+
+```
+- **[repo: <repo name> · step <N>]** <the decision, one sentence>
+  **Because:** <why it went this way and not the other>
+  **Binds:** <who must obey — a repo name, a later step, or `this repo only`>
+```
+
+`/feature-dev:tdd` writes these automatically during Phase 3 and reads them back in Phase 1. Add entries by hand when a decision is taken outside a run.
+
+**What belongs here.** A decision qualifies when it is not already written in the spec or plan **and** it constrains code outside the step that produced it. Deviations accepted mid-run, contract-touching changes (a new error code, a renamed field a consumer reads, a schema change), and user answers that unblocked a halt — those. Not implementation detail that lives fine in the diff.
+
+**Why it matters most in multi-repo features.** The contract-owning repo and the consuming repo are implemented by separate runs, often on separate days. Without the log, every decision the first run took reaches the second one only if a human carries it. `Binds:` is what makes the carry automatic: a run reading the log sees which entries name its repo.
 
 ## Anti-Rationalizations
 
@@ -205,3 +224,4 @@ Before proceeding to implementation:
 - [ ] Open questions are genuinely open, owner-tagged, and marked blocking vs non-blocking
 - [ ] Spec is saved as a local working artifact (`SPEC-<slug>.md`, not committed)
 - [ ] **Multi-repo only**: `repos:` frontmatter, Cross-Repo Contracts section, and `Repo:` task tags are present and confirmed by user
+- [ ] **Multi-repo only**: a `## Decisions Log` section exists (may be empty at spec time — it is filled during implementation)

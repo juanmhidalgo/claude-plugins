@@ -1,5 +1,31 @@
 # Changelog
 
+## 1.22.0 (2026-09-14)
+
+### Added
+- **`--coordinator <session-name>` routes cross-repo questions to a live session.** Covers the other half of the second-session workflow: a session opened deliberately before the run, to answer the questions a multi-repo feature raises. On a halt that is a *question* rather than a defect, the run sends that session one message — step number, the question, and the `cross-repo-advisor` brief if one was produced — with `notify_when_idle: true`, and still hands the halt to the user. Never per-step progress: one message per halt that needs one.
+  - **The command does not search for a session, and that is deliberate.** Measured against `ListAgents`: the listing carries name, kind and status but **no working directory**, so matching degrades to the session's name — which `handoff/*` and `ship` already document as the fallback. A coordinator session for a multi-repo feature has no single repo to be named after (that is *why* it gets named by hand), so name-matching reliably finds the implementer sessions, named after their repos, and misses the coordinator. Auto-discovery here does not merely fail, it selects the wrong sessions. The user names it or it is not used.
+  - **A gated hint instead of a prompt.** When the spec has a `repos:` block and no `--coordinator` was passed, Phase 1 emits one line suggesting the flag. It never asks, and never fires on a single-repo run.
+  - **An unreachable coordinator is a downgrade, never a halt.** `ListAgents` missing (older Claude Code, Bedrock/Vertex/Foundry), no match, or several matches — say so once, continue normally, do not retry on later steps.
+  - **Log first, announce second.** A question may go out immediately; a decision is written to the spec's `## Decisions Log` before it is announced, and only once the user has accepted it. A decision that reached the coordinator session but not the log is the split-brain the log was built to prevent — and the session will not outlive the feature.
+
+### Changed
+- **Agent messaging silence is now a rule, not a report of what is installed.** Since v1.20.0 the three implementation agents were told "you have none, you need none" — an availability claim, which stops binding the moment a messaging tool becomes reachable, and the observed failure was agents *reaching for* the tool on their own. The contracts in `tdd-runner`, `plan-step-executor`, `feature-implementer` and `cross-repo-advisor` now state the rule and its reason: the spawner is the only party that sees every step's report, holds the accumulated carry-over, and owns the Decisions Log, so it is the only party that can judge what is worth telling anyone and record it where the run's history can find it. A subagent sees one step; a message it sends sideways is un-contextualized by construction and lands outside the record. This is why subagents stay mute even where `SendMessage` exists — the orchestrator is the run's single voice.
+
+## 1.21.0 (2026-09-14)
+
+### Added
+- **Decisions taken during a run now survive it.** `/feature-dev:tdd` is single-repo by construction — it resolves `origin`, discovers `PLAN-*.md` in *this* repo root, and never reads the `repos:` block that `spec-driven-development` generates for a multi-repo feature. So a two-repo feature is two runs that do not know each other, and everything Phase 3 learned (an accepted deviation, a new error code, the user's answer that unblocked a halt) lived only in the orchestrator's context and died with it. The gap was being filled by hand: keeping a second session open as the feature's memory and re-explaining the decision in the consuming repo.
+  - **New `## Decisions Log` section in the `SPEC-*.md`.** The spec is the home because it outlives the run — a `PLAN-*.md` is deleted on success, so a decision written there dies with it. Entries carry **what**, **Because:**, and **Binds:** — the last naming the repo, step, or `this repo only` that must obey, which is what makes a run in the other repo able to tell whether an entry applies to it.
+  - **Phase 3 writes them; Phase 1 reads them back.** Phase 1 loads the log through the existing `source_spec:` link (already used for the drift check) and threads it into the initial carry-over, treating a recorded decision as binding as the plan. A `source_spec:` that points outside the repo (`../<sibling>/SPEC-*.md`) is the expected multi-repo shape, not an error.
+  - **A sharp qualifying test, because a vague one records everything or nothing.** An entry qualifies only if it is not already written in the plan or spec **and** it constrains code outside its step. Renaming a local fails; "the empty case returns `NO_SUBJECTS` and the backend owns it" passes.
+  - **Single-repo runs keep entries in the plan's `decisions:` frontmatter** and reproduce them in the Phase 6 report — the plan is deleted on success, so the report is the only place they survive.
+
+- **`feature-dev:cross-repo-advisor`** — read-only decision brief for ONE bounded cross-repo question ("which side owns this field?", "does this break the declared contract?"). Reads the Cross-Repo Contracts section, the Decisions Log, and the actual call sites in each repo from the `repos:` block, then returns two or three implementable options and a recommendation with the condition that would flip it.
+  - **Spawned from a Phase 3 STOP, once, and only when the halt is a question rather than a defect.** A brief adds nothing to a red test. The advisor never edits, never resumes the run, and its recommendation is not recorded in the Decisions Log until the user accepts it — the log holds decisions, not suggestions.
+  - **Constrained claims, not just constrained tools.** It cannot run anything, so its contract forbids any phrasing that implies execution, requires `[read]` (with `path:line`) / `[derived]` provenance labels on every factual claim, makes an unresolvable repo path a reported gap rather than an inference, and requires a non-empty `Not checked` section. A recommendation that is right but supported by invented evidence is worse than one that is wrong: the wrong one dies at the first check, the invented evidence teaches the reader that checking is unnecessary.
+  - Git access is scoped to `log`/`diff`/`show` rather than `Bash(git *)`, which still permits `commit` and `push`.
+
 ## 1.20.0 (2026-09-11)
 
 ### Fixed

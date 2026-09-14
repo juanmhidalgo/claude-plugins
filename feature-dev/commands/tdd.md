@@ -17,9 +17,11 @@ allowed-tools:
   - Agent
   - Glob
   - Grep
+  - ListAgents
+  - SendMessage
 skills:
   - tdd-patterns
-argument-hint: "[feature spec — optional; auto-discovers PLAN-*.md if omitted]"
+argument-hint: "[feature spec — optional; auto-discovers PLAN-*.md] [--coordinator <session-name>]"
 description: |
   Use when implementing a new feature or fixing a bug where you want tests to lead, not follow.
   Do NOT use for quick one-line fixes or refactors without behavioral change.
@@ -55,6 +57,8 @@ If you were dispatched as a subagent to execute a specific task, skip this comma
 
 ## Phase 0: Resolve Spec and Validate
 
+**First, strip flags from `$ARGUMENTS`.** `--coordinator <session-name>` names a live Claude Code session acting as this feature's coordinator (Phase 3 routes cross-repo questions to it). Remove the flag and its value before anything else reads `$ARGUMENTS` — what remains is the feature spec, and it may now be empty, which is the normal auto-discovery path. Record the name. Do not resolve or validate it yet; a coordinator that turns out to be unreachable must not block a run that is otherwise fine.
+
 1. **Resolve the feature spec:**
    - **If `$ARGUMENTS` is provided** → use it as the feature spec. Continue to step 2.
    - **If `$ARGUMENTS` is empty** → auto-discover plan files. Use Glob with pattern `PLAN-*.md` in the repo root:
@@ -78,6 +82,10 @@ If you were dispatched as a subagent to execute a specific task, skip this comma
 **If a plan file is in use:**
 - Read it and use it as the source of truth for files to modify/create, implementation order, and key decisions
 - **Drift check**: if the plan's frontmatter has `source_spec:` pointing to a `SPEC-*.md` file, compare modification times (`stat -c %Y <spec>` and `stat -c %Y <plan>`, or `git log -1 --format=%ct -- <file>` as a fallback). If the spec is newer than the plan, **warn the user**: "The source spec `<path>` was modified after the plan was generated. The plan may be stale. Proceed with the current plan, or re-run `/feature-dev:explore-plan` first?" and wait for confirmation.
+- **Load prior decisions**: if `source_spec:` resolves, read the spec's `## Decisions Log` section (if it has one). Those are decisions taken during earlier runs — in this repo or in a sibling one — and they bind this run. Thread them into the initial carry-over for Phase 3 and list them back in the Phase 1 summary. A recorded decision is as binding as the plan: do not re-open one on your own judgment, and do not let a runner contradict it. If `source_spec:` points outside this repo (`../<sibling>/SPEC-<slug>.md`), that is the expected multi-repo shape, not an error — read it there.
+- **Coordinator hint**: if the resolved spec has a `repos:` block and no `--coordinator` was passed, add exactly one line to the Phase 1 summary — "Multi-repo spec. If you have a coordinator session open, pass `--coordinator <name>` to route cross-repo questions to it." A line, not a question: do not block on it.
+
+  **Do not call `ListAgents` to find a candidate.** The listing gives name, kind and status — not a working directory — so matching reduces to the session's name, and a coordinator session for a multi-repo feature has no single repo to derive a name from. Name-matching reliably finds the *implementer* sessions (named after their repos) and misses the coordinator (named by hand, precisely because it belongs to no one repo). The user names it or it does not get used.
 - Only do a **minimal exploration** with the Agent tool (`subagent_type: "Explore"`) focused on:
   - Test framework and runner command
   - Coverage tool and current thresholds
@@ -206,9 +214,46 @@ For each criterion:
 
 Do **not**: advance to the next step, mark the step in `completed_steps`, commit, or describe the run as complete with a caveat attached. "N tests pass and 2 failures are probably pre-existing" is an unverified step wearing a verified step's clothes. Hand the ambiguity to the user — they can tell you the baseline in one sentence, which is cheaper than you guessing.
 
+**When a STOP is a cross-repo question rather than a defect** — "which side owns this field?", "does this break the declared contract?", "should the consumer branch on the code or on the status?" — you may spawn `feature-dev:cross-repo-advisor` **once** to produce a decision brief before handing the halt to the user. It is read-only and writes nothing.
+
+Its brief is an input to the user's decision, not a substitute for it. Do not act on its recommendation yourself, do not resume the run on the strength of it, and do not record it in the Decisions Log until the user has accepted it. If the halt is a plain defect — a red test, a wrong path, a failed migration — skip the advisor; it has nothing to add to a bug.
+
+### Routing a cross-repo question to the coordinator session
+
+**Only if `--coordinator <name>` was passed in Phase 0.** Without it, skip this section entirely — do not go looking for a session to talk to.
+
+1. **Resolve the name once**, on the first halt that needs it. Call `ListAgents` and find the local session whose name matches. If `ListAgents` is unavailable (older Claude Code, or Bedrock/Vertex/Foundry), or no session matches, or several do — say so once, hand the halt to the user as normal, and do not retry on later steps. A coordinator you cannot reach is a downgrade to the normal flow, never a halt of its own.
+2. **Send the question, not the run.** One plain-text `SendMessage`: the step number, the question in a sentence, and the `cross-repo-advisor` brief verbatim if one was produced. Set `notify_when_idle: true` so this session hears back when the coordinator finishes. The message must stand alone — a slash command inside it arrives as text and is not executed.
+3. **Never send intermediate state.** Not per-step reports, not accumulated carry-over, not green verifications, not progress. The coordinator exists to answer a question; a step-by-step feed is the noise that makes it stop reading the messages that matter. One message per halt that needs one — nothing else, ever.
+
+**Log first, announce second.** A *question* can go out immediately; there is nothing to store yet. A *decision* is written to the `## Decisions Log` **before** it is announced to anyone, and only after the user has accepted it. A decision that reached the coordinator session but not the log is exactly the split-brain the log exists to prevent: the session knows something the spec does not, and the session will not outlive the feature.
+
 4. **Record progress.** After each step that passes, use Edit on the `PLAN-*.md` frontmatter to append the step number to `completed_steps:` and set `run_status: in-progress`. **`completed_steps` must never contain a gap** — a recorded `[0,1,2,4]` claims step 3 was completed-and-skipped, which is not a state this command can produce. If you are about to write a gap, you have advanced past an unfinished step: stop and fix that instead. On a halt, set `run_status: halted` and add `halted_at: <step number>` plus a one-line `halt_reason:`. This is what makes the run resumable — a halted run that recorded nothing is a lost run.
 
    Do **not** commit between steps. The command's contract is one reviewable change set at the end; `/commit` and `/code-review:branch` come after, via the Stop hook.
+
+5. **Record decisions that bind other work.** Most steps produce none — that is the normal case, and an empty log is a correct log. A decision qualifies only when **both** hold:
+
+   - it is **not already written** in the plan or the spec (if it is, it is not new), and
+   - it **constrains code outside this step** — another step, another repo, or a future change.
+
+   The second clause is the filter. "Renamed a local variable" fails it. "The empty-subjects case returns `NO_SUBJECTS` with 409, and the backend owns it" passes. Three sources produce nearly all of them:
+
+   - a **deviation a runner reported that you accepted** — step 3 already tells you to note it; this is where the note goes,
+   - a **carry-over delta that touches the contract**: a new error code, a schema change, a renamed field another repo reads,
+   - a **user answer that unblocked a halt** — otherwise it is lost the moment the run resumes, which is exactly the answer you will need again in the consuming repo.
+
+   Append each to the `## Decisions Log` of the file named by `source_spec:`, creating the section at the end of the spec if it is absent. Newest last:
+
+   ```
+   - **[repo: <repo name> · step <N>]** <the decision, one sentence>
+     **Because:** <why it went this way and not the other>
+     **Binds:** <who must obey — a repo name, a later step, or `this repo only`>
+   ```
+
+   `Binds` is the field that earns the log its keep: it is what a run in the *other* repo reads to know the decision applies to it.
+
+   **If the plan has no `source_spec:`** (single-repo run from `$ARGUMENTS`), keep the entries under a `decisions:` key in the `PLAN-*.md` frontmatter instead, and reproduce them verbatim in the Phase 6 report — the plan is deleted on success, so the report is the only place they survive.
 
 Thread only the **carry-over deltas** forward (new symbols, new fixtures, new test markers, schema changes) — not the full prior reports. The next agent needs the deltas, not a retrospective.
 
@@ -257,6 +302,11 @@ Output a final summary:
 - [file path] — [what was changed]
 
 ### Coverage: [percentage] on changed files (threshold: [threshold])
+
+### Decisions Recorded: [count, or None]
+- [decision] — binds: [who] ([recorded in SPEC-<slug>.md | report only — no source_spec])
+
+### Coordinator: [session name — N questions routed | not used | named but unreachable]
 
 ### Test Run: ALL PASSING
 

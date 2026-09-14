@@ -46,6 +46,7 @@ Feature development workflows with structured phases and quality gates.
 | `plan-step-executor` | Executes ONE step of an approved plan in isolation; returns a fixed-format report (Files / Verification / Deviations / Carry-over / Blockers) |
 | `feature-implementer` | Orchestrates an approved `PLAN-*.md` end-to-end by dispatching steps to `plan-step-executor`, threading carry-over forward, halting on blockers |
 | `tdd-runner` | Strict red-green-refactor enforcer for one bounded behavior; caps at 5 cycles, validates RED failure mode, gates promotion on coverage. Stack-agnostic (pytest / vitest / jest). **Dispatched per acceptance criterion by `/feature-dev:tdd`** |
+| `cross-repo-advisor` | Read-only decision brief for ONE bounded cross-repo question (who owns a field, does this break the contract). Recommends with cited evidence; never edits and never decides. Spawned by `/feature-dev:tdd` when a halt is a question rather than a defect, or invocable directly |
 
 ## Skills
 
@@ -88,6 +89,26 @@ When a `PLAN-*.md` is approved but the work isn't test-first (migrations, config
 - **`plan-step-executor`** can be dispatched directly for a single qualifying step (multi-file scope, own verification).
 
 Neither enforces red-green-refactor — that's `tdd-runner`'s job, and `/feature-dev:tdd` is how you reach it.
+
+### Decisions Log
+
+Decisions taken *during* implementation land in a `## Decisions Log` section of the `SPEC-*.md`, not in the plan — the plan is deleted when it completes, the spec is not. `/feature-dev:tdd` appends to it in Phase 3 and reads it back in Phase 1, so a run in the consuming repo starts already knowing what the contract-owning repo decided. Each entry carries a `Binds:` field naming who has to obey it.
+
+This is what removes the need to keep a second session open as the feature's memory across repos. For the *judgement* half of that role — a bounded question you want a second read on — spawn `cross-repo-advisor`; it produces a brief, the decision stays yours, and once you take it `/feature-dev:tdd` records it.
+
+### Coordinator session
+
+If you keep a session open as the feature's coordinator, name it at invocation:
+
+```
+/feature-dev:tdd --coordinator <session-name>
+```
+
+On a halt that is a cross-repo *question* (not a defect), the run sends that session one message — the step, the question, and the `cross-repo-advisor` brief if one was produced — with `notify_when_idle: true`, and carries on handing the halt to you. Never per-step progress: one message per halt that needs one.
+
+**The command does not go looking for a session, by design.** `ListAgents` reports name, kind and status but no working directory, so matching falls back to the name — and a coordinator for a multi-repo feature has no single repo to be named after. Name-matching finds the implementer sessions and misses the coordinator. You name it or it is not used.
+
+**The log is the record; the message is a notification.** A decision is written to the spec's Decisions Log before it is announced, and only after you accept it. A session can be compacted, restarted or closed; the spec cannot.
 
 ## Installation
 
