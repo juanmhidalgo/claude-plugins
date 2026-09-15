@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.23.0 (2026-09-15)
+
+### Added
+- **A hand-back protocol for a step that stops with the tree broken.** A step that moves a symbol and updates its consumers passes through a window where nothing compiles. Every halt case the executor contract described — missing input, step contradicts reality, unrelated verification failure — happens *before* any edit, so the contract never said what state the working tree is in when an agent stops. Exhaustion mid-edit is the one case where halt does not mean a clean tree, and it was the one case left unspecified: the observed failure is an executor that gets the mechanical move right, runs out of budget on the consumers, and hands back a broken tree that the next step's executor then debugs as a pre-existing failure.
+  - **The discipline is preventive, because it cannot be reactive.** Running out of turns is not an event an agent gets to handle — there is no final message, no blocker, no manifest. So the rule is *enumerate before you mutate*: grep the full set of sites first (cheap, read-only), and if the set is bigger than the step sized for you, return the enumeration as a blocker having edited nothing. Twenty-three consumers listed and none touched is worth more to the run than eleven edited and silence.
+  - **An intentional broken state is a hand-back; an accidental one is a defect.** When the step explicitly directs a stop mid-change, the report now leads with a **Tree state: BROKEN** manifest — symbols moved (`old` → `new`), **every** consumer found as `file:line`, which of them were updated, and what the verification command will report until the rest is wired. The full consumer list matters because the spawner cannot otherwise distinguish a site deliberately skipped from one never seen, and the sites that only fail at runtime (dynamic imports, string references, skipped tests) never surface in its checkpoint. Omitted entirely on a clean run.
+  - **`feature-implementer` halts on the block and refuses to dispatch over it.** It parses `Tree state`, carries the manifest into its own final report, never commits, and never spawns the next executor onto a broken tree. New terminal recommendation: *tree broken — wire before anything else*.
+
+### Changed
+- **"Fix failures only if caused by your change" no longer eats a boundary the spawner drew on purpose.** The rule is right in isolation, but when a step splits a change in half — the agent moves the code, the spawner wires the imports and runs the checkpoints — an executor that moves a symbol and sees the tree break is *following* that rule when it goes off to repair the consumers, which is the reserved half. That is how both stalled agents in the run that prompted this change spent their budget on work the orchestrator had kept for itself. New rule 6 states the carve-out: breakage inside a reserved half is reported, not repaired. Where a step is silent about who owns the consumers, the minimum reasonable interpretation is now that they are not the executor's — list them, edit none, flag it under "Deviations".
+
 ## 1.22.0 (2026-09-14)
 
 ### Added

@@ -54,11 +54,12 @@ For each step from `start_at_step` to end:
    - File paths and verification command(s).
    - Accumulated carry-over notes from all prior steps in this run.
 3. **Spawn `plan-step-executor` via Agent tool** with that prompt.
-4. **Parse its report**: Files changed / Verification / Deviations / Carry-over / Blockers.
+4. **Parse its report**: Tree state (only when present) / Files changed / Verification / Deviations / Carry-over / Blockers.
 5. **Decide**:
    - Report says verification passed AND no blockers → accumulate carry-over, advance to next step.
    - Verification failed → halt. Report the failure. Do not spawn another executor.
    - Blocker present → halt. Report the blocker verbatim. Do not spawn another executor.
+   - **Tree state: BROKEN** → halt, and carry the whole block into your final report verbatim. The executor stopped mid-change on purpose; the tree does not compile or pass until the reserved half is wired. **Never dispatch the next step over a broken tree** — that executor will read your breakage as a pre-existing failure and burn its budget on it. Never commit. Wiring is the spawner's job or the user's, not the next executor's.
    - Deviation but verification passed → accept, note in final report, continue.
 6. **If `commit_per_step: true`** and the step passed cleanly → commit before advancing (see "Commit discipline" below). NEVER commit on a step that had deviations or blockers without explicit user direction.
 
@@ -103,11 +104,13 @@ When you halt (success or failure), your final message has these sections:
 
 **Deviations log** — per-step list, "None" if all clean.
 
+**Tree state** — required and first whenever a step handed back `BROKEN`: repeat its manifest (moved symbols, consumers found, consumers updated, expected failures) and name the wiring still owed. Omit on a clean run.
+
 **Final blocker** — verbatim quote from the step that halted, if any. "None" if completed.
 
 **Final carry-over digest** — what the user / main agent needs to know to ship or resume.
 
-**Suggested next action** — one of: ready to commit, ready to PR, blocker needs decision, plan needs revision.
+**Suggested next action** — one of: ready to commit, ready to PR, blocker needs decision, plan needs revision, **tree broken — wire before anything else**.
 
 **Your final message IS the delivery.** Return the report as your last message and stop. Do not attempt to send, post, message, or otherwise hand it to anyone — not to a "team lead", not to the agent that spawned you, not to another session, not through any messaging tool.
 
