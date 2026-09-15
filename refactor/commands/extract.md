@@ -11,6 +11,8 @@ allowed-tools:
   - Edit
   - Write
   - Bash(git *)
+  - Bash(gh pr list *)
+  - Bash(gh pr diff *)
   - AskUserQuestion
 hooks:
   - event: Stop
@@ -39,6 +41,29 @@ Use the Agent tool with `subagent_type: "Explore"` to find:
 3. Naming conventions for functions/classes/modules
 4. Test files that need updating
 </exploration>
+
+## Phase 1.5: Conflict Check
+
+<conflict_check>
+Extraction rewrites existing lines, so any open PR touching the same file will conflict. One call, before you clarify anything:
+
+```bash
+gh pr list --state open --limit 40 --json number,title,author,isDraft,updatedAt,files \
+  --jq '.[] | select(.files[].path | test("<source-file>|<destination-file>")) | {number, title, author: .author.login, isDraft, updatedAt}'
+git status --porcelain -- <source-file> <destination-file>
+```
+
+Act on the result:
+
+| Result | Action |
+|--------|--------|
+| No open PR, clean status | Proceed to Phase 2 |
+| Uncommitted local edits | Tell the user; offer to commit or stash first |
+| An open PR touches the file | **Stop and surface it** — PR number, title, author, age. Use AskUserQuestion: extract now and accept the conflict, extract a different piece, or wait for the PR to merge. Do not decide this silently |
+| A PR calls the symbol you are moving but does not touch these files | Surface it too — the move merges clean and breaks that PR at runtime. Keep the old name as a shim, or wait |
+| `gh` missing or unauthenticated | Say so and continue on the local check alone — do not report the file as clear |
+
+</conflict_check>
 
 ## Phase 2: Clarify Extraction
 
@@ -143,6 +168,10 @@ result = function_name(arg1, arg2)
 <critical_rules>
 <rule priority="blocking">
 Never extract without understanding what consumes the code.
+</rule>
+
+<rule priority="blocking">
+Never edit a file that an open PR is also editing without telling the user first. The extraction is cheap to redo; someone else's branch is not.
 </rule>
 
 <rule priority="blocking">

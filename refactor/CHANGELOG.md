@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.4.0] - 2026-09-15
+
+### Added
+- **`conflict-scout` agent** — maps open PRs, other branches, stashes, worktrees, and uncommitted edits against the files a refactor will touch. Reports two kinds of overlap: *textual* (a PR edits a target file — git will conflict) and *semantic* (a PR calls a symbol you are renaming, so it merges clean and breaks afterwards). Emits a CLEAR / CONTESTED / BLOCKED verdict plus a do-now / do-first / defer / coordinate sequencing recommendation.
+- `/refactor:analyze` spawns the scout in parallel with `refactor-analyzer`, adds a **Concurrent Work** section, and gains a third ordering override — **contention** — alongside dependency and coverage gap.
+- `/refactor:plan` spawns the scout in parallel with `refactor-planner`, adds **Concurrent Work** and **Conflict Handling** sections, marks contested steps with `**Blocked on**: PR #N`, and adds a rebase check to the pre-flight checklist.
+- `/refactor:extract` runs a single inline `gh pr list` check on the source and destination files before editing, and stops to ask when an open PR is already touching them.
+
+### Why
+A refactor moves, renames, and deletes existing lines, so the conflict math is not the feature-branch math: *any* overlap on a target file is a near-certain conflict, and a rename can break a PR that never touches your files at all. Borrowed from `feature-dev`'s `history-explorer`, where the open-PR check proved its worth in practice — but specialized, because there the finding is a heads-up and here it decides the order of the work.
+
 ## [1.3.1] - 2026-05-07
 
 ### Changed

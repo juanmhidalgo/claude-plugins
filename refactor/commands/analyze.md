@@ -27,12 +27,18 @@ Analyze code for refactoring opportunities.
 ## Phase 1: Context Gathering
 
 <exploration>
-Use the Agent tool with `subagent_type: "refactor:refactor-analyzer"` to understand:
+Launch both agents in a SINGLE response so they run concurrently.
+
+Agent — `subagent_type: "refactor:refactor-analyzer"` to understand:
 
 1. **Similar code** - Other files with similar patterns for comparison
 2. **Existing abstractions** - Utilities, helpers, base classes already in the project
 3. **Tests** - What test coverage exists for this code?
 4. **Consumers** - What depends on this code?
+
+Agent — `subagent_type: "refactor:conflict-scout"`, passing the analyze target as **Targets** and leaving **Symbols** empty (nothing is named for renaming yet). It reports which open PRs, branches, and uncommitted work already touch the target.
+
+A file under active concurrent work is a bad refactoring target this week no matter how bad its metrics are — that is why the scan runs before the analysis, not after it.
 </exploration>
 
 ## Phase 2: Read and Analyze Target
@@ -106,6 +112,17 @@ Read the target file(s) and calculate:
 - `utils/helpers.py:function_name` - could replace [duplicated code]
 - `base/base_class.py` - could inherit for [shared behavior]
 
+## Concurrent Work
+
+From the conflict scout. If it could not reach `gh`, say so here instead of reporting a clean scan.
+
+| Target | Concurrent work | Effect on this refactor |
+|--------|-----------------|-------------------------|
+| `file:line` | PR #N "title" (@author, 12d, +340/-120) | conflicts on the same functions — defer |
+| `file:line` | uncommitted local edits | commit or stash before starting |
+
+(If nothing is in flight, write exactly: "No open PRs, branches, or local edits touch these files.")
+
 ## Estimated Effort and Priority
 
 Score each refactoring on a 1-5 scale:
@@ -123,9 +140,10 @@ Score each refactoring on a 1-5 scale:
 
 ## Recommended Order
 
-Sort by Priority descending, but apply two overrides:
+Sort by Priority descending, but apply three overrides:
 1. **Dependency**: if Refactoring B requires Refactoring A done first, A goes first regardless of priority.
 2. **Coverage gap**: if a target has no test coverage, propose adding tests *before* refactoring (counts as a separate, prerequisite refactoring).
+3. **Contention**: if a target is contested by an open PR, move it out of the front of the queue — either wait for that PR to merge, or do it first *and immediately* while the PR is still small. Say which, and why.
 
 1. [Highest-priority refactoring] — Priority N, lowest risk, unblocks others
 2. [Next refactoring] — Priority N, depends on #1
@@ -144,6 +162,10 @@ Compare against similar code in the project - don't apply generic rules blindly.
 
 <rule priority="blocking">
 Consider test coverage before suggesting changes.
+</rule>
+
+<rule priority="blocking">
+Never present a conflict-free ordering when the conflict scout could not reach `gh`. Report the gap.
 </rule>
 
 <rule priority="recommended">
