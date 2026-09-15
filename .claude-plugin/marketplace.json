@@ -5,7 +5,7 @@
   },
   "metadata": {
     "description": "Personal Claude Code plugins for code review, development workflows, and prompt engineering",
-    "version": "1.9.0"
+    "version": "1.10.0"
   },
   "plugins": [
     {
@@ -171,6 +171,17 @@
         "name": "Juan M. Hidalgo"
       },
       "keywords": ["intake", "feasibility", "csm", "sales-handoff", "customer-request", "capability-mapping", "constraints", "respond-draft", "objection-prep", "slack"],
+      "category": "productivity"
+    },
+    {
+      "name": "retro",
+      "source": "./retro",
+      "description": "Session retrospectives from Claude Code logs: measured cost and friction (denials, hook blocks, slow turns, tool errors) routed into concrete config changes",
+      "version": "0.1.2",
+      "author": {
+        "name": "Juan M. Hidalgo"
+      },
+      "keywords": ["retrospective", "session-analysis", "post-mortem", "friction", "workflow-improvement", "claude-logs"],
       "category": "productivity"
     }
   ]

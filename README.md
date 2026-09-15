@@ -81,6 +81,18 @@ Translate unstructured customer/CSM/Sales/Support requests into engineering sign
 /plugin install intake@juanmhidalgo-plugins
 ```
 
+### retro
+
+Session retrospectives built on what the Claude Code logs actually measured — cost, wall clock, permission denials, hook blocks, slowest turns — instead of asking how the session felt. Every finding names the file that fixes it.
+
+**Commands:**
+- `/retro:session [--last N] [--session <id>]` - Digest this project's session logs, rank the friction by what it cost, and route each finding to a destination: a CLAUDE.md rule, a memory file, a permission rule, a hook, or a fix to a plugin in this repo. Scoped to one project per run
+
+**Install:**
+```bash
+/plugin install retro@juanmhidalgo-plugins
+```
+
 ## Updating Plugins
 
 ```bash

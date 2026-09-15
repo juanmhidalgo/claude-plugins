@@ -1,0 +1,8 @@
+{
+  "name": "retro",
+  "description": "Session retrospectives from Claude Code logs: measured cost and friction (denials, hook blocks, slow turns, tool errors) routed into concrete config changes",
+  "version": "0.1.2",
+  "author": {
+    "name": "Juan M. Hidalgo"
+  }
+}
