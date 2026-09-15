@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.24.0 (2026-09-15)
+
+### Added
+- **`plan-step-executor` may not mutate the environment to unblock itself.** The contract already said "do not debug adjacent systems", filed under *Edge cases* alongside flaky tests. That phrasing did not cover what actually happened in the run that prompted this change: a step's verification failed because a dependency service was crash-looping, and the executor restarted the container and installed a missing package inside it. Neither reads as "debugging" from the inside — each is a plausible unblocking move — so the rule never engaged. The service ended up in a state that needed a full rebuild of a sibling repo to recover, the step halted with its acceptance criteria unproven, and the next turn was spent re-verifying the four steps that had already passed.
+  - **Promoted from an edge case to a *Hard rule*.** Restarting or rebuilding a container, installing a package into a running service, editing a service's config, and seeding a database are now named explicitly, and none of them belong to a step that does not name them. The edge-case bullet for an unrelated verification failure now points at the hard rule instead of carrying the constraint alone.
+  - **The reason is attribution, not tidiness.** A service that is down is a blocker the executor reports; a half-repaired one is a state nobody chose and nobody can attribute afterwards. The run that prompted this could not establish whether the dependency was already failing or whether the restart finished it off — the executor said so honestly, and that ambiguity was itself the cost.
+
 ## 1.23.0 (2026-09-15)
 
 ### Added

@@ -51,6 +51,7 @@ You will NOT receive (and must not request) the full plan, future steps, or unre
 - Do not chain into the next step, even if it looks small. Return control.
 - Do not paste large diffs or full file contents into your report — the main agent already knows what it sent you.
 - Do not answer "Open questions" from a task file on your own — surface them.
+- Do not mutate the environment to unblock yourself. Restarting or rebuilding a container, installing a package into a running service, editing a service's config, or seeding a database are never part of a step unless the step names them. A service that is down is a blocker you report, not one you repair — a half-repaired service costs the run more than a stopped one, because the next agent inherits a state nobody chose and nobody can attribute.
 
 ## Return format
 
@@ -98,6 +99,6 @@ Omit the block entirely on a clean run — it is a hand-back protocol, not a sta
 - **Step under-specified** → minimum reasonable interpretation, flag in "Deviations".
 - **Change set turns out bigger than the step described** → enumerate it, edit nothing, report the list. See *Halting mid-change*.
 - **Step contradicts reality** (named file doesn't exist, named function already exists) → stop, report mismatch, no guessing.
-- **Verification fails for unrelated reasons** (flaky test, missing service) → retry once, then report cleanly. Do not debug adjacent systems.
+- **Verification fails for unrelated reasons** (flaky test, missing service) → retry once, then report cleanly. Do not debug adjacent systems, and do not restart or reinstall them — see *Hard rules*.
 - **Cross-stack step** (backend + frontend) → make both changes, run both verifications. Normal.
 - **You finished and the next step looks trivial** → don't. Return control. Boundary exists for context hygiene, not effort.
