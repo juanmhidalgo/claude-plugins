@@ -233,6 +233,7 @@ agent: Explore                      # Which subagent type
 
 # Model selection
 model: haiku                        # haiku, sonnet, opus
+effort: low                         # reasoning effort: low, medium, high
 
 # Hooks
 hooks:
@@ -242,6 +243,12 @@ hooks:
       echo "Next: /another-command"
 ---
 ```
+
+`model:` and `effort:` were parsed but **not applied** in interactive sessions
+until 2.1.259 / 2.1.267. A command or agent pinned to `model: opus` on an older
+build silently ran on the session's model — re-check any behaviour you tuned
+around that. `effort:` is reasoning effort, unrelated to any review-depth level
+a prompt defines for itself.
 
 ### Available Substitutions
 
@@ -316,6 +323,74 @@ Use the Agent tool with `subagent_type: "Explore"` to understand:
 
 </anti_patterns>
 
+## Evaluating an External Plugin Before Replicating It
+
+<external_plugin_evaluation>
+
+**Read its scripts. Never run them.** Auto mode blocks executing code fetched from
+a third-party repo (`[Code from External]`) and it is right to — you are evaluating
+an approach, not adopting a binary. Reproduce what the script does with your own
+commands instead; that is the same work, minus the trust.
+
+**Verify its assumptions against local ground truth before inheriting them.** The
+prose in an external plugin describes what the author believed, not what is true
+now. Check each load-bearing assumption against real data on this machine before
+any of it reaches your version — a plugin that reads Claude Code session logs, for
+example, encodes a path, classifies entry types, and counts turns, and every one of
+those is checkable in seconds against `~/.claude/projects/`.
+
+**The value is the domain knowledge, not the file.** What is worth taking is the
+schema facts, the flags, the edge cases the author hit. What is not worth taking is
+the templates, the depth tiers, and the README — those are the parts that will drift
+and that you would then own. Prefer a small script plus a lean skill over a port.
+
+**Installing it is not the same as forking it.** A published marketplace plugin can
+be installed and trialled directly. Copy it into this repo only when you intend to
+diverge from it, and say in the CHANGELOG what you changed and why.
+
+</external_plugin_evaluation>
+
+## Local Testing
+
+<local_testing>
+
+Load plugins straight from the working tree with `--plugin-dir`, instead of
+installing from the marketplace. Requires Claude Code 2.1.265+.
+
+**Never point `--plugin-dir` at the repo root.** A folder fans out into one
+plugin per child *only when the folder itself has no `.claude-plugin/`*. This
+repo's root has `.claude-plugin/marketplace.json`, so `--plugin-dir .` loads the
+whole repo as a **single** plugin with 0 commands, 0 skills, 0 agents — and
+still reports `Status: loaded`. The no-op is silent.
+
+Load the plugins under test by relative path:
+
+```bash
+claude --plugin-dir code-review --plugin-dir discuss
+```
+
+Or every plugin in the repo (zsh and bash):
+
+```bash
+flags=(); for d in */.claude-plugin/plugin.json; do flags+=(--plugin-dir "${d%%/*}"); done
+claude "${flags[@]}"
+```
+
+Confirm what actually loaded before trusting a test run — session-only plugins
+appear under `Session-only plugins` as `<name>@inline`:
+
+```bash
+claude "${flags[@]}" plugin list
+claude --plugin-dir code-review plugin details code-review   # inventory + token cost
+```
+
+The installed copy of the same plugin stays enabled alongside the inline one, so
+a name can be live two or three times over (user scope, project scope, inline).
+When a command's behaviour is ambiguous, `plugin disable <name>@<marketplace>`
+the installed copy for the duration of the test.
+
+</local_testing>
+
 ## Pre-Commit Checklist
 
 <checklist>
@@ -345,6 +420,7 @@ Use the Agent tool with `subagent_type: "Explore"` to understand:
 
 ### Final Steps
 
+- [ ] Exercised from the working tree via `--plugin-dir <plugin>` (see Local Testing)
 - [ ] Version bumped in `plugin.json`
 - [ ] CHANGELOG.md updated
 - [ ] README.md documents commands
