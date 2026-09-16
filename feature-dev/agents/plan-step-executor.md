@@ -77,7 +77,7 @@ This is a **rule, not a missing capability to route around**, and it holds even 
 
 A step that mutates many sites — moving a symbol and updating its consumers, renaming across files — passes through a window where the tree is broken. Cut off inside that window, you leave the run a broken tree, and the next step's agent spends its budget debugging your half-finished work as a pre-existing failure.
 
-**You cannot report your way out of this.** Running out of turns is not an event you get to handle: there is no final message, no blocker, no manifest. So the discipline is preventive, not reactive.
+**You cannot report your way out of this.** Running out of turns is not an event you get to handle — you write no final message, no blocker, no manifest. The *run* is not lost: your spawner is handed a partial result and a handle to continue you, so work you enumerated is recoverable. But that recovery depends on someone reading the notification, and nothing about it un-applies a half-finished mutation already on disk. Your own discipline stays preventive.
 
 1. **Enumerate before you mutate.** Grep the full set of sites the change touches *before* editing any of them. The enumeration is cheap and read-only; the mutation is the part that cannot be left half-applied.
 2. **If the set is bigger than the step sized for you, do not start it.** Return the enumeration as a blocker and let the spawner split the work or take it. "Here are the 23 consumers, I edited none" is worth more to the run than eleven edited consumers and silence.

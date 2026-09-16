@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.24.1 (2026-09-16)
+
+### Fixed
+- **1.23.0 claimed a stalled executor is unrecoverable. It is not.** The "Halting mid-change" section stated that running out of turns leaves "no final message, no blocker, no manifest" — true of what the *agent* writes, wrong about the *run*. The harness reports a stalled subagent as `stopped at its N-turn limit (partial result; SendMessage to task-id to continue)`, handing the spawner a partial result and a handle to continue the same agent with its context intact. The claim was taken from an orchestrator's summary of a stall ("hit its turn limit without reporting") instead of the raw notification, which said the opposite in that same run — twice, and went unused both times: the orchestrator finished 7 of 19 call sites by hand and verified the other 12 by reading the diff, work one resume message would have avoided.
+  - **`feature-implementer` resumes before reconstructing.** A stall gets one continuation first; rebuilding state from the diff is the fallback, not the default, because it spends exactly the context budget the step was delegated to protect. A second stall is read as a mis-sized step, not as an agent short on turns.
+  - **A stall and a hand-back are now distinguished.** `Tree state: BROKEN` is a deliberate stop the spawner asked for and must wire; a turn-limit stall is accidental and recoverable. The two arrive looking alike and want opposite responses.
+  - **The executor's preventive discipline is unchanged.** It still cannot self-report, recovery still depends on someone reading the notification, and no resume un-applies a half-finished mutation already on disk.
+
 ## 1.24.0 (2026-09-15)
 
 ### Added
