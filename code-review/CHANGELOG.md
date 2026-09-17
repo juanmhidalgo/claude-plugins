@@ -1,5 +1,14 @@
 # Changelog
 
+## 3.3.0 (2026-09-16)
+
+### Added
+- **`posting-a-pr-review` skill — how to put findings on a PR, for when the user asks.** Reviewing still never writes to GitHub: `pr.md`'s blocking contract is unchanged, and the skill states in its own description that it must not be invoked on its own initiative. What was missing was the other half of "that is a separate, explicit decision they make" — the decision had nowhere to lead.
+  - **One request, not one per finding.** The review and every inline comment go in a single `POST /pulls/{n}/reviews` with an `event` and a `comments[]` array, built from a JSON file rather than `-f` flags, since comment bodies carry newlines and backticks that argv mangles. A loop of individual comment calls sends the author a notification per finding, which is what makes an automated reviewer feel insufferable independently of how well the comments are written.
+  - **Inline is rationed, the body is not.** Only `CONFIRMED` findings that require a change and anchor to a changed line get a line comment; minor and `PLAUSIBLE` ones drop to one line in the review body; unverified ones stay in the session. Inline interrupts line by line, so it is spent on what blocks the merge. When nothing blocks, the skill posts nothing.
+  - **Two failures that are silent otherwise.** GitHub rejects `REQUEST_CHANGES` from the PR's own author, so the skill compares author to authenticated user and degrades to `COMMENT`; and a finding on an unchanged line cannot be posted inline at all, so it goes to the body instead of vanishing. Re-review duplicates are dropped by matching path and line against the comments already on the PR — the double-posting that got posting removed in the first place.
+  - **Comment-writing rules that are mechanical, not stylistic:** one comment per change needed, defect first, name what breaks and on what input, two-sentence ceiling, a ```suggestion``` block when the fix is a literal replacement, and an unverified claim marked as a hypothesis in its first sentence rather than a trailing caveat.
+
 All notable changes to this plugin will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),

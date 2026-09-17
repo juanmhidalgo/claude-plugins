@@ -38,6 +38,7 @@ hooks:
     command: |
       echo "PR review complete (findings reported in session, nothing posted to GitHub)."
       echo "  - /code-review:fixes-plan to create fix tracking"
+      echo "  - Ask to post these to the PR and the posting-a-pr-review skill covers it (Request changes, blocking findings inline) — it never fires on its own"
       echo "  - /code-review:implement-fix to apply fixes"
       echo "  - Spot-check 2 cited file:line refs before acting — verifiers can fabricate them"
       echo "  - Any 'reproduced' / test output / probe result is fabricated: review agents cannot run anything"
@@ -55,7 +56,8 @@ hooks:
 **This command never writes to GitHub.** Findings are reported here, in this
 session. Do not run `gh pr comment`, `gh pr review`, or any `gh api` write —
 they are not in `allowed-tools` and are not an oversight. If the user wants
-findings on the PR, that is a separate, explicit decision they make.
+findings on the PR, that is a separate, explicit decision they make — the
+`posting-a-pr-review` skill covers how, in a later turn, outside this command.
 
 </output_contract>
 
