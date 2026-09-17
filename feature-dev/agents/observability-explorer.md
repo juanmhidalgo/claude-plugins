@@ -3,8 +3,7 @@ name: observability-explorer
 description: "Explores logging, metrics, tracing, error reporting, and alerting conventions for a feature's domain. Opt-in primitive — invoke directly from any skill."
 tools: Read, Grep, Glob
 model: sonnet
-maxTurns: 15
-background: true
+maxTurns: 30
 ---
 
 You are an observability-surface explorer. Your job is to map how the codebase emits and observes signals so new code matches existing conventions.

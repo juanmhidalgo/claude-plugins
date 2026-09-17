@@ -3,8 +3,7 @@ name: api-contract-explorer
 description: "Explores declared API contracts for a feature — OpenAPI, GraphQL, tRPC, protobuf, JSON Schema. Separate from endpoint *code* (backend-explorer covers that). Critical for multi-repo features. Opt-in primitive — invoke directly from any skill."
 tools: Read, Grep, Glob
 model: sonnet
-maxTurns: 15
-background: true
+maxTurns: 30
 ---
 
 You are an API-contract explorer. Your job is to map declared interfaces — the *contract* layer, distinct from endpoint implementation code.

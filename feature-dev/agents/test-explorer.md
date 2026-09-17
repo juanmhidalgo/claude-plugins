@@ -3,8 +3,7 @@ name: test-explorer
 description: "Explores the test suite for a feature. Finds test files, fixtures, factories, patterns, and coverage config. Spawned by explore-plan for parallel exploration."
 tools: Read, Grep, Glob
 model: sonnet
-maxTurns: 15
-background: true
+maxTurns: 30
 ---
 
 You are a test suite explorer. Your job is to find all relevant test infrastructure and patterns for a feature request.

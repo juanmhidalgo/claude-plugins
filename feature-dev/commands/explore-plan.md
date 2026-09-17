@@ -60,13 +60,15 @@ If you were dispatched as a subagent to execute a specific task, skip this comma
    | `api-contract-explorer` | is consumed across a repo boundary: `source_spec` frontmatter has 2+ `repos:` entries, or the feature changes a declared contract (OpenAPI, GraphQL SDL, tRPC router, protobuf, JSON Schema) |
    | `observability-explorer` | ships something whose failure is silent: a background job, queue consumer, scheduled task, webhook handler, payment or auth path — anywhere post-ship visibility is how you learn it broke |
 
-   These are cheap (read-only, parallel, `maxTurns: 15`) and the cost of omitting one is planning blind on the highest-risk layer. **When a signal is borderline, include the explorer.** Record the selected list; you pass it into the Phase 1 agent prompt.
+   These are cheap (read-only, parallel, `maxTurns: 30`) and the cost of omitting one is planning blind on the highest-risk layer. **When a signal is borderline, include the explorer.** Record the selected list; you pass it into the Phase 1 agent prompt.
 
    State the selection to the user in one line: "Explorers: backend, frontend, test, history + schema (new model), config (feature flag)."
 
 ## Phase 1: Explore and Generate Plan (Forked)
 
 Launch a **single Agent** with `subagent_type: "general-purpose"` to do all exploration and plan generation in an isolated context.
+
+**Do NOT pass `name` to this Agent call.** A named agent is spawned as a *teammate*, and a teammate cannot spawn the explorers in Step 1 — the harness refuses with "Teammates cannot spawn other teammates". The generator is a nested worker, not a roster member; leave it anonymous.
 
 **CRITICAL: The agent MUST write the plan file to disk.** The agent's context is discarded after it completes — only the file persists.
 
@@ -82,7 +84,7 @@ Source spec: [source_spec path from Phase 0, or "none"]
 
 ## Step 1: Parallel Exploration
 
-Launch every agent below in a SINGLE response so they run concurrently. Do NOT use run_in_background.
+Launch every agent below in a SINGLE response so they run concurrently. Do NOT use run_in_background, and do NOT pass `name` to any of them — a named spawn is a teammate, and the harness refuses teammates spawned from here.
 
 Always:
 
@@ -113,6 +115,10 @@ Agent (only if selected) — subagent_type: "feature-dev:observability-explorer"
 Prompt: "Explore logging, metrics, tracing, error reporting and alerting conventions for: [feature summary]"
 
 Do NOT launch an explorer the caller did not select, and do NOT skip one it did.
+
+**If a spawn is refused:** retry that call once with `name` omitted. If it is refused again, do NOT abandon the layer and do NOT pretend it was covered — explore it yourself with Read/Grep/Glob, and make the degradation visible in the plan: put this line immediately under the `### Exploration Findings` heading, listing every explorer that could not run and the refusal verbatim.
+
+> **Degraded exploration** — `<explorer>, <explorer>` could not be spawned (`<refusal message>`). Those sections were written by the generator reading the tree directly: single-reader, no cross-check, and scoped to the files the spec names plus their immediate dependencies.
 
 ## Step 2: Synthesize and Write Plan
 
@@ -236,7 +242,8 @@ After the agent completes:
 
 1. Read the `PLAN-<slug>.md` file from disk
 2. Present the full plan to the user
-3. Ask:
+3. **If the plan carries a `Degraded exploration` line, lead with it** — say which layers had no explorer and that those findings had a single reader. A plan the user reviews as if eight agents cross-checked it, when one did not, is the failure mode worth a sentence at the top.
+4. Ask:
    - Does this look correct? Any files or areas I missed?
    - Any decisions you'd like to override?
    - Ready to implement? (Suggest `/feature-dev:tdd` to start)

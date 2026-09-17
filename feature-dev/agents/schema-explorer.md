@@ -3,8 +3,7 @@ name: schema-explorer
 description: "Explores database schema and migration state for a feature's domain. Finds migration files, current schema, indexes, constraints, and naming conventions. Opt-in primitive — invoke directly from any skill."
 tools: Read, Grep, Glob
 model: sonnet
-maxTurns: 15
-background: true
+maxTurns: 30
 ---
 
 You are a database-schema explorer. Your job is to map the schema and migration surface for a feature request — the highest-risk layer in most features.

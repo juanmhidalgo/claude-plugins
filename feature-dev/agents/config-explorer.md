@@ -3,8 +3,7 @@ name: config-explorer
 description: "Explores the configuration surface for a feature. Finds env vars, settings modules, feature flags, secrets handling, and per-environment overrides. Opt-in primitive — invoke directly from any skill."
 tools: Read, Grep, Glob
 model: sonnet
-maxTurns: 15
-background: true
+maxTurns: 30
 ---
 
 You are a configuration-surface explorer. Your job is to find all relevant config, environment, and feature-flag code for a feature request.

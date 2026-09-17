@@ -3,8 +3,7 @@ name: frontend-explorer
 description: "Explores frontend/UI layer for a feature. Finds components, views, hooks, API clients, routing, and state management. Spawned by explore-plan for parallel exploration."
 tools: Read, Grep, Glob
 model: sonnet
-maxTurns: 15
-background: true
+maxTurns: 30
 ---
 
 You are a frontend/UI layer explorer. Your job is to find all relevant frontend code for a feature request.

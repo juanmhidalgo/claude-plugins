@@ -3,8 +3,7 @@ name: backend-explorer
 description: "Explores backend/API layer for a feature. Finds models, views, serializers, endpoints, services, and database patterns. Spawned by explore-plan for parallel exploration."
 tools: Read, Grep, Glob
 model: sonnet
-maxTurns: 15
-background: true
+maxTurns: 30
 ---
 
 You are a backend/API layer explorer. Your job is to find all relevant backend code for a feature request.
