@@ -14,7 +14,24 @@
 
 set -euo pipefail
 
+# A PostToolUse hook's stderr with exit 0 reaches only the debug log -- it is never
+# shown to Claude -- so an advisory has to come back as JSON on stdout. Verified on
+# Claude Code 2.1.274: the hook runs, but its stderr never enters the model's context.
+advisory=""
+note() { advisory="${advisory}$1"$'\n'; }
+emit_advisory() {
+  [ -n "$advisory" ] || return 0
+  if command -v jq >/dev/null 2>&1; then
+    printf '%s' "$advisory" \
+      | jq -Rs '{hookSpecificOutput:{hookEventName:"PostToolUse",additionalContext:.}}'
+  else
+    # No jq: fall back to the old channel rather than emitting malformed JSON.
+    printf '%s' "$advisory" >&2
+  fi
+}
+
 if [ "${SKIP_VERSION_CHECK:-}" = "1" ]; then
+  emit_advisory
   exit 0
 fi
 
@@ -22,6 +39,7 @@ input=$(cat)
 file_path=$(printf '%s' "$input" | jq -r '.tool_input.file_path // empty')
 
 if [ -z "$file_path" ]; then
+  emit_advisory
   exit 0
 fi
 
@@ -45,7 +63,8 @@ marketplace="$repo_root/.claude-plugin/marketplace.json"
 # A malformed registry is a separate problem — report it and stop, since every
 # comparison below would otherwise fail with a misleading "drift" message.
 if ! jq empty "$marketplace" 2>/dev/null; then
-  echo "[marketplace-sync-check] '.claude-plugin/marketplace.json' is not valid JSON — cannot verify versions." >&2
+  note "[marketplace-sync-check] '.claude-plugin/marketplace.json' is not valid JSON — cannot verify versions."
+  emit_advisory
   exit 0
 fi
 
@@ -61,15 +80,17 @@ while IFS=$'\t' read -r name source registry_version; do
   [ -n "$actual_version" ] || continue
 
   if [ "$actual_version" != "$registry_version" ]; then
-    echo "[marketplace-sync-check] Version drift for '$name': marketplace.json says '$registry_version', $source/.claude-plugin/plugin.json says '$actual_version'." >&2
+    note "[marketplace-sync-check] Version drift for '$name': marketplace.json says '$registry_version', $source/.claude-plugin/plugin.json says '$actual_version'."
     drift=1
   fi
 done < <(jq -r '.plugins[]? | [.name // "", .source // "", .version // ""] | @tsv' "$marketplace")
 
 if [ "$drift" = "1" ]; then
-  echo "[marketplace-sync-check]   Update marketplace.json so each version mirrors its plugin.json." >&2
-  echo "[marketplace-sync-check]   Edit the version lines in place — re-serializing the file reflows every inline array." >&2
-  echo "[marketplace-sync-check]   To bypass: export SKIP_VERSION_CHECK=1" >&2
+  note "[marketplace-sync-check]   Update marketplace.json so each version mirrors its plugin.json."
+  note "[marketplace-sync-check]   Edit the version lines in place — re-serializing the file reflows every inline array."
+  note "[marketplace-sync-check]   To bypass: export SKIP_VERSION_CHECK=1"
 fi
+
+emit_advisory
 
 exit 0
