@@ -5,7 +5,7 @@
   },
   "metadata": {
     "description": "Personal Claude Code plugins for code review, development workflows, and prompt engineering",
-    "version": "1.10.0"
+    "version": "1.11.0"
   },
   "plugins": [
     {
@@ -183,6 +183,17 @@
       },
       "keywords": ["retrospective", "session-analysis", "post-mortem", "friction", "workflow-improvement", "claude-logs"],
       "category": "productivity"
+    },
+    {
+      "name": "deps",
+      "source": "./deps",
+      "description": "Dependency and runtime upgrade risk assessment: usage scan, breaking changes cross-referenced against actual code, resolver-verified transitive impact, and a go / no-go verdict",
+      "version": "0.1.0",
+      "author": {
+        "name": "Juan M. Hidalgo"
+      },
+      "keywords": ["dependencies", "upgrade", "python", "breaking-changes", "risk-assessment", "changelog", "cve"],
+      "category": "development"
     }
   ]
 }

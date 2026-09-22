@@ -1,0 +1,8 @@
+{
+  "name": "deps",
+  "description": "Dependency and runtime upgrade risk assessment: usage scan, breaking changes cross-referenced against actual code, resolver-verified transitive impact, and a go / no-go verdict",
+  "version": "0.1.0",
+  "author": {
+    "name": "Juan M. Hidalgo"
+  }
+}
