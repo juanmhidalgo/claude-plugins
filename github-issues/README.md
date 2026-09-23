@@ -49,7 +49,8 @@ probes they propose can be run afterwards from the main session. `work` starts f
 3. **Verify** — build the ledger; stop unless the verdict is actionable
 4. **Plan** — plan mode, with the ledger, deviations from the issue's suggested fix, and an explicit out-of-scope list
 5. **Branch and implement** — `fix/`, `perf/`, `chore/`, `refactor/`, or `test/` by type; tests by type (a failing-first test for bugs, green-before-and-after for refactors)
-6. **Close out** — multi-repo handoff if needed; `Closes` vs `Refs`
+6. **Review** — a fresh-context reviewer checks the diff against the approved plan; findings are verified before any fix
+7. **Close out** — multi-repo handoff if needed; `Closes` vs `Refs`
 
 Epics, spikes, and new features are out of scope — use `/feature-dev:spec`.
 

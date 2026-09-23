@@ -155,7 +155,7 @@
       "name": "github-issues",
       "source": "./github-issues",
       "description": "Work GitHub Issues — bugs, tech debt, refactors, follow-ups: verify each issue against the current code before planning and implementing, or triage a backlog read-only",
-      "version": "1.4.0",
+      "version": "1.5.0",
       "author": {
         "name": "Juan M. Hidalgo"
       },

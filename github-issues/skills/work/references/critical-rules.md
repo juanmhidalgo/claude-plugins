@@ -37,11 +37,11 @@ If you catch yourself thinking any of these, stop — you are about to skip veri
 ## Multi-Repo Awareness
 
 - **Flag multi-repo early.** If verification finds cross-repo consumers (a frontend reading
-  a field, another service calling an endpoint), say so in the ledger — don't wait for Phase 6.
+  a field, another service calling an endpoint), say so in the ledger — don't wait for Phase 7.
 
 ## Handoff Prompt Format
 
-When Phase 6 requires a handoff, format it as a fenced code block the user can copy-paste
+When Phase 7 requires a handoff, format it as a fenced code block the user can copy-paste
 into a Claude Code session in the other repo:
 
 ```

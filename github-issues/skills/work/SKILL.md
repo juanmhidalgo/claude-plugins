@@ -186,15 +186,35 @@ out stays out), and every deviation from the issue's suggested fix with its reas
 3. Implement the approved plan. Tests follow the work type's strategy — a bug gets a test
    that fails before the fix; a refactor keeps existing tests green and adds characterization
    tests first where coverage is thin.
-4. Run the tests the plan named. Do not proceed with failures. Report what you ran and the
+4. The diff holds only what the plan calls for. No repo-wide formatters or reflows of lines
+   you did not change: reformatting noise hides the change from review. If you delegate the
+   implementation to a subagent, pass it this rule and the approved plan.
+5. Run the tests the plan named. Do not proceed with failures. Report what you ran and the
    result; never describe a check you did not run.
 
-### Phase 6: Close out
+### Phase 6: Review
+
+The session that planned and wrote the change reads the diff through its own plan. Get a
+reviewer that has not seen this conversation.
+
+1. Write the approved plan — ledger included — to a scratchpad file.
+2. Spawn `code-review:branch-reviewer` with `model: "opus"` and no `name`, using the prompt in
+   [review-prompt.md](references/review-prompt.md). If that agent type is not available, use
+   `general-purpose` with the same prompt and model.
+3. Treat every finding as unverified: check it against the code before acting
+   (`code-review:receiving-code-review`).
+   - **Confirmed defect inside the plan's scope** → fix it, and re-run the affected tests.
+   - **Confirmed, but the fix changes what the plan approved** (a UX the plan chose, scope
+     the plan fenced off) → don't fix; put it to the user.
+   - **Refuted** → discard, with the evidence.
+4. One round. Do not re-review your own fixes in a loop; list them in the close-out instead.
+
+### Phase 7: Close out
 
 1. Does the work need changes in another repository? If yes, generate a handoff prompt
    (format in [critical rules](references/critical-rules.md)).
-2. Summarize: what changed, what the ledger corrected in the issue, and what remains out of
-   scope. Say whether the PR fully resolves the issue (`Closes #N`) or only part of it (`Refs #N`).
+2. Summarize: what changed, what the ledger corrected in the issue, what the review found
+   (fixed, put to the user, discarded and why), and what remains out of scope. Say whether the PR fully resolves the issue (`Closes #N`) or only part of it (`Refs #N`).
 
 For rules that apply across all phases, including rationalization defenses, see
 [critical rules](references/critical-rules.md).

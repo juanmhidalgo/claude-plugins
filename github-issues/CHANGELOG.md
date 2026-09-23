@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.5.0 (2026-09-23)
+
+### Added
+- `work` Phase 6, Review: after the tests pass, a reviewer that has not seen the conversation (`code-review:branch-reviewer`, overridden to `opus`) reviews the diff against the approved plan — defects, plan conformance, whether the tests prove what the work type needs, and consumers the plan missed. Findings are verified before acting; confirmed defects inside the plan's scope are fixed, ones that would change what the plan approved go to the user, and there is one round, not a loop. Prompt in `references/review-prompt.md`.
+- `work` keeps the diff to what the plan calls for: no repo-wide formatters or reflows, and the rule travels with the plan when implementation is delegated to a subagent.
+
+### Changed
+- Close-out is now Phase 7 and reports what the review found, fixed, escalated, and discarded.
+
 ## 1.4.0 (2026-09-23)
 
 ### Added
