@@ -80,7 +80,7 @@ Apply the same optimization logic as `/optimize-claude-md` at `--level=moderate`
 1. Create backup `CLAUDE.md.backup-[timestamp]`
 2. Apply optimizations:
    - Add XML semantic structure (`<project_context>`, `<critical_rules>`, etc.)
-   - Apply persuasion principles to critical rules (Authority, Commitment)
+   - State each critical rule with its reason
    - Add priority attributes (`blocking`, `critical`, `recommended`)
    - Consolidate repetitive content
    - Improve hierarchy/nesting
@@ -96,7 +96,6 @@ Apply the same optimization logic as `/optimize-claude-md` at `--level=moderate`
 **Applied enhancements**:
 - ✓ XML semantic structure added
 - ✓ Critical rules marked with priority attributes
-- ✓ Persuasion principles applied
 - ✓ Token-optimized structure
 
 **Metrics**:

@@ -6,9 +6,9 @@ Analyze and optimize CLAUDE.md files using Anthropic's official best practices f
 
 This plugin provides tools to ensure your CLAUDE.md files follow Anthropic's recommended patterns for:
 - **XML tag structure** - Clear separation of instructions, context, examples, and references
-- **Token efficiency** - Concise prompts that maximize the 200K context window
+- **Token efficiency** - Concise prompts that leave room in the context window
 - **Memory patterns** - Proper use of imports, modularization, and hierarchy
-- **Persuasion principles** - Effective enforcement of critical rules
+- **Critical rules** - Stated once, with their reason, enforced by hooks where possible
 
 ## Commands
 
@@ -172,7 +172,6 @@ Next Steps:
 Applied enhancements:
 - ✓ XML semantic structure added
 - ✓ Critical rules marked with priority attributes
-- ✓ Persuasion principles applied
 - ✓ Token-optimized structure
 
 Metrics:
@@ -214,7 +213,7 @@ The plugin includes a comprehensive skill documenting all Anthropic best practic
 - XML tag patterns and examples
 - CLAUDE.md structure guidelines
 - Memory system (hierarchy, imports, `.claude/rules/`)
-- Persuasion principles for rule enforcement
+- Stating critical rules (reasons over emphasis)
 - Token efficiency optimization techniques
 - Quality checklist and anti-patterns
 - References to official Anthropic docs

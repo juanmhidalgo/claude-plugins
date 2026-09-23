@@ -20,7 +20,6 @@ Loaded by `/claude-md-toolkit:optimize-claude-md`.
 - ✓ Complete restructuring
 - ✓ 50%+ token-savings target
 - ✓ Externalize all long examples
-- ✓ Apply all persuasion principles
 - ⚠️ Requires manual review before commit
 
 ## XML structure (target shape)
@@ -54,7 +53,7 @@ Use nesting for hierarchy and priority attributes (`blocking`, `critical`, `reco
 
 ## Content enhancements
 
-- Add persuasion language to critical rules (Authority: "YOU MUST", "No exceptions")
+- Attach the reason to each critical rule; remove caps emphasis that has no observed failure behind it
 - Add imports for external docs: `@docs/architecture.md`
 - Group related content with parent tags
 

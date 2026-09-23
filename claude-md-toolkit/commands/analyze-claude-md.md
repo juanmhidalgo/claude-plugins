@@ -55,7 +55,7 @@ Generate comprehensive optimization report with score (0-100) and actionable rec
 <content_quality_analysis weight="25">
   - Essential sections present (context, directories, standards, commands)
   - External references for complex content
-  - Persuasion principles for critical rules (Authority, Commitment, Social Proof)
+  - Critical rules stated plainly with their reason; emphasis reserved for at most one or two rules
   - NO sensitive data (credentials, keys, connection strings)
   - Actionable workflows defined
 </content_quality_analysis>
@@ -97,7 +97,7 @@ Generate comprehensive optimization report with score (0-100) and actionable rec
 ## Metrics
 
 - **Lines**: [count]
-- **Estimated Tokens**: [count * 8]
+- **Estimated Tokens**: [words × 1.3, from `wc -w`]
 - **Target Range**: [range for project size]
 - **Status**: [within/above/below target]
 
@@ -180,5 +180,5 @@ Show concrete before/after examples for top 3 improvements.
 </rule>
 
 <rule priority="recommended">
-Estimate token counts realistically (avg 8 tokens/line, adjust for code blocks).
+Measure size with a command (`wc -l -w`) and report tokens as words × 1.3; do not estimate by eye.
 </rule>

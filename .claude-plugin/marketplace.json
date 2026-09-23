@@ -34,7 +34,7 @@
       "name": "claude-md-toolkit",
       "source": "./claude-md-toolkit",
       "description": "Analyze and optimize CLAUDE.md files using Anthropic's best practices for prompt engineering, XML tags, and memory patterns",
-      "version": "0.8.0",
+      "version": "0.9.0",
       "author": {
         "name": "Juan M. Hidalgo"
       },

@@ -3,7 +3,6 @@
 ## Why XML Tags?
 
 - **Clarity**: Separate instructions, examples, context, references
-- **Accuracy**: Reduce misinterpretation by 40-60%
 - **Parseability**: Claude processes structured content better
 - **Flexibility**: Modify sections without rewriting
 

@@ -23,7 +23,7 @@ Consolidated guide from Anthropic's official documentation.
 ## Core Principles
 
 <context_window_management>
-**The 200K context window is shared between:**
+**The context window is shared between:**
 - System prompt, conversation history, all CLAUDE.md files
 - Commands, skills, hooks, and user's actual request
 
@@ -41,7 +41,7 @@ Consolidated guide from Anthropic's official documentation.
 
 ## XML Tags for Structure
 
-XML tags reduce misinterpretation by 40-60% and help Claude process structured content better.
+XML tags help separate reference data (directories, commands) from instructions.
 
 **Essential tags**: `<project_context>`, `<key_directories>`, `<standards>`, `<critical_rules>`, `<reference_docs>`
 
@@ -82,14 +82,12 @@ For detailed XML patterns and examples, see [patterns.md](references/patterns.md
 - Duplicate information from README
 </exclude>
 
-## Persuasion Principles
+## Stating Critical Rules
 
-Use these for critical rules enforcement. See [persuasion.md](references/persuasion.md) for patterns:
-
-- **Authority**: "YOU MUST", "NEVER", "No exceptions"
-- **Commitment**: Announcements, explicit choices, tracking
-- **Social proof**: "Every time", "X without Y = failure"
-- **Scarcity**: "IMMEDIATELY", "Before proceeding"
+State each critical rule once, plainly, with its reason ("Run the test suite
+before committing — CI does not gate merges"). Put mechanically checkable rules
+in hooks instead of prose, and reserve emphasis for a single rule you have
+observed being skipped. See [critical-rules.md](references/critical-rules.md).
 
 ## Optimization Patterns
 

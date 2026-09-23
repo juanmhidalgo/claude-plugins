@@ -100,12 +100,8 @@ This is a {FRAMEWORK} project for [describe purpose]. The codebase follows [arch
 
 ## Code Quality Standards
 
-YOU MUST ensure all code changes:
-1. Pass existing tests (run test suite before committing)
-2. Follow project coding standards
-3. Include appropriate error handling
-
-NEVER commit code that breaks existing functionality.
+Run the test suite before committing; a change that breaks existing tests is
+not done.
 
 </rule>
 

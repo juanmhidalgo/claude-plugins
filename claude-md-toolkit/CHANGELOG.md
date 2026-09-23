@@ -5,6 +5,13 @@ All notable changes to the claude-md-toolkit plugin will be documented in this f
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.0] - 2026-09-22
+
+### Changed
+- **Critical rules are stated with their reason, not with persuasion language.** `references/persuasion.md` is replaced by `references/critical-rules.md`: one plain statement per rule with its reason, mechanically checkable rules moved to hooks, and emphasis reserved for a rule observed being skipped. Current models follow instructions literally, so `YOU MUST` / `No exceptions` / `IMMEDIATELY` made them over-apply rules in cases they were not written for.
+- `analyze-claude-md` no longer scores files up for persuasion principles, and `init` / `optimize-claude-md` no longer inject them into generated CLAUDE.md files; the standalone template's code-quality rule is one line with its reason.
+- Token estimates are measured with `wc -w` instead of guessed at 8 tokens/line; dropped the unsourced "40-60%" XML-tags claim and the hardcoded 200K context-window figure.
+
 ## [0.8.0] - 2026-05-07
 
 ### Changed
