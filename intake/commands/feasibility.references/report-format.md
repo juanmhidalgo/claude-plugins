@@ -110,7 +110,7 @@ Instead of the bespoke Phase 1 → 2 → 3 trajectory, an alternative using exis
 ```
 
 **Rules:**
-- Order phases by smallest-impact-to-customer-blockers first.
+- Order phases by customer-blocker impact: the capability that unblocks the most painful part of the customer's workflow goes first.
 - **Apply constraints before phasing.** A capability that violates a constraint goes in "Excluded for this customer", NOT in any phase.
 - A capability excluded for this customer may still be a product priority — note that separately if relevant.
 

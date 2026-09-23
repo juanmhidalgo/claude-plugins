@@ -34,7 +34,6 @@ Use `gh pr view <PR>` to fetch PR details and check:
    - Documentation files (*.md, docs/*)
    - Config files (.gitignore, .editorconfig)
    - Lock files (package-lock.json, yarn.lock, uv.lock)
-5. **Already reviewed by Claude?** - Check PR comments for previous Claude Code review
 
 ## Output Format
 
@@ -57,7 +56,7 @@ Return a JSON object:
 
 ```bash
 # View PR details
-gh pr view <PR> --json number,title,author,state,isDraft,files,comments
+gh pr view <PR> --json number,title,author,state,isDraft,files
 
 # Check for bot authors
 # Common bots: dependabot[bot], renovate[bot], github-actions[bot]

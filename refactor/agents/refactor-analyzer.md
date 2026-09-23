@@ -48,6 +48,5 @@ Return EXACTLY this structured format:
 ## Rules
 
 - Always include `file:line` references for every finding
-- Be thorough - explore broadly before narrowing down
 - Focus on facts from the code, not generic advice
 - If a finding is uncertain, note it explicitly

@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.12.1] - 2026-09-22
+
+### Changed
+- `feature`: the explore-first rule is stated once with its verifiable criterion (file:line for HIGH findings) instead of twice in capitals; the "great idea" prohibition is folded into the existing "say so and explain why" rule. Removed the `<mindset>` strategy-coaching blocks from `feature`, `brainstorm`, and `tradeoffs`.
+
 ## [2.12.0] - 2026-08-25
 
 ### Added

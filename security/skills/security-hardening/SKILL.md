@@ -44,7 +44,7 @@ Security is a constraint on every line of code that touches user data, authentic
 - **Validate all external input** at the system boundary (API routes, form handlers)
 - **Parameterize all database queries** — never concatenate user input into SQL
 - **Encode output** to prevent XSS (use framework auto-escaping, don't bypass it)
-- **Hash passwords** with bcrypt/scrypt/argon2 (salt rounds ≥ 12)
+- **Hash passwords** with bcrypt (cost ≥ 12), scrypt, or argon2id with current recommended parameters
 - **Set security headers** (CSP, HSTS, X-Frame-Options, X-Content-Type-Options)
 - **Use httpOnly, secure, sameSite cookies** for sessions
 - **Audit dependencies** before every release (`npm audit` / `pip audit`)
@@ -70,16 +70,15 @@ Security is a constraint on every line of code that touches user data, authentic
 - **Never store auth tokens in localStorage** (use httpOnly cookies)
 - **Never expose stack traces** or internal error details to users
 
-## OWASP Top 10 Quick Reference
+## Common Vulnerability Classes
 
-| # | Vulnerability | Prevention |
-|---|---------------|------------|
-| 1 | Injection | Parameterized queries, ORM, no string concatenation |
-| 2 | Broken Auth | Strong hashing, secure sessions, rate limiting |
-| 3 | XSS | Framework auto-escaping, DOMPurify for raw HTML |
-| 4 | Broken Access Control | Ownership checks on every endpoint, IDOR prevention |
-| 5 | Misconfiguration | Helmet/security headers, restrictive CORS, no defaults |
-| 6 | Sensitive Data Exposure | Sanitize responses, env vars for secrets, encrypt PII |
+| Vulnerability | Prevention |
+|---------------|------------|
+| Broken Access Control | Ownership checks on every endpoint, IDOR prevention |
+| Injection (incl. XSS) | Parameterized queries, ORM, framework auto-escaping, DOMPurify for raw HTML |
+| Broken Auth | Strong hashing, secure sessions, rate limiting |
+| Misconfiguration | Helmet/security headers, restrictive CORS, no defaults |
+| Sensitive Data Exposure | Sanitize responses, env vars for secrets, encrypt PII |
 
 For code examples of each, see [owasp-patterns.md](references/owasp-patterns.md).
 

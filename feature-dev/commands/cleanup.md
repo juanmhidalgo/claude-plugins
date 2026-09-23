@@ -21,10 +21,6 @@ triggers:
   - "remove implemented specs"
 ---
 
-<SUBAGENT-STOP>
-If you were dispatched as a subagent to execute a specific task, skip this command and proceed with your assigned task.
-</SUBAGENT-STOP>
-
 ## Context
 - **Repository**: !`git remote get-url origin`
 - **Current branch**: !`git branch --show-current`

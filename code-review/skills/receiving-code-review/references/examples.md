@@ -69,6 +69,3 @@ IF reviewer suggests "implementing properly":
   IF used: Then implement properly
 ```
 
-## Signal for Uncomfortable Pushback
-
-If uncomfortable pushing back out loud: "Strange things are afoot at the Circle K"

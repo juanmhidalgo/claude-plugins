@@ -32,10 +32,6 @@ hooks:
       echo "  - Or start a NEW conversation and run /feature-dev:tdd (maximizes context)"
 ---
 
-<SUBAGENT-STOP>
-If you were dispatched as a subagent to execute a specific task, skip this command and proceed with your assigned task.
-</SUBAGENT-STOP>
-
 ## Context
 - **Repository**: !`git remote get-url origin`
 - **Current branch**: !`git branch --show-current`
@@ -70,7 +66,7 @@ Launch a **single Agent** with `subagent_type: "general-purpose"` to do all expl
 
 **Do NOT pass `name` to this Agent call.** A named agent is spawned as a *teammate*, and a teammate cannot spawn the explorers in Step 1 — the harness refuses with "Teammates cannot spawn other teammates". The generator is a nested worker, not a roster member; leave it anonymous.
 
-**CRITICAL: The agent MUST write the plan file to disk.** The agent's context is discarded after it completes — only the file persists.
+The generator's context is discarded when it finishes — only the plan file persists, which is why the prompt below has it write the file.
 
 Agent prompt — include all of this:
 

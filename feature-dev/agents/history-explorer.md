@@ -54,7 +54,7 @@ Return EXACTLY this format:
 
 ## Rules
 
-- Always run git and gh commands — do not skip any exploration step
+- Run the history commands against the feature's actual paths and keywords; if a step has nothing to search, say so rather than skipping silently
 - If `gh` is not available, note it and skip PR-related steps
 - Flag any file that appears in both open PRs and the planned feature
 - Do NOT suggest implementations — only report findings and risks

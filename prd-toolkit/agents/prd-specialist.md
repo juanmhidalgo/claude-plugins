@@ -84,7 +84,7 @@ After presenting the draft:
 ### 4. Deliver
 Ask the user how they want to save the PRD:
 - **GitHub Issue**: Create via `gh` CLI
-- **ClickUp Task**: Create via ClickUp API
+- **ClickUp Task**: update an existing task via the ClickUp tools, or display the PRD for pasting (task creation is not available)
 - **Local File**: Save as markdown file
 - **Just Display**: No action needed
 

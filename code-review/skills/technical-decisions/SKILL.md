@@ -126,17 +126,6 @@ If you catch yourself thinking any of these, STOP — you are about to make a de
 | "The user said to fix it, so they chose this approach" | "Fix it" is a goal, not an implementation decision. Multiple valid approaches still require a choice. |
 | "I'll go with the simpler option to avoid over-engineering" | Simplicity is a valid recommendation, not an autonomous decision. Present both and let your human partner choose. |
 
-## Common Mistakes
-
-| Mistake | Fix |
-|---------|-----|
-| Assuming the "obvious" choice | Ask - your human partner may have context you don't |
-| Asking about everything | Only architectural/trade-off decisions |
-| Long explanations | Keep options concise |
-| No recommendation | Always suggest, with reasoning |
-| Implementing then asking | Ask BEFORE implementing |
-| Re-asking after decision | Trust the decision, move forward |
-
 ## Real Examples
 
 See [examples.md](references/examples.md) for detailed examples:
@@ -146,6 +135,6 @@ See [examples.md](references/examples.md) for detailed examples:
 
 ## The Bottom Line
 
-**When in doubt, ask.** It takes 30 seconds to ask, but hours to undo a wrong architectural decision.
+**Ask when the fix falls in one of the When to Ask categories; otherwise implement.** Asking takes 30 seconds; undoing a wrong architectural decision takes hours.
 
 Present options clearly. Give your recommendation. Let your human partner decide.

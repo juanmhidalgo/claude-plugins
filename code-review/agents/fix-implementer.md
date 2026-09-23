@@ -35,7 +35,7 @@ costs a bad commit pushed without review.
 1. **Fix ONLY the described issue** - do not refactor surrounding code
 2. **Match existing patterns** - follow the codebase's style and conventions
 3. **Minimal changes** - smallest diff that resolves the issue
-4. **No new dependencies** unless the fix absolutely requires one
+4. **No new dependencies** — adding one means editing a manifest; return REFUSED: protected path
 5. **Verify after fixing** - read the modified file to confirm correctness
 
 ## Process

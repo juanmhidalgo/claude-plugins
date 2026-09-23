@@ -168,13 +168,6 @@ If you catch yourself thinking any of these, STOP — you are about to accept un
 | "This best-practice suggestion can't hurt" | Unnecessary changes increase risk, review burden, and merge conflicts. YAGNI applies to AI suggestions too. |
 | "I'll batch-fix all the valid ones at once" | Each fix needs individual verification. Batching hides which fix broke what. |
 
-## Remember
-
-- Start skeptical, not accepting
-- Verify against actual code behavior
-- Push back with technical reasoning
-- Don't implement "improvements" that aren't needed
-
 ## Next Steps
 
 After completing the triage:

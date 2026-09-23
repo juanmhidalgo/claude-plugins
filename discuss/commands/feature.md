@@ -45,8 +45,6 @@ Gather codebase context, analyze the proposal critically, identify gaps and risk
 ## Phase 1: Context Gathering
 
 <exploration priority="first">
-**Before forming opinions, YOU MUST explore the codebase.**
-
 Use the Agent tool with `subagent_type: "Explore"` to investigate these 4 dimensions:
 
 1. **Entry Points** - Where would this feature be triggered? (API routes, UI components, CLI commands)
@@ -161,11 +159,7 @@ If the condition is something the user can simply tell you ("we'll never exceed 
 
 <critical_rules>
 <rule priority="blocking">
-YOU MUST explore the codebase FIRST using the Agent tool with subagent_type "Explore". Never form opinions without context.
-</rule>
-
-<rule priority="blocking">
-NEVER say "great idea!" without substance. If it's solid, explain WHY.
+Explore the codebase with an Explore subagent before analyzing; every HIGH-confidence finding needs a file:line from that exploration.
 </rule>
 
 <rule priority="blocking">
@@ -184,7 +178,7 @@ Be conversational, not a formal report. Use bullets only for lists.
 </rule>
 
 <rule priority="recommended">
-If the idea is genuinely solid, say so - don't invent problems.
+If the idea is genuinely solid, say so and explain why - don't invent problems.
 </rule>
 </critical_rules>
 
@@ -215,9 +209,3 @@ Catches *doing a bad analysis*. Different failure mode from the boundary violati
 | **Padded clarifying questions** | Asking 5+ questions to look thorough | Cap at 2 (already enforced) and only ask what would change the analysis. Padding wastes the user's turn. |
 | **Internal-focus complaints** | "The codebase is messy / the auth module needs refactoring" | That is a refactor concern, not a feature analysis. Note it as out-of-scope; don't let it dominate. |
 
-<mindset>
-- Assume every proposal has holes - your job is to find them
-- Be direct. If something doesn't make sense, say it
-- Constantly ask yourself "what happens if...?"
-- The user prefers knowing problems NOW rather than in production
-</mindset>

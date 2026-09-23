@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.25.1 (2026-09-22)
+
+### Fixed
+- `feature-implementer` no longer carries a paragraph copied from `plan-step-executor` claiming it sees only one step. `tdd-patterns`' cycle-cap rule now defers the re-dispatch decision to the orchestrator, matching `tdd`. `spec` no longer calls the multi-repo section "seventh".
+- `spec-driven-development` no longer argues that trivial changes need a spec, which contradicted its own description. Removed strategy coaching from the explorers, a caps-lock note outside the plan generator's prompt, and dead `SUBAGENT-STOP` guards on non-model-invocable commands.
+
 ## 1.25.0 (2026-09-17)
 
 ### Fixed

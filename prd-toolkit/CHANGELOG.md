@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.1.3] - 2026-09-22
+
+### Fixed
+- `prd-specialist` no longer offers to create ClickUp tasks via the API — it has no curl and no create tool. `prd-validator` states what "thorough" means (search synonyms and locations, list what was searched).
+
 ## [2.1.2] - 2026-05-27
 
 ### Added

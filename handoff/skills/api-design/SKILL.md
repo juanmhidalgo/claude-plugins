@@ -22,7 +22,6 @@ code-triggers:
   - "APIRouter"
   - "FastAPI"
   - "@app.route"
-  - "createTask"
 allowed-tools:
   - Read
   - Grep

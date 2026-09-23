@@ -1,7 +1,7 @@
 ---
 description: |
   Use when you need to audit the codebase for performance bottlenecks and anti-patterns.
-  Do NOT use without evidence of a problem — use /performance:profile to gather evidence first.
+  Do NOT use to measure one known-slow function or endpoint — use /performance:profile for that.
 argument-hint: "[path, endpoint, or scope]"
 keywords:
   - performance
@@ -51,7 +51,7 @@ hooks:
 
 Audit scope: **$ARGUMENTS** (if empty, audit the full codebase for anti-patterns).
 
-**Rule: NEVER optimize without measurement. Measure → Identify → Fix → Verify → Guard.**
+Label each finding's impact as measured (give the number) or estimated; static-scan findings stay estimates until Phase 3 measures them.
 
 ### Phase 1: Scope & Stack Detection
 

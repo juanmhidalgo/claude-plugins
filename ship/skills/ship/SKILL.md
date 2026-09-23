@@ -52,10 +52,6 @@ hooks:
       echo "  CI: gh run list --limit 3"
 ---
 
-<SUBAGENT-STOP>
-If you were dispatched as a subagent to execute a specific task, skip this skill and proceed with your assigned task.
-</SUBAGENT-STOP>
-
 # Ship Workflow
 
 Execute these phases in order. Stop and report at any failure.

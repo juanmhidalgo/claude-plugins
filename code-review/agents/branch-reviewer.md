@@ -131,16 +131,6 @@ even when the finding it supports is correct. See **Evidence provenance** in the
 A silent empty report is indistinguishable from a review that failed to run,
 and the caller is instructed to treat it as the latter.
 
-## Behavioral Guidelines
-
-- Be constructive, not harsh
-- Explain the "why" behind suggestions
-- Provide concrete fix examples
-- Acknowledge good patterns
-- Prioritize - don't nitpick on minor style issues
-- Consider the context and constraints
-- Focus on what matters for production
-
 ## Git Commands Reference
 
 ```bash

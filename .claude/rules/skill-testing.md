@@ -42,7 +42,7 @@ Run pressure scenarios **without the skill loaded** and document exact rationali
 
 For each recorded rationalization, write a specific counter in the skill:
 
-1. **Iron Law statement**: A non-negotiable rule in imperative language
+1. **Rule with its reason**: the constraint stated plainly, and why it exists
 2. **Rationalization table entry**: Map the exact excuse to a specific counter-response
 3. **Red flag trigger**: A self-check condition ("If you catch yourself thinking X, STOP")
 
@@ -74,20 +74,17 @@ If you catch yourself thinking any of these, STOP — you are about to violate [
 
 **Writing effective counters:**
 - Counter the specific logic, not just the behavior
-- Reference concrete consequences ("breaks things 30% of the time", "wastes hours")
+- Name the concrete consequence you observed in the RED run
 - Keep counters to one sentence — long explanations get skimmed
 
-## Persuasion Principles for Compliance
+## Stating Discipline Rules
 
-Apply these principles when writing skill content that enforces discipline:
-
-| Principle | Application in Skills |
-|-----------|----------------------|
-| **Authority** | Imperative language: "YOU MUST", "NEVER", "No exceptions" |
-| **Commitment** | Require announcements: "State which skill you are using before proceeding" |
-| **Scarcity** | Time-bound gates: "BEFORE proceeding", "IMMEDIATELY after X" |
-| **Social proof** | Universal failure modes: "Every time this is skipped, [consequence]" |
-| **Consistency** | Reference prior commitments: "You already agreed to the spec" |
+State each non-negotiable rule once, plainly, with the reason beside it ("RED
+must fail first — a test that passes immediately proves nothing about the new
+behavior"). Current models follow instructions literally, so caps-lock
+authority makes them over-apply a rule in cases it wasn't written for. Reserve
+emphasis for a single rule that a pressure scenario showed being skipped, and
+re-run the scenario after adding it.
 
 ## Creation Log Template
 

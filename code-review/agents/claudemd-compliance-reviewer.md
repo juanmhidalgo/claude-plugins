@@ -85,4 +85,4 @@ gh pr diff <PR>
 gh pr diff <PR> -- <file>
 ```
 
-Be thorough but avoid false positives. Only flag issues that directly violate CLAUDE.md requirements.
+Only flag issues that directly violate CLAUDE.md requirements.

@@ -34,7 +34,7 @@ Use the Agent tool with `subagent_type: "Explore"` to investigate:
 5. **Configuration** - Any settings or env vars related to this?
 6. **Tests** - How is this tested? What can tests teach us?
 
-Be thorough - explore related files, not just direct matches.
+Follow the topic into its callers, config, and tests, not just files whose names match.
 </exploration>
 
 ## Output Format

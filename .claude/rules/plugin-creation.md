@@ -18,7 +18,7 @@ Lessons learned from Anthropic's official documentation and practical experience
 - https://claude.com/blog/building-skills-for-claude-code
 </sources>
 
-## Skills and Commands: Now Unified
+## Skills and Commands
 
 **Commands have been merged into Skills.** A file at `.claude/commands/review.md` and a skill at `.claude/skills/review/SKILL.md` both create `/review` and work the same way.
 

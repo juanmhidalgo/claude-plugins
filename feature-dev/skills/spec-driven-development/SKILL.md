@@ -191,7 +191,7 @@ Catches *skipping the spec entirely*:
 
 | Excuse | Reality |
 |--------|---------|
-| "This is simple, no spec needed" | Simple tasks need short specs, not no specs. Two lines is fine. |
+| "This is simple, no spec needed" | If scope is genuinely self-evident, skip the spec. If you can't state the acceptance criterion in one line, it isn't simple. |
 | "I'll write the spec after coding" | That's documentation, not specification. The value is clarity before code. |
 | "The spec will slow us down" | A 15-minute spec prevents hours of rework. |
 | "Requirements will change anyway" | That's why it's a living document. Outdated spec > no spec. |

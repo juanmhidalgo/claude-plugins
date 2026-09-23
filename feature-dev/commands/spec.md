@@ -77,7 +77,7 @@ Follow the gated workflow. Each phase requires user review before advancing.
    - **QA Checklist**: A separate, QA-facing `## QA Checklist` grouped as **happy path / edge cases / error states** — a scannable list of behaviors a human verifies, distinct from the engineering-oriented Testing Strategy. Every error-state acceptance criterion should have a matching check here.
    - **Boundaries**: Always do / Ask first / Never do
 
-   **Multi-repo features only** add a seventh section between Boundaries and tasks:
+   **Multi-repo features only** add one more section between Boundaries and tasks:
    - **Cross-Repo Contracts**: Endpoint(s), request/response shape, error codes, breaking-change flag, versioning notes. This is the artifact every in-scope repo commits to and the anchor for coordination.
 
 5. **Save the spec** to `SPEC-<feature-slug>.md` in the project root. The file MUST begin with this frontmatter block (one single block — merge the optional `repos:` lines inside the `---` delimiters when multi-repo):

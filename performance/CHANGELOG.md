@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.1.3] - 2026-09-22
+
+### Fixed
+- `audit` and `profile` no longer route users to each other in their descriptions. `audit` asks for each finding to be labeled measured or estimated instead of a caps-lock "never optimize without measurement" on a command that applies no fixes.
+
 ## [1.1.2] - 2026-05-07
 
 ### Changed

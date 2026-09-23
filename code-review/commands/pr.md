@@ -96,10 +96,6 @@ Use Agent tool with `subagent_type="code-review:pr-eligibility-checker"` and `mo
 
 If not eligible, say why and stop.
 
-> The old "already reviewed by Claude" check is gone: it existed to avoid
-> double-posting, and this command no longer posts. Re-reviewing a PR in a new
-> session is a normal thing to want.
-
 ---
 
 ## Step 2: CLAUDE.md Discovery
@@ -219,8 +215,8 @@ Do NOT report as findings against this PR:
 - Issues with lint-ignore comments (intentionally silenced)
 - Intentional functionality changes
 
-Note the shift: **pre-existing issues get labeled, not suppressed.** The old
-rule dropped them silently, which is indistinguishable from not having looked.
+**Pre-existing issues get labeled, not suppressed** — a silent drop is
+indistinguishable from not having looked.
 
 ---
 
@@ -228,7 +224,6 @@ rule dropped them silently, which is indistinguishable from not having looked.
 
 - Do NOT run build/typecheck (CI handles this)
 - Keep output brief, no emojis
-- Create a todo list to track progress through the steps
 - Every finding needs a **failure scenario** — concrete inputs → wrong result.
   If one cannot be written, the finding does not ship. See the `branch-review`
   skill for the format and the vagueness filter.

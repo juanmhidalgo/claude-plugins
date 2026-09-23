@@ -48,10 +48,6 @@ hooks:
       echo "  - git diff to review what was changed"
 ---
 
-<SUBAGENT-STOP>
-If you were dispatched as a subagent to execute a specific task, skip this command and proceed with your assigned task.
-</SUBAGENT-STOP>
-
 ## Context
 - **Current branch**: !`git branch --show-current`
 - **Staged files**: !`git diff --cached --name-only`

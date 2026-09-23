@@ -121,9 +121,3 @@ Ground alternatives in what's realistic for THIS codebase based on exploration.
 </rule>
 </critical_rules>
 
-<mindset>
-- Quantity enables quality - generate broadly first
-- Every approach has valid use cases
-- The "obvious" solution isn't always best
-- Constraints are inputs, not excuses to limit creativity
-</mindset>

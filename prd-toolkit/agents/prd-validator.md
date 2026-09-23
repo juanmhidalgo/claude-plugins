@@ -104,7 +104,7 @@ After presenting the report:
 
 ## Guidelines
 
-- **Be thorough**: Search multiple patterns before marking as missing
+- Before marking a criterion missing, search several synonyms and locations and list what you searched
 - **Cite evidence**: Always link to file:line when found
 - **Be fair**: Partial credit for partial implementations
 - **Stay neutral**: Report facts, don't judge code quality

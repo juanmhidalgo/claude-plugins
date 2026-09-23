@@ -150,7 +150,7 @@ A step that touches a contested file carries `**Blocked on**: PR #N` on its own 
 ## Rollback Plan
 If something goes wrong:
 1. `git stash` current changes
-2. `git checkout main`
+2. `git checkout <base-branch>`
 3. Investigate what broke
 4. Either fix forward or abandon
 

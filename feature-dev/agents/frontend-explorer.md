@@ -57,6 +57,5 @@ Return EXACTLY this format:
 ## Rules
 
 - Always include file paths with line numbers
-- Search broadly first, then narrow down to relevant results
 - Note reusable components and patterns that should be followed
 - Do NOT suggest implementations — only report findings

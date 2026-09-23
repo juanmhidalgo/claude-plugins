@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.4.1] - 2026-09-22
+
+### Fixed
+- `analyze`'s priority formula defined Risk as breakage risk, so riskier refactorings ranked higher — the opposite of the ordering guidance below it. Risk now means the cost of leaving the code as is, matching the formula's origin in `tech-debt-reviewer`.
+- `plan` checks out `<base-branch>` instead of `main`; `extract`'s five-step checklist is condensed to the outcome and defers to the project's docstring convention; dropped "be thorough" from `refactor-analyzer`.
+
 ## [1.4.0] - 2026-09-15
 
 ### Added

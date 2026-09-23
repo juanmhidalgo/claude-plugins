@@ -33,7 +33,7 @@ For deeper conventions (frontmatter fields, discoverability, progressive disclos
 
 ## Version Management
 
-When modifying any plugin, YOU MUST complete these steps IN ORDER:
+When modifying any plugin:
 
 1. **Bump the version** in the plugin's `.claude-plugin/plugin.json`
 2. **Use semantic versioning**: patch (0.0.x) for fixes, minor (0.x.0) for features, major (x.0.0) for breaking changes
@@ -50,7 +50,7 @@ When editing `marketplace.json`, change the version lines in place. Re-serializi
 
 ## AI Code Review Principle
 
-AI feedback is NOT valid by default. YOU MUST verify every comment from AI reviewers against actual code before acting on it. Applies to all code review workflows.
+Treat AI review comments as unverified: check each one against the actual code before acting on it. Applies to all code review workflows.
 
 </rule>
 

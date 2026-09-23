@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.2] - 2026-09-22
+
+### Fixed
+- Phase ordering in the feasibility report format now matches `feasibility` and its rationalizations (customer-blocker impact first). `objection-prep`'s effort-objection trigger no longer contradicts its own blocking rule. Replaced a customer name in examples with a placeholder.
+
 ## [0.9.1] - 2026-05-27
 
 ### Added

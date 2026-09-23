@@ -70,7 +70,7 @@ For each capability and risk in the report, check whether it triggers any of the
 
 | Category | Triggers when... | Typical asker |
 |----------|------------------|---------------|
-| **Effort objection** | A capability is rated `medium` or `large` | CSM, Sales, Customer |
+| **Effort objection** | A capability looks cheap to the asker but is rated `medium` or `large` | CSM, Sales, Customer |
 | **Hack-it-for-one-customer** | A capability is `large` AND the customer is asking for a one-off | Sales, occasionally CSM |
 | **Constraint objection** | A constraint excludes a capability the customer wanted | Sales, Customer (rare from CSM) |
 | **Buy-vs-build** | A `large` capability has a known SaaS substitute | CSM, Sales |
@@ -103,7 +103,7 @@ For each likely objection, output the following:
 
 **Voice rules for the Q phrasing:**
 - Sales objections sound like: "Why does this take so long when [Competitor] just does it?" — direct, customer-pressure-flavored
-- CSM objections sound like: "How do I explain this to ADT without sounding like we don't have our act together?" — relationship-pressure-flavored
+- CSM objections sound like: "How do I explain this to [customer] without sounding like we don't have our act together?" — relationship-pressure-flavored
 - Customer objections sound like: "We thought this was a basic feature. Why isn't it supported?" — expectation-pressure-flavored
 
 **Voice rules for the response:**
@@ -181,7 +181,7 @@ NEVER suggest constraint workarounds the customer didn't ask for. If a constrain
 </rule>
 
 <rule priority="blocking">
-NEVER add objection categories the report does not support. If the report has no `large` capabilities, do not prep an effort objection — there's nothing to defend.
+NEVER add objection categories the report does not support.
 </rule>
 
 <rule priority="recommended">

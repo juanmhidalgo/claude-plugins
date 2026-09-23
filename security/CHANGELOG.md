@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.2.1] - 2026-09-22
+
+### Fixed
+- The quick-reference table no longer uses OWASP 2013/2017 numbering under a "Top 10" title. Password-hashing guidance no longer applies a bcrypt cost factor to scrypt/argon2. `security-auditor`'s "not theoretical risks" rule now matches its own LOW severity definition.
+
 ## [1.2.0] - 2026-07-20
 
 ### Added

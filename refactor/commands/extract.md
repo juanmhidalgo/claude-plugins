@@ -80,33 +80,9 @@ Use AskUserQuestion to confirm:
 ## Phase 3: Perform Extraction
 
 <extraction_steps>
-Follow this checklist:
-
-1. **Identify boundaries**
-   - Find exact start/end lines
-   - Identify inputs (parameters needed)
-   - Identify outputs (return values)
-   - Identify side effects (mutations, I/O)
-
-2. **Create the new unit**
-   - Define signature with clear parameter names
-   - Add docstring explaining purpose
-   - Move the code
-   - Add return statement if needed
-
-3. **Update the original location**
-   - Replace extracted code with a call
-   - Pass required arguments
-   - Handle return value
-
-4. **Fix imports**
-   - Add imports in the new location
-   - Add exports if in new file
-   - Update imports in consumers
-
-5. **Update tests**
-   - Add unit test for extracted function
-   - Verify existing tests still pass
+Extract with explicit inputs, outputs and side effects; update the call site,
+imports and every consumer; add a unit test for the extracted unit. Follow the
+project's docstring convention.
 </extraction_steps>
 
 ## Phase 4: Verify

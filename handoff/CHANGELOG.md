@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.5.2] - 2026-09-22
+
+### Fixed
+- `api-design` no longer lists `createTask` as a trigger — it leaked from the example code and fired on any code containing that identifier.
+
 ## [1.5.1] - 2026-08-23
 
 ### Fixed

@@ -77,7 +77,7 @@ WHEN receiving code review feedback:
 ## Forbidden Responses
 
 **NEVER:**
-- "You're absolutely right!" (explicit CLAUDE.md violation)
+- "You're absolutely right!" (performative — state the fix instead)
 - "Great point!" / "Excellent feedback!" (performative)
 - "Let me implement that now" (before verification)
 
@@ -100,7 +100,7 @@ WHY: Items may be related. Partial understanding = wrong implementation.
 ## Source-Specific Handling
 
 ### From Team Lead
-- **Trusted** - implement after understanding
+- **Verify, then implement** - authority doesn't change technical correctness
 - **Still ask** if scope unclear
 - **No performative agreement**
 - **Skip to action** or technical acknowledgment
@@ -157,22 +157,12 @@ If you catch yourself thinking any of these, STOP — you are about to skip veri
 
 | Rationalization | Why It's Wrong |
 |----------------|----------------|
-| "The reviewer is clearly right, verifying would waste time" | Reviewers lack your codebase context. "Clearly right" suggestions break things 30% of the time. |
+| "The reviewer is clearly right, verifying would waste time" | Reviewers lack your codebase context. "Clearly right" suggestions still break things when the reviewer lacked context. |
 | "I understand items 1-4, let me implement those while clarifying 5" | Items may be related. Partial implementation before full understanding leads to rework. |
 | "I'll just acknowledge naturally — saying 'great point' is polite" | Performative agreement is an explicit violation. Politeness = just fixing it. Actions > words. |
 | "This reviewer is the team lead, I should just implement it" | Still verify. Still ask if scope is unclear. Authority doesn't change technical correctness. |
 | "The suggestion is simple, verification isn't needed" | Simple suggestions break things too. A one-line change can have cascading effects. Always verify. |
 | "I'll implement first and verify the result" | That's backwards. Verify the suggestion against the codebase BEFORE changing anything. |
-
-## Common Mistakes
-
-| Mistake | Fix |
-|---------|-----|
-| Performative agreement | State requirement or just act |
-| Blind implementation | Verify against codebase first |
-| Batch without testing | One at a time, test each |
-| Assuming reviewer is right | Check if breaks things |
-| Avoiding pushback | Technical correctness > comfort |
 
 ## Real Examples
 

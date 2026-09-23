@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.3 (2026-09-22)
+
+### Changed
+- Removed the `SUBAGENT-STOP` guard from `fix`: the skill has `disable-model-invocation: true`, so no subagent can reach it.
+
 ## 1.2.2 - 2026-05-27
 
 ### Added

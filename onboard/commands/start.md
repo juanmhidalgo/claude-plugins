@@ -91,7 +91,7 @@ Produce a structured guide:
 
 <critical_rules>
 <rule priority="blocking">
-Use the Explore agent to gather real information. Don't make assumptions.
+Base every section on what onboard-discoverer found or on files you read; mark anything unverified.
 </rule>
 
 <rule priority="blocking">

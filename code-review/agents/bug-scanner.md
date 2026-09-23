@@ -28,11 +28,10 @@ cannot write a failure scenario for a call you have not looked at.
 | `medium` | Above, plus callers of changed functions and the tests covering them |
 | `high` / `max` | Follow the data path until you can confirm or refute each candidate |
 
-The old instruction here was "stay shallow — avoid reading extra context". It
-is gone deliberately. Paired with a downstream verification gate, a scanner
-that refuses to read context produces candidates too thin to survive it, and
-the pair silently converged on reporting nothing. Cheap does not mean blind:
-be *narrow* — one PR, the changed lines — but read what those lines touch.
+Paired with a downstream verification gate, a scanner that refuses to read
+context produces candidates too thin to survive it, and the pair converges on
+reporting nothing. Cheap does not mean blind: be *narrow* — one PR, the changed
+lines — but read what those lines touch.
 
 You still do not need to: read the whole codebase, run builds or typecheckers,
 or review code the PR did not change (that is `pre_existing`).
@@ -113,4 +112,4 @@ Return a JSON object:
 gh pr diff <PR>
 ```
 
-Focus on OBVIOUS bugs. When in doubt, don't flag it. Avoid false positives.
+Report candidates you can write a failure scenario for; the verifier downstream filters the rest.

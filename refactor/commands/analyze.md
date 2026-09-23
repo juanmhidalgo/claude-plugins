@@ -127,7 +127,7 @@ From the conflict scout. If it could not reach `gh`, say so here instead of repo
 
 Score each refactoring on a 1-5 scale:
 - **Impact**: How much does this improve readability/extensibility/testability? (1 = barely, 5 = unblocks future work)
-- **Risk**: What's the risk of breaking something while doing it? (1 = trivial, 5 = touches critical paths without coverage)
+- **Risk**: What does leaving it cost? (1 = harmless, 5 = actively causing defects or blocking work). Breakage risk while refactoring is handled by the Coverage gap override below.
 - **Effort**: How long will it take? (1 = minutes, 5 = weeks)
 
 **Priority = (Impact + Risk) × (6 − Effort)** — rewards high-value refactorings that are cheap to do.

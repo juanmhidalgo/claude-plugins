@@ -79,7 +79,7 @@ automated `REQUEST_CHANGES` over two nitpicks trains the author to dismiss the n
   either a finding or it is not.
 - **Claims you did not verify are hypotheses, and say so in the first sentence** —
   not in a trailing caveat. The reviewer reads the first line and acts on it.
-- **Two sentences is the ceiling.** Longer belongs in the body.
+- **Keep an inline comment to the defect and its trigger;** anything longer belongs in the review body.
 - **Use a suggestion block when the fix is a literal replacement** — the author
   clicks Apply instead of reading prose:
 

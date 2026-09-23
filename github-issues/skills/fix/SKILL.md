@@ -51,10 +51,6 @@ hooks:
       echo "  - If this fix requires changes in another repo, check the handoff prompt above"
 ---
 
-<SUBAGENT-STOP>
-If you were dispatched as a subagent to execute a specific task, skip this skill and proceed with your assigned task.
-</SUBAGENT-STOP>
-
 ## Context
 
 - **Repository**: !`git remote get-url origin 2>/dev/null || echo "no remote"`

@@ -1,5 +1,14 @@
 # Changelog
 
+## 3.3.1 (2026-09-22)
+
+### Fixed
+- `pipeline` no longer preloads `technical-decisions`, whose "When in doubt, ask" contradicted the pipeline's autonomous mode (`staged-pipeline` keeps it behind its approval gate). The "only stop if…" line now points at the full decision table and containment rules instead of listing two conditions.
+- `pr-eligibility-checker` no longer runs the "already reviewed by Claude" check that `pr.md` had already dropped.
+- `pr-feedback-analyst` no longer lists "ran the code/tests" as evidence — it cannot run tests and must not claim execution — and uses Read/Grep instead of shell examples outside its allowlist.
+- `fix-implementer`'s "no new dependencies unless required" escape hatch now matches its protected-manifest rule. `bug-scanner`'s closing "when in doubt, don't flag" now matches its own rationale (the verifier filters downstream).
+- Removed migration-relative phrasing ("the old instruction…", "replaces the old…"), a codeword and a "CLAUDE.md violation" borrowed from another project's conventions, the unsourced "30% of the time" figure, duplicate Common Mistakes / Remember tables, generic-virtue lists, a todo-list instruction, and dead `SUBAGENT-STOP` guards on non-model-invocable commands. `receiving-code-review` now says to verify team-lead feedback too, as its own table already did.
+
 ## 3.3.0 (2026-09-16)
 
 ### Added

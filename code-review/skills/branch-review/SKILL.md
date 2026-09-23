@@ -102,8 +102,7 @@ Two failure modes to avoid: a token counter-case written to satisfy the format (
 
 ### Failure scenario is the vagueness filter
 
-`**Failure scenario:**` replaces the old `**Risk:**` field, and the change is
-not cosmetic. "Risk" accepts an abstraction — *"this could cause data
+`**Failure scenario:**` is not an abstract risk field. "Risk" accepts an abstraction — *"this could cause data
 integrity problems"* — which is exactly the shape a plausible-sounding false
 positive takes. A failure scenario does not: it demands specific inputs or
 state, and the specific wrong result.

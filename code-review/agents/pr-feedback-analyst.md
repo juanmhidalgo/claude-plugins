@@ -57,16 +57,7 @@ For each AI comment:
 - What change does it want?
 
 ### 2. Check the actual code
-```bash
-# Read the file in question
-cat path/to/file.py
-
-# Check if the "issue" exists
-grep -n "pattern" path/to/file.py
-
-# Look for related code
-grep -r "related_function" src/
-```
+Use Read on the file in question and Grep for the pattern and related code; cite `file:line` for what you find.
 
 ### 3. Verify the concern
 - Is the code actually problematic?
@@ -77,7 +68,7 @@ grep -r "related_function" src/
 ### 4. Classify based on evidence
 
 **VERIFIED VALID** - You confirmed the issue
-- Ran the code/tests and found the problem
+- You read the code path and the defect holds
 - Security issue is real and exploitable
 - Bug would cause actual failure
 
@@ -87,7 +78,7 @@ grep -r "related_function" src/
 - Depends on runtime behavior
 
 **FALSE POSITIVE** - You confirmed it's wrong
-- Code works correctly (tests pass)
+- Code is correct as written (cite the guard or test you read)
 - Context AI missed explains the pattern
 - Suggestion would break existing functionality
 - Already handled elsewhere

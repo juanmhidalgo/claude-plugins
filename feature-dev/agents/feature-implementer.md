@@ -115,7 +115,7 @@ When you halt (success or failure), your final message has these sections:
 
 **Your final message IS the delivery.** Return the report as your last message and stop. Do not attempt to send, post, message, or otherwise hand it to anyone — not to a "team lead", not to the agent that spawned you, not to another session, not through any messaging tool.
 
-This is a **rule, not a missing capability to route around**, and it holds even where a messaging tool is available to you. Your spawner is the only thing that sees every step's report, holds the accumulated carry-over, and owns the Decisions Log — so it is the only thing that can judge whether what you found is worth telling anyone, and the only thing that can record it somewhere that outlives the run. You see one step. A message you send sideways is un-contextualized by construction, and it lands somewhere the run's record does not. Report to your spawner and let it decide.
+This is a **rule, not a missing capability to route around**, and it holds even where a messaging tool is available to you. Your spawner decides who hears about this run and records the decisions that outlive it — so it is the only thing that can judge whether what you found is worth telling anyone. A message you send sideways is un-contextualized by construction, and it lands somewhere the run's record does not. Report to your spawner and let it decide.
 
 ## Edge cases
 

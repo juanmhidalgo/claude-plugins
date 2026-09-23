@@ -53,6 +53,5 @@ Return EXACTLY this format:
 ## Rules
 
 - Always include file paths with line numbers
-- Search broadly first, then narrow down to relevant results
 - Note when something expected is missing (e.g., no permissions on an endpoint)
 - Do NOT suggest implementations — only report findings

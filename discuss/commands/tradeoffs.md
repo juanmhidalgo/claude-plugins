@@ -161,9 +161,3 @@ If one option is clearly superior for this context, say so directly.
 </rule>
 </critical_rules>
 
-<mindset>
-- There's no universally "best" option - only best for this context
-- The goal is informed decision-making, not analysis paralysis
-- Sometimes the "boring" option is correct
-- Acknowledge when options are genuinely close calls
-</mindset>

@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.2.1] - 2026-09-22
+
+### Fixed
+- `start` no longer tells the model to use the Explore agent after spawning `onboard-discoverer`. `explore` states the scope to follow instead of "be thorough".
+
 ## [1.2.0] - 2026-04-16
 
 ### Changed
