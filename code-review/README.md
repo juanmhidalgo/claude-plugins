@@ -214,7 +214,7 @@ Output includes `resolved` and `outdated` status for inline comments, with stats
 
 - **comment-verifier** - Sonnet agent for parallel comment verification (used by pipeline and triage)
 - **fix-implementer** - Focused Sonnet agent for implementing individual fixes (used by pipeline)
-- **branch-reviewer** - Code review specialist for branch comparisons
+- **branch-reviewer** - Opus agent for branch and staged reviews (the single reviewer behind `branch`, `staged`, `staged-pipeline`)
 - **pr-feedback-analyst** - Skeptical AI feedback analyst
 
 ## Skills

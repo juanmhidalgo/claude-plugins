@@ -2,7 +2,9 @@
 name: branch-reviewer
 description: "Code review specialist for branch comparisons and PR preparation. Use PROACTIVELY when: (1) Reviewing branch changes before merge, (2) Comparing current branch vs main/develop, (3) Preparing code for PR submission, (4) Analyzing diffs for security/performance issues."
 tools: Bash(git log *), Bash(git diff *), Bash(git show *), Bash(git blame *), Bash(git rev-parse *), Bash(git symbolic-ref *), Bash(git branch --show-current), Bash(git status), Bash(gh pr view *), Bash(gh pr diff *), Bash(gh pr list *), Read, Grep, Glob
-model: sonnet
+# Measured on a real 326-line change, same prompt: sonnet found nothing and stated falsely
+# that nothing fell outside the plan; opus found two confirmed issues in 1/3 the tool calls.
+model: opus
 skills: branch-review
 ---
 

@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.4.0 (2026-09-23)
+
+### Changed
+- **`branch-reviewer` runs on `opus`** (was `sonnet`). It is the single reviewer behind `/code-review:branch`, `:staged` and `:staged-pipeline`, so its misses go straight to the user. Measured on a real 326-line change with the same prompt: `sonnet` reported no findings and stated that nothing in the diff fell outside the approved plan, which was false; `opus` found two confirmed issues (an error path where the toast and the sheet contradicted each other, a regression test filed under an unrelated feature), the unplanned change to a shared test stub, and two consumers the plan had missed — in 16 tool calls against 51, and less wall-clock time.
+- The fan-out agents of `/code-review:pr` (`bug-scanner`, `claudemd-compliance-reviewer`, and the rest) and the verifiers stay on `sonnet`: they run several at a time, their output is filtered downstream, and there is no measurement for them yet.
+
 ## 3.3.1 (2026-09-22)
 
 ### Fixed
