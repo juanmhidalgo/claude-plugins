@@ -9,8 +9,8 @@ Feature development workflows with structured phases and quality gates.
 | `/feature-dev:spec <feature>` | Create a structured specification before coding with gated review workflow |
 | `/feature-dev:tdd <spec>` | Test-driven feature development: write failing tests, implement, coverage gate, refactor |
 | `/feature-dev:explore-plan <feature>` | Parallel codebase exploration with 4 agents, synthesized implementation plan |
-| `/feature-dev:spec-review [file]` | Validate a `SPEC-*.md` for structural gaps; emits Blocking / Should Address / Nice to Have checklist |
-| `/feature-dev:plan-review [file]` | Validate a `PLAN-*.md` for structural gaps; emits Blocking / Should Address / Nice to Have checklist |
+| `/feature-dev:spec-review [file]` | Validate a `SPEC-*.md` for structural gaps and check its claims about the existing code; emits Blocking / Should Address / Nice to Have checklist |
+| `/feature-dev:plan-review [file]` | Validate a `PLAN-*.md` for structural gaps, step contract and baseline; emits Blocking / Should Address / Nice to Have checklist |
 | `/feature-dev:cleanup` | Bulk-delete implemented `SPEC-*.md` and stale `PLAN-*.md` artifacts; explicit Y/N confirmation required |
 
 ## Agents
@@ -37,7 +37,7 @@ Feature development workflows with structured phases and quality gates.
 
 | Agent | Focus |
 |-------|-------|
-| `spec-plan-validator` | Structural gap detection on `SPEC-*.md` / `PLAN-*.md` |
+| `spec-plan-validator` | Structural gap detection on `SPEC-*.md` / `PLAN-*.md`, plus a read-only check of the spec's claims about the existing code (opus) |
 
 **Implementation** — dispatched by the main agent (or each other) once a plan is approved:
 
@@ -52,18 +52,21 @@ Feature development workflows with structured phases and quality gates.
 
 | Skill | Purpose |
 |-------|---------|
-| `spec-driven-development` | Gated specification workflow: assumption surfacing, success criteria, six-area spec template |
+| `spec-driven-development` | Gated specification workflow: assumption surfacing, numbered acceptance criteria, spec template |
 | `tdd-patterns` | Institutional TDD knowledge: iteration limits, coverage gates, phase constraints |
 
 ## Workflow
 
 The commands are designed to chain:
 
-1. **`/feature-dev:spec`** — Define requirements and create a specification
-2. **`/feature-dev:explore-plan`** — Understand the codebase and create a plan
-3. **`/feature-dev:tdd`** — Execute the plan with test-driven development
+1. **`/feature-dev:spec`** — Define requirements and create a specification. It stops at the spec: what, why, numbered acceptance criteria (`AC-1`…), QA checklist and boundaries. Pass `--with-tasks` to also append a high-level plan and task list, for when you will not run `explore-plan`.
+2. **`/feature-dev:spec-review`** *(optional)* — Structural check plus a **code-claims pass**: the spec's load-bearing claims about the existing code (paths, symbols, nullability, relationship direction, migration numbers) are checked against the repo and reported as CONFIRMED / DRIFTED / REFUTED / UNVERIFIED.
+3. **`/feature-dev:explore-plan`** — Understand the codebase and create the plan. The plan is the only place implementation steps live, and it carries a **Baseline**: every `Verify` command run once on HEAD, so broken or hollow gates surface at planning time instead of mid-run.
+4. **`/feature-dev:tdd`** — Execute the plan with test-driven development
 
 Each command can also be used independently.
+
+Every approval gate ends with a short **review brief** instead of re-printing the artifact: what was decided, what was assumed, which claims about the code are unverified, and what is out of scope — numbered, so you can answer "2: no, 5: ok".
 
 ### How `/feature-dev:tdd` executes
 
@@ -72,6 +75,13 @@ The command is an **orchestrator, not an implementer**. After loading the plan i
 Dispatch is sequential by design — later criteria depend on symbols earlier ones introduce, and concurrent runners collide on overlapping files.
 
 Steps whose `Test:` is `n/a` (migrations, config wiring, dependency bumps) route to **`plan-step-executor`** instead — nothing to drive test-first, but the step's `Verify` command still gates it.
+
+Two step shapes keep plans short:
+
+- **`Pins:`** — tests that only lock in behavior that already exists ride on the step whose test file they belong to, instead of becoming steps of their own. The runner writes them after the step's criterion is green and proves each one can fail.
+- **`Kind: characterization`** — refactors, deprecations and removals whose tests are expected to pass on the first run. `tdd-runner` runs them in characterization mode: write the tests, see them green, prove each can fail with a temporary mutation, restore the tree.
+
+The plan's **Baseline** tells `/tdd` which failures were already on HEAD, so a pre-existing red test is attributed to the baseline instead of halting the run, and a step whose gate checks nothing (`hollow`) or cannot run here (`not-run: missing`) is settled with you once, before the first dispatch — fix the environment, replace the `Verify`, or accept the step as verified by its own tests — and the answer is written into the plan so a resumed run does not ask again.
 
 ### Resuming a halted run
 

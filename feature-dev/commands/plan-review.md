@@ -53,9 +53,10 @@ Use the Agent tool to invoke the `spec-plan-validator` subagent with:
 The agent will:
 1. Read the plan file
 2. If frontmatter `source_spec:` is set, verify the linked SPEC file exists
-3. Run the PLAN-specific structural checklist
-4. Emit a categorical report (Blocking / Should Address / Nice to Have) with section references
-5. State explicitly when no blocking gaps exist
+3. Run the PLAN-specific structural checklist, including the `### Baseline` section (steps whose `Verify:` is `hollow` or `not-run: missing` on HEAD and not yet `accepted by user`), `Kind:` / `Pins:` usage, and the step-count cap
+4. Check that every Files to Modify path exists and no Files to Create path already does
+5. Emit a categorical report (Blocking / Should Address / Nice to Have) with section references
+6. State explicitly when no blocking gaps exist
 
 ## Phase 2: Present and Stop
 
@@ -68,6 +69,6 @@ After the agent returns:
 ## Rules
 
 - **Never auto-fix the plan.** Findings are advisory. The user must explicitly edit and re-run, or re-invoke `/feature-dev:explore-plan` to regenerate.
-- **Never opine on technical choices.** This command checks structure and completeness only — not whether the implementation order or chosen approach is right.
+- **Never opine on technical choices.** This command checks structure, completeness, and that the paths the plan names exist — not whether the implementation order or chosen approach is right.
 - **Never gate other commands on this.** This command is opt-in by design.
 - **The PLAN file is a local working artifact.** Never suggest committing it and never run git commands against it. It should be listed in the project's `.gitignore` (added automatically by `/feature-dev:explore-plan`).

@@ -34,14 +34,18 @@ allowed-tools:
 
 ## The Gated Workflow
 
-Four phases. Do not advance until the current phase is validated by the user.
+Do not advance until the current phase is validated by the user.
 
 ```
-SPECIFY ──→ PLAN ──→ TASKS ──→ IMPLEMENT
-   │          │        │          │
-   ▼          ▼        ▼          ▼
- Review     Review   Review    Review
+SPECIFY ──→ [PLAN ──→ TASKS] ──→ IMPLEMENT
+   │          │        │            │
+   ▼          ▼        ▼            ▼
+ Review     Review   Review      Review
 ```
+
+PLAN and TASKS are optional. The default path is Specify, then `/feature-dev:explore-plan` writes the step-level plan from the code. Run them (`/feature-dev:spec --with-tasks`) only when no explore-plan run will follow — otherwise the spec carries a second plan that explore-plan re-derives with different numbering, and the two drift.
+
+Each gate ends with a short review brief (decided / assumed / unverified claims about the code / out of scope — the format is in `/feature-dev:spec`), not the whole artifact re-printed: the user approves from what they read in the chat.
 
 ### Phase 1: Specify
 
@@ -57,7 +61,7 @@ ASSUMPTIONS I'M MAKING:
 
 Write a spec covering eight areas:
 1. **Objective** — What, why, who
-2. **Acceptance Criteria** — A dedicated, scannable section of observable, user-facing criteria (do not bury them in Objective). Include at least one failure/error-state criterion, not only happy-path outcomes. This is what downstream review, planning, and QA anchor to.
+2. **Acceptance Criteria** — A dedicated, scannable section of observable, user-facing criteria (do not bury them in Objective), each with a stable id: `- **AC-1** — ...`. Never renumber on edit — new criteria take the next number, removed ones retire theirs — because plans and `/feature-dev:tdd` cite criteria by id. Include at least one failure/error-state criterion, not only happy-path outcomes. This is what downstream review, planning, and QA anchor to.
 3. **Commands** — Full executable commands (build, test, lint, dev)
 4. **Project Structure** — Where source, tests, and docs live
 5. **Code Style** — One real snippet showing conventions
@@ -79,20 +83,16 @@ Reframe vague requirements as testable success criteria. Ban these words from ac
 
 If you cannot define it, you cannot test it. Push back on the user rather than ship a vague criterion.
 
-### Phase 2: Plan
+When the spec itself commits to an architectural choice — new pattern, framework, data store, integration, or significant refactor — record its **Consequences** next to the decision in the spec. This does not wait for the optional Plan phase, which usually does not run.
 
-With validated spec, generate a technical plan:
-- Major components and dependencies
-- Implementation order
-- Risks and mitigations
-- What can parallelize vs. must be sequential
-- Verification checkpoints between phases
-- **Consequences** (required when the plan makes an architectural choice — new pattern, framework, data store, integration, or significant refactor). Three-way split:
-  - **What becomes easier** — capabilities or future work this unlocks
-  - **What becomes harder** — costs the team takes on
-  - **What we'll need to revisit later** — the conditions under which this decision should be reopened (scale threshold, new use case, contract change)
+#### Consequences
 
-The third clause is the operational gold. Most spec/ADR templates stop at pros/cons; "revisit when" forces the plan to name the conditions that would invalidate the choice, rather than letting the decision drift into "permanent" by default.
+Three-way split:
+- **What becomes easier** — capabilities or future work this unlocks
+- **What becomes harder** — costs the team takes on
+- **What we'll need to revisit later** — the conditions under which this decision should be reopened (scale threshold, new use case, contract change)
+
+The third clause is the operational gold. Most spec/ADR templates stop at pros/cons; "revisit when" forces the decision to name the conditions that would invalidate the choice, rather than letting the decision drift into "permanent" by default.
 
 Example:
 
@@ -101,24 +101,35 @@ Example:
 > - **Harder**: Schema migrations require event upcasters; consumers see eventual consistency.
 > - **Revisit when**: Event volume exceeds 10k/sec (storage cost), or a non-billing domain wants to read the events (cross-domain coupling concern).
 
-### Phase 3: Tasks
+### Phase 2: Plan (optional)
+
+With validated spec, generate a high-level technical plan:
+- Major components and dependencies
+- Implementation order
+- Risks and mitigations
+- What can parallelize vs. must be sequential
+- Verification checkpoints between phases
+- **Consequences** (above) for any architectural choice the plan adds
+
+### Phase 3: Tasks (optional)
 
 Break into discrete, implementable tasks:
 - Completable in one focused session
-- Explicit acceptance criteria and verification step
+- Explicit acceptance criteria (citing the AC ids covered) and verification step
 - Ordered by dependency, not importance
 - No task changes more than ~5 files
 
 ```markdown
 - [ ] Task: [Description]
   - Accept: [What must be true]
+  - Covers: [AC ids]
   - Verify: [Test command or check]
   - Files: [Which files]
 ```
 
 ### Phase 4: Implement
 
-Execute tasks using the **`feature-dev:tdd-patterns`** skill (RED-GREEN-REFACTOR cycle, 5-cycle iteration limit, stuck-after-3 rule, coverage gate workflow). One task at a time, verify before advancing. Do not duplicate the cycle's rules here — `tdd-patterns` is the canonical reference.
+Execute from the `PLAN-<slug>.md` (or, when the optional phases ran, from the spec's tasks; with neither, `/feature-dev:tdd` derives criteria from the spec's AC ids) using the **`feature-dev:tdd-patterns`** skill (RED-GREEN-REFACTOR cycle, 5-cycle iteration limit, stuck-after-3 rule, coverage gate workflow). One task at a time, verify before advancing. Do not duplicate the cycle's rules here — `tdd-patterns` is the canonical reference.
 
 ## Multi-Repo Features
 
@@ -136,7 +147,7 @@ When detected, the spec gains:
 - A **Cross-Repo Contracts** section: endpoint(s), request/response shape, error codes, breaking-change flag. This is the artifact every repo commits to.
 - A **Decisions Log** section (see below). In a multi-repo feature this is not optional bookkeeping: each repo is implemented by a separate run, and the log is the only thing those runs share besides the contract.
 - Per-repo subsections under Commands, Project Structure, Code Style, and Testing Strategy.
-- Tasks tagged with `Repo:` and ordered so contract-owners ship before consumers.
+- When the optional Tasks phase runs: tasks tagged with `Repo:` and ordered so contract-owners ship before consumers. On the default path that ordering is the plan's job.
 
 Single-repo features omit all of the above — no behavior change.
 
@@ -205,7 +216,7 @@ Catches *writing a bad spec*. Different failure mode from skipping. Catch yourse
 |---------|-------------------|-----|
 | **Vague criteria** | "Should be fast / easy / intuitive / seamless" | Replace with measurable thresholds. If you cannot define it, you cannot test it. |
 | **Solution-prescriptive stories** | "As a user, I want a dropdown menu so that..." | Describe the need, not the UI. The dropdown is one of many possible solutions. |
-| **Internal-focus stories** | "As an engineer, I want to refactor the database..." | That is a task, not a user story. Move it to the Plan phase. |
+| **Internal-focus stories** | "As an engineer, I want to refactor the database..." | That is a task, not a user story. Move it to the plan (`PLAN-<slug>.md`, or the spec's optional Plan phase). |
 | **Everything is P0** | All requirements marked must-have | Apply the cut-test to each. Real P0 lists are short. |
 | **Padded open questions** | Questions you could answer yourself | Move answerable items to assumptions. Open questions are genuine unknowns. |
 | **Perfunctory boundaries** | "Never do: anything not listed above" | Name 3-5 specific adjacent capabilities you will *not* build, with one-line rationale per item. |
@@ -216,12 +227,12 @@ Catches *writing a bad spec*. Different failure mode from skipping. Catch yourse
 Before proceeding to implementation:
 - [ ] Spec covers all eight core areas
 - [ ] User has reviewed and approved the spec
-- [ ] Success criteria live in a dedicated **Acceptance Criteria** section (not buried in Objective) and include at least one failure/error-state criterion
+- [ ] Success criteria live in a dedicated **Acceptance Criteria** section (not buried in Objective), each with a stable `AC-n` id, and include at least one failure/error-state criterion
 - [ ] A **QA Checklist** (happy path / edge cases / error states) exists, distinct from the engineering Testing Strategy
 - [ ] Success criteria are specific and testable (no banned vague words without concrete definitions)
 - [ ] Boundaries (Always / Ask First / Never) are defined with one-line rationale per Never-do item
 - [ ] P0 list passes the cut-test (≤5 items, each truly required to solve the core problem)
 - [ ] Open questions are genuinely open, owner-tagged, and marked blocking vs non-blocking
 - [ ] Spec is saved as a local working artifact (`SPEC-<slug>.md`, not committed)
-- [ ] **Multi-repo only**: `repos:` frontmatter, Cross-Repo Contracts section, and `Repo:` task tags are present and confirmed by user
+- [ ] **Multi-repo only**: `repos:` frontmatter and Cross-Repo Contracts section are present and confirmed by user (plus `Repo:` task tags when the optional Tasks phase ran)
 - [ ] **Multi-repo only**: a `## Decisions Log` section exists (may be empty at spec time — it is filled during implementation)

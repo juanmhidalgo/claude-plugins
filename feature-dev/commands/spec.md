@@ -2,7 +2,7 @@
 description: |
   Use before writing code when requirements are ambiguous or a feature has non-obvious scope.
   Do NOT use for simple, self-evident changes.
-argument-hint: "<feature or project description>"
+argument-hint: "<feature or project description> [--with-tasks]"
 model: opus
 keywords:
   - spec
@@ -25,9 +25,9 @@ hooks:
     once: true
     command: |
       echo "Spec complete. Next steps:"
-      echo "  - /feature-dev:spec-review to validate the spec for structural gaps (optional)"
-      echo "  - /feature-dev:explore-plan to explore the codebase"
-      echo "  - /feature-dev:tdd to start test-driven implementation"
+      echo "  - /feature-dev:spec-review to check the spec for gaps and its claims against the code (optional)"
+      echo "  - /feature-dev:explore-plan to explore the codebase and write the step-level plan"
+      echo "  - /feature-dev:tdd SPEC-<slug>.md to implement straight from the spec (it auto-discovers only PLAN files; without one it derives criteria from the spec's tasks or AC ids)"
 ---
 
 <SUBAGENT-STOP>
@@ -49,9 +49,13 @@ If you were dispatched as a subagent to execute a specific task, skip this comma
 
 ## Spec-Driven Development Workflow
 
-You are creating a structured specification for: **$ARGUMENTS**
+**First, strip flags from `$ARGUMENTS`.** `--with-tasks` turns on the optional Plan and Tasks phases below. Remove it before anything else reads `$ARGUMENTS` — what remains is the feature description. Record whether it was passed.
 
-Follow the gated workflow. Each phase requires user review before advancing.
+You are creating a structured specification for the feature description left after stripping flags: **$ARGUMENTS**
+
+By default this command ends at the spec: Phase 1, then Handoff. The step-level plan is `/feature-dev:explore-plan`'s job, and a spec that also carries its own plan and task list ends up holding a second plan that explore-plan re-derives with different numbering. With `--with-tasks` (for when explore-plan will not be run), Phases 2 and 3 run between Specify and Handoff.
+
+Each phase that runs requires user approval before advancing.
 
 ### Phase 1: Specify
 
@@ -61,7 +65,7 @@ Follow the gated workflow. Each phase requires user review before advancing.
    - **Signal B**: `additionalDirectories` (Context block above) lists sibling repos as accessible.
    - **Signal C**: `../CLAUDE.md` exists and catalogs sibling repos with their purpose — read it to learn the repo set.
 
-   Treat as multi-repo only when **A AND (B OR C)** hold. `additionalDirectories` alone is a false positive (users grant access for reference, not feature scope). If only one repo is in scope, skip the multi-repo sections (frontmatter `repos:`, "Cross-Repo Contracts", repo task tags) for the rest of this phase.
+   Treat as multi-repo only when **A AND (B OR C)** hold. `additionalDirectories` alone is a false positive (users grant access for reference, not feature scope). If only one repo is in scope, skip the multi-repo sections (frontmatter `repos:`, "Cross-Repo Contracts", repo task tags) for the rest of this command.
 
 2. **Surface assumptions.** List 3-5 assumptions you're making about the tech stack, architecture, and scope. For multi-repo features, include the inferred repo set as one of the assumptions (e.g., "Scope: <backend-name> + <frontend-name>"). Ask the user to confirm or correct — single round-trip.
 
@@ -69,7 +73,7 @@ Follow the gated workflow. Each phase requires user review before advancing.
 
 4. **Write the spec** covering these eight areas:
    - **Objective**: What we're building, why, who it's for
-   - **Acceptance Criteria**: A dedicated, scannable `## Acceptance Criteria` section of observable, user-facing criteria — do NOT bury these as a "what success looks like" aside inside Objective. Include **at least one failure/error-state criterion**, not only happy-path outcomes (e.g., "a draft requisition never appears via `GET /public/jobs`", "an invalid/absent `jobId` falls back to `jobTitle` without erroring"). This is the single artifact downstream review, planning, and QA anchor to.
+   - **Acceptance Criteria**: A dedicated, scannable `## Acceptance Criteria` section of observable, user-facing criteria — do NOT bury these as a "what success looks like" aside inside Objective. Give each criterion a stable id: `- **AC-1** — <criterion>`. Ids are never renumbered when the spec is edited: a new criterion takes the next free number and a removed one retires its id, because plans (`Covers:`) and `/feature-dev:tdd` cite criteria by id. Include **at least one failure/error-state criterion**, not only happy-path outcomes (e.g., "a draft requisition never appears via `GET /public/jobs`", "an invalid/absent `jobId` falls back to `jobTitle` without erroring"). This is the single artifact downstream review, planning, and QA anchor to.
    - **Commands**: Full executable commands (build, test, lint, dev). For multi-repo features, group commands per repo.
    - **Project Structure**: Where code, tests, and docs live (explore each in-scope repo first). For multi-repo features, render one subsection per repo.
    - **Code Style**: One real snippet from each in-scope repo showing conventions
@@ -77,8 +81,8 @@ Follow the gated workflow. Each phase requires user review before advancing.
    - **QA Checklist**: A separate, QA-facing `## QA Checklist` grouped as **happy path / edge cases / error states** — a scannable list of behaviors a human verifies, distinct from the engineering-oriented Testing Strategy. Every error-state acceptance criterion should have a matching check here.
    - **Boundaries**: Always do / Ask first / Never do
 
-   **Multi-repo features only** add one more section between Boundaries and tasks:
-   - **Cross-Repo Contracts**: Endpoint(s), request/response shape, error codes, breaking-change flag, versioning notes. This is the artifact every in-scope repo commits to and the anchor for coordination.
+   **Multi-repo features only** add one more section after Boundaries:
+   - **Cross-Repo Contracts**: Endpoint(s), request/response shape, error codes, breaking-change flag, versioning notes. This is the artifact every in-scope repo commits to and the anchor for coordination. It belongs to the spec, so it is written with or without `--with-tasks`.
 
 5. **Save the spec** to `SPEC-<feature-slug>.md` in the project root. The file MUST begin with this frontmatter block (one single block — merge the optional `repos:` lines inside the `---` delimiters when multi-repo):
 
@@ -108,9 +112,30 @@ Follow the gated workflow. Each phase requires user review before advancing.
 
 6. **Update `.gitignore`.** If the project's `.gitignore` does not already include `SPEC-*.md`, add it. The spec is a local working artifact, not a repo deliverable — this prevents accidental commits via `git add .`. (Mirrors the same step performed by `/feature-dev:explore-plan` for `PLAN-*.md`.)
 
-7. **Present to user** for review. Do NOT proceed until they approve.
+7. **Present the review brief** (below) — not the spec itself. Do NOT proceed until the user approves.
 
-### Phase 2: Plan
+### Review brief
+
+Every approval gate in this command ends with this block instead of re-printing the spec. Users answer from the chat, not from the file: a several-hundred-line spec pasted back buries the few decisions they actually need to rule on. Keep it to ~15 lines, number items continuously across groups so the user can answer "2: no, 5: ok", and omit a group that would be empty. Give the path; show full content only when asked.
+
+```markdown
+### Review brief — SPEC-<slug>.md (<line count> lines)
+**Decided** (review if you disagree)
+1. <a choice the spec makes that the user did not state — scope cut, contract shape, error behavior>
+**Assumed — confirm**
+2. <an assumption from step 2 that the user has not confirmed, or one added while writing>
+**Unverified claims about the code**
+3. `<Model.field>` is nullable — not checked
+**Out of scope**
+- <the Never-do / out-of-scope items, one line each>
+Reply with the numbers you want changed, or "approved".
+```
+
+"Unverified claims about the code" lists the facts about existing code the spec relies on — paths, symbols, field nullability, FK direction, endpoint paths, migration numbers, config keys — that you did not open the file to confirm. Say "not checked" rather than guessing; `/feature-dev:spec-review` checks them against the code.
+
+For Phases 2 and 3, the brief covers only what that phase added (its decisions, assumptions and unverified claims), with the same header.
+
+### Phase 2: Plan (only with `--with-tasks`)
 
 With the approved spec, append an **Implementation Plan** section to the SPEC file (after Boundaries, or after Cross-Repo Contracts when multi-repo). It must cover:
 
@@ -119,13 +144,13 @@ With the approved spec, append an **Implementation Plan** section to the SPEC fi
 3. Risks and mitigations
 4. Verification checkpoints
 
-This is a high-level outline only — the codebase-aware, file-level plan lives in `PLAN-<slug>.md` produced by `/feature-dev:explore-plan` downstream. Save the updated SPEC and present the new section for review.
+This is a high-level outline only — the codebase-aware, file-level plan lives in `PLAN-<slug>.md` produced by `/feature-dev:explore-plan`. Save the updated SPEC and end with the review brief.
 
-### Phase 3: Tasks
+### Phase 3: Tasks (only with `--with-tasks`)
 
 Break the plan into discrete tasks:
 - Each completable in one session
-- Explicit acceptance criteria
+- Explicit acceptance criteria, citing the AC ids they satisfy
 - Verification step (test command, build, manual check)
 - Ordered by dependency
 - No task changes more than ~5 files
@@ -133,6 +158,7 @@ Break the plan into discrete tasks:
 ```markdown
 - [ ] Task: [Description]
   - Accept: [What must be true]
+  - Covers: [AC ids, e.g. AC-2, AC-4]
   - Verify: [How to confirm]
   - Files: [Which files]
 ```
@@ -143,15 +169,16 @@ Break the plan into discrete tasks:
 - [ ] Task: [Description]
   - Repo: [name from frontmatter `repos:`]
   - Accept: [What must be true]
+  - Covers: [AC ids]
   - Verify: [How to confirm]
   - Files: [Which files, paths relative to that repo]
 ```
 
-Add tasks to the spec file. Present for review.
+Add tasks to the spec file and end with the review brief.
 
 ### Phase 4: Handoff
 
-After all phases are approved:
+After every phase that ran is approved:
 - The `SPEC-<slug>.md` file is a **local working artifact**, not a repo deliverable. Do NOT commit it, and do NOT run any git commands. Downstream commands read it directly from the working tree.
 - Confirm the spec's frontmatter `status:` is `approved` (it will be flipped to `implemented` automatically when `/feature-dev:tdd` finishes).
 - Stop here. The Stop hook will surface the next-step options (`/feature-dev:spec-review`, `/feature-dev:explore-plan`, or `/feature-dev:tdd`) — let the user choose.
@@ -160,7 +187,9 @@ After all phases are approved:
 
 - **Never skip assumption surfacing.** Silent assumptions are the most dangerous form of misunderstanding.
 - **Never advance phases without user approval.** Each gate exists to catch misalignment early.
+- **Stop at the spec unless `--with-tasks` was passed.** Without the flag, no Implementation Plan or Tasks section is written — explore-plan produces the plan from the code, and a second plan in the spec only diverges from it.
+- **End each gate with the review brief, not the artifact.** The brief is what the user actually reads before approving; its "Unverified claims" group is where a wrong assumption about the code gets caught before it becomes an AC.
 - **Reframe, don't accept vagueness.** Convert "make it better" into measurable criteria.
-- **The spec is a living document.** Update it when decisions change, don't abandon it.
+- **The spec is a living document.** Update it when decisions change, don't abandon it. Keep AC ids stable across edits.
 - **Multi-repo: declare scope explicitly in frontmatter.** The `additionalDirectories` setting grants access; the spec's `repos:` block declares intent. It is the canonical record of which repos are in scope — future downstream tooling will read it rather than re-inferring from settings.
-- **Multi-repo: write the contract before the tasks.** The Cross-Repo Contracts section is the coordination anchor — both sides build against it. Skipping it lets the two repos drift.
+- **Multi-repo: write the contract in the spec.** The Cross-Repo Contracts section is the coordination anchor — both sides build against it, and with `--with-tasks` it is written before the tasks. Skipping it lets the two repos drift.
