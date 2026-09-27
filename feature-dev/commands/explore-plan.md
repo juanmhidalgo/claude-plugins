@@ -5,7 +5,7 @@ allowed-tools:
   - Read
   - Agent
   - Glob
-argument-hint: "[feature description — optional; auto-discovers SPEC-*.md if omitted]"
+argument-hint: "[SPEC-*.md path or feature description — optional; auto-discovers SPEC-*.md if omitted]"
 description: |
   Use when starting a feature that touches multiple parts of the codebase and you need a
   structured implementation plan before coding.
@@ -22,14 +22,6 @@ triggers:
   - "parallel exploration"
   - "implementation plan for"
   - "understand the codebase for"
-hooks:
-  - event: Stop
-    once: true
-    command: |
-      echo "Exploration complete."
-      echo "  - /feature-dev:plan-review to validate the plan for structural gaps (optional)"
-      echo "  - Review the plan above, then run /feature-dev:tdd to implement"
-      echo "  - Or start a NEW conversation and run /feature-dev:tdd (maximizes context)"
 ---
 
 ## Context
@@ -40,7 +32,8 @@ hooks:
 ## Phase 0: Resolve Feature and Validate
 
 1. **Resolve the feature:**
-   - **If `$ARGUMENTS` is provided** → use it as the feature description. Record `source_spec: null`.
+   - **If `$ARGUMENTS` is the path of an existing `SPEC-*.md`** → use that spec as if it had been auto-selected below (the closing lines of `/feature-dev:spec` and `/feature-dev:spec-review` print this form).
+   - **If `$ARGUMENTS` is any other text** → use it as the feature description. Record `source_spec: null`.
    - **If `$ARGUMENTS` is empty** → auto-discover spec files. Use Glob with pattern `SPEC-*.md` in the repo root, then read each file's frontmatter and **filter out any spec with `status: implemented`** (those features are already shipped). From the remaining candidates:
      - **0 specs** → **STOP** and ask the user for a feature description.
      - **1 spec** → use it. Read its frontmatter, use `feature:` as the feature description, record the spec path as `source_spec`. Inform the user: "Auto-selected spec: `SPEC-<slug>.md` (feature: <name>, status: <status>)". If `status: draft`, also warn: "This spec is still in draft — the user may not have approved it yet. Proceed anyway?" and wait for confirmation.
@@ -118,7 +111,7 @@ Do NOT launch an explorer the caller did not select, and do NOT skip one it did.
 
 ## Step 2: Synthesize and Write Plan
 
-After all agents complete, synthesize findings into a plan and write it to [PLAN-<slug>.md] using the Write tool.
+After all agents complete, synthesize the findings and draft the Implementation Order against the Step 2b rules. Run the Step 2c baseline on the draft's commands, then write the plan to [PLAN-<slug>.md] using the Write tool.
 
 The plan MUST follow this template:
 
@@ -167,6 +160,13 @@ completed_steps: []
 #### Observability
 [Key findings from observability-explorer: logging stack, metrics, tracing, error reporting, alerting, conventions for adding new signals]
 
+### Baseline
+Run on `<short sha>` at plan time. /tdd uses this to attribute failures.
+
+| Command | Steps | Result on HEAD | Detail |
+|---|---|---|---|
+| `[command]` | [step numbers] | [pass / expected-red / pre-existing-fail / hollow / not-run] | [what the output showed; for `not-run`, start with `missing` / `slow` / `writes`] |
+
 ### Files to Modify
 | File | Change | Layer |
 |------|--------|-------|
@@ -181,10 +181,15 @@ completed_steps: []
 
 <!-- Each step is ONE bounded, independently verifiable change. This is the unit
      /feature-dev:tdd dispatches to a tdd-runner and feature-implementer dispatches
-     to a plan-step-executor. A step without Accept + Verify is not dispatchable. -->
+     to a plan-step-executor. A step without Accept + Verify is not dispatchable.
+     Optionally group steps under `#### Milestone N — <name>` headings; numbering
+     stays global and continuous across milestones. -->
 
 1. **[Step name]**
+   - Kind: [behavior | characterization — optional, default behavior]
    - Accept: [one specific, testable acceptance criterion — observable behavior, not "implement X"]
+   - Pins: [optional — existing behaviors this step's test file must also lock in; only on a step whose Test is a path it creates]
+   - Covers: [optional — spec AC ids, e.g. AC-3, AC-5]
    - Impl: [path to the production file this step changes]
    - Test: [path to the test file that proves it; add `(written by step N)` if an earlier step creates it; or `n/a — <reason>` for non-behavioral steps]
    - Verify: [exact runnable command scoped to this step]
@@ -221,25 +226,75 @@ completed_steps: []
 The downstream agents halt on a step that violates these. A plan that fails them is a TODO list, not a plan. Re-read your Implementation Order against this list before writing the file.
 
 1. **`Verify` must be a real, runnable command** — built from the test runner, config, and path conventions the test-explorer reported. `pytest tests/test_booking.py::test_no_active_subjects`, `npm run test:run -- src/composables/useBooking.spec.ts`. Never a description (`run the tests`, `check it works`), never a command you did not confirm the project actually has.
-2. **`Accept` is one criterion, testable in isolation.** If stating it needs an "and", split the step. "when contact has no active subjects, `start_booking` returns `NO_SUBJECTS`" — not "add the booking flow".
+2. **`Accept` is one criterion, testable in isolation.** If stating it needs an "and", split the step. "when contact has no active subjects, `start_booking` returns `NO_SUBJECTS`" — not "add the booking flow". The split applies to new behavior only. A test that merely locks in behavior that already exists (no production change) is a `Pins:` bullet on the step that creates its Test file, never a step of its own — each step costs a runner dispatch, and a pin-only step just passes at RED.
+   A step that changes structure but not behavior (refactor, deprecation, removal behind a flag), whose tests are expected to pass on first run, is `Kind: characterization`. Never use it for new behavior: it skips the RED that proves the behavior was missing.
 3. **`Impl` and `Test` are file paths, not layers.** Each must also appear in the Files to Modify / Files to Create tables above. If a step's impl spans two unrelated modules, split it.
 4. **Non-behavioral steps still need `Verify`.** A migration, a config wiring, or a dependency bump has no test file — write `Test: n/a — <reason>` and give `Verify` a command that proves the step landed (`python manage.py migrate --check`, `npm run typecheck`, `make lint`). These steps route to `plan-step-executor` instead of `tdd-runner`.
 5. **Order by dependency, not by layer.** A step consuming a symbol another step introduces comes after it, and names it in `Depends on`.
 6. **Say who writes the test.** When one step writes a test file and a later step makes it pass, the later step's `Test:` must carry `(written by step N)`. Without that marker the executor cannot tell "write this test" from "make this existing test pass", and will try to write a test that already exists. A step whose `Test:` and `Impl:` are BOTH `n/a` is an environment precondition (rebase, migration check, dependency install) — legitimate, but it still needs a `Verify` command.
+7. **Re-examine a plan over ~20 steps before writing it.** Fold pin-only steps into `Pins:` and structure-only steps into `Kind: characterization`; above 25 the plan review flags it. What remains large can be grouped under `#### Milestone N — <name>` headings. Milestones are for reading; they add no gate.
+
+## Step 2c: Baseline — run every gate once on HEAD
+
+/feature-dev:tdd attributes each step's failures against this table. Without it, a command that was already red on HEAD halts the run mid-way and waits on the user; a gate that checks nothing passes a step that was never verified.
+
+1. **Collect the distinct commands**: every step's `Verify`, plus any suite, lint, or migration gate a step names, plus the full-suite, lint and coverage commands /tdd's Phases 4–5 will run — those phases attribute against this table too. Run each exactly once on the current HEAD (`git rev-parse --short HEAD` for the sha), with a timeout (`timeout 300 <command>`).
+2. **Classify each from its own output**, using exactly one of:
+   - `pass`
+   - `expected-red` — fails, or is empty, only because the plan has not run yet: the test file or symbol does not exist, or the selector matches a test this plan writes (`go test -run TestNew` reporting "no tests to run", a `--passWithNoTests` run over a file not yet created). Detail names the step that creates it.
+   - `pre-existing-fail` — fails for reasons outside this plan. Detail lists the failing test ids; for a count-only gate (lint), the total count plus the per-file count for each file this plan touches (a touched file with no findings is omitted — /tdd reads an absent file as 0). /tdd matches on exactly these.
+   - `hollow` — succeeds but its output shows it exercised nothing, and it would still exercise nothing after the plan runs (0 apps loaded without an env var, a target no step writes to).
+   - `not-run` — could not run. Detail starts with the reason, one of: `missing` (a tool, service or env var is absent — the command cannot work as written), `slow` (would take over ~5 min — typically the full suite and coverage), or `writes` (would mutate state: files, migrations, a non-test database). /tdd gates only on `missing`; `slow` and `writes` rows dispatch normally and are verified at run time.
+3. **Record only what the output shows.** A `hollow` comes from the output, never from suspicion; "probably pre-existing" is not a Detail.
+4. **Mutate nothing.** Never install, start, or restart anything to make a command runnable, and never run one that writes to the tree — mark it `not-run` (`writes`). Compare `git status --short` before and after; if a run changed the tree anyway, say so in its Detail and in Risks rather than reverting it yourself.
+5. **Leave gate-blocking rows standing** (`hollow`, and `not-run` for `missing`). If a different command you confirmed on HEAD is a real gate for the same step, use it as the `Verify` and baseline that one instead; otherwise keep the row as it is — /tdd asks the user about every such step before its first dispatch.
 
 ## Step 3: Update .gitignore
 
 If PLAN-*.md is not in the project's .gitignore, add it.
 ```
 
-## Phase 2: Present Plan for Review
+## Phase 2: Plan Review (automatic)
 
-After the agent completes:
+The plan is validated before the user sees it. When plan review was a separate, optional command it ran in 2 of 6 features, and in one of those the user carried the result over by pasting a review run in another session.
 
-1. Read the `PLAN-<slug>.md` file from disk
-2. Present the full plan to the user
-3. **If the plan carries a `Degraded exploration` line, lead with it** — say which layers had no explorer and that those findings had a single reader. A plan the user reviews as if eight agents cross-checked it, when one did not, is the failure mode worth a sentence at the top.
-4. Ask:
-   - Does this look correct? Any files or areas I missed?
-   - Any decisions you'd like to override?
-   - Ready to implement? (Suggest `/feature-dev:tdd` to start)
+1. Spawn `feature-dev:spec-plan-validator` with `artifact_type: plan` and `artifact_path: PLAN-<slug>.md`. Leave `name` unset, for the same reason as the generator: it is a nested worker, and its fresh context is what makes it a review rather than the generator re-reading its own work.
+2. **If it returns Blocking findings**, re-dispatch the generator once: a new anonymous `general-purpose` Agent (no `name`) whose prompt gives the plan path, the Blocking findings verbatim, and these instructions — fix each finding in place with Edit, touching only what the finding names; read the code a fix needs, but do not re-run the explorers; a changed or new step still follows Step 2b and a changed or new `Verify` is baselined per Step 2c (include both sections of the Phase 1 prompt verbatim in this prompt); a finding that cannot be fixed without a user decision is left as it is and named in the reply. Then spawn the validator again on the edited plan. There is no second re-dispatch: a Blocking finding that survives one fix needs the user, not another pass.
+3. **Should Address and Nice to Have findings** are not re-dispatched; they go into the brief.
+
+Keep the final validator report for Phase 3. Do not print it in full.
+
+## Phase 3: Review Brief
+
+Read `PLAN-<slug>.md` from disk and end with a review brief instead of re-printing the plan. Users approve from the chat; a plan printed in full gets approved unread, while a short numbered list gets answered item by item. Give the full plan only on request.
+
+1. **If the plan carries a `Degraded exploration` line, lead with it** — say which layers had no explorer and that those findings had a single reader. A plan the user reviews as if eight agents cross-checked it, when one did not, is the failure mode worth a sentence at the top.
+2. Then the brief: at most ~15 lines, numbering continuous across groups so the user can answer "2: no, 5: ok", empty groups omitted.
+
+```markdown
+### Review brief — PLAN-<slug>.md (<N> lines, <T> steps)
+**Plan review** — <B> Blocking left (<F> fixed in one pass), <S> Should Address
+1. Blocking: <finding, section>
+2. <Should Address finding, section>
+- Nice to Have: <n> — <short list, one line>
+**Decided** (review if you disagree)
+3. <a Key Decision and its recommendation, one line>
+**Assumed — confirm**
+4. <an assumption a step relies on that exploration did not settle; a `pre-existing-fail` Baseline row /tdd will treat as baseline>
+**Unverified claims about the code**
+5. Step 9 `make run-api` — Baseline `not-run`: missing — pipenv not installed
+**Out of scope**
+- <what the plan deliberately leaves out>
+Reply with the numbers you want changed, or "approved".
+```
+
+The **Plan review** group leads because a remaining Blocking finding is the one thing that stalls /tdd. Blocking findings come first, then Should Address. A finding that restates a Baseline row already listed under Unverified is not repeated. When the validator found nothing, the group is one line: `**Plan review** — clean`.
+
+Every Baseline row that gates a step — `hollow`, or `not-run` for `missing` — goes under **Unverified**, with a note that /tdd will ask about it before its first dispatch (fix the environment, give a replacement `Verify`, or accept the step as unverifiable by its gate). `not-run` for `slow` or `writes` goes there too, without the note: it does not gate, but nothing checked it on HEAD.
+
+3. End with the next commands, using the plan path from Phase 0, then stop:
+
+   ```
+   Next: answer the brief, then /clear and /feature-dev:tdd PLAN-<slug>.md   (a fresh context leaves /tdd's budget to the steps)
+   /feature-dev:plan-review PLAN-<slug>.md only if you edit the plan by hand
+   ```

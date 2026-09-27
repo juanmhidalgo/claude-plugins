@@ -49,6 +49,8 @@ If the plan path doesn't exist or doesn't parse as a step list, halt and report 
 For each step from `start_at_step` to end:
 
 1. **Parse the step** out of the plan: description, file paths, verification command(s), acceptance criteria.
+   - A step with `Pins:` or `Kind: characterization` → halt before dispatch: those steps need `/feature-dev:tdd`, because `tdd-runner` is the only agent that writes pins and proves each test can fail. `plan-step-executor` would drop them silently.
+   - If the plan has a `### Baseline`, use it as `/feature-dev:tdd` does: a failure listed in a `pre-existing-fail` row is attributable to HEAD, not a halt, and a step whose `Verify` row is `hollow` or `not-run: missing` without `accepted by user` halts before dispatch, quoting the row.
 2. **Build the step-executor prompt**:
    - Step description + acceptance criteria (verbatim from plan).
    - File paths and verification command(s).
@@ -57,7 +59,7 @@ For each step from `start_at_step` to end:
 4. **Parse its report**: Tree state (only when present) / Files changed / Verification / Deviations / Carry-over / Blockers.
 5. **Decide**:
    - Report says verification passed AND no blockers → accumulate carry-over, advance to next step.
-   - Verification failed → halt. Report the failure. Do not spawn another executor.
+   - Verification failed (beyond the Baseline's `pre-existing-fail` rows) → halt. Report the failure. Do not spawn another executor.
    - Blocker present → halt. Report the blocker verbatim. Do not spawn another executor.
    - **Executor stopped at its turn limit** (its notification says so, and carries a handle to continue it) → **resume it before reconstructing anything.** The stalled agent still holds the context for the sites it had already enumerated; continuing it costs one message, while rebuilding its state from the diff costs you exactly the budget you delegated the step to protect. Rebuild by hand only after a resume has failed or stalled a second time — and read a second stall as a mis-sized step, not as an agent that needs more turns. A stall is accidental and recoverable; the deliberate hand-back below is neither.
    - **Tree state: BROKEN** → halt, and carry the whole block into your final report verbatim. The executor stopped mid-change on purpose; the tree does not compile or pass until the reserved half is wired. **Never dispatch the next step over a broken tree** — that executor will read your breakage as a pre-existing failure and burn its budget on it. Never commit. Wiring is the spawner's job or the user's, not the next executor's.

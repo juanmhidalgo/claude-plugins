@@ -21,7 +21,7 @@ keywords:
 
 Phases are strictly sequential. Never skip or reorder:
 
-1. **RED**: Write tests that MUST fail. If any test passes immediately, it is testing existing behavior — remove or rewrite it.
+1. **RED**: Write tests that MUST fail. If any test passes immediately, it is testing existing behavior — remove or rewrite it. The exceptions are a step dispatched in characterization mode and a step's `Pins:`, whose tests are meant to pass on first run; there, a passing test proves nothing until a temporary mutation shows it can fail (see `tdd-runner`).
 2. **GREEN**: Write the minimum code to make tests pass. No refactoring, no optimization, no "while I'm here" changes.
 3. **REFACTOR**: Only after all tests are green. Run tests after every refactoring change. If a test breaks during refactor, undo the refactoring change.
 
@@ -37,7 +37,7 @@ When a test fails during the GREEN phase:
 
 ### Check Changed Files Only
 
-1. Run coverage on the full test suite but report coverage for **changed/new files only**.
+1. Report coverage for **changed/new files only**. A `tdd-runner` measures within its step's `Verify` scope — a full-suite run per step costs turns it does not have. The orchestrator's aggregate pass after all steps is where the full suite runs.
 2. Use the project's configured coverage tool and thresholds first.
 3. If no coverage configuration exists, apply **80% line coverage minimum** on changed files.
 
@@ -65,7 +65,7 @@ If you catch yourself thinking any of these, STOP — you are about to violate t
 | Rationalization | Why It's Wrong |
 |----------------|----------------|
 | "I already know the implementation, let me write tests after" | That's testing after, not TDD. The test must fail first to prove it tests the right thing. |
-| "The test passes immediately — the code already handles this" | A passing test on first run means it tests existing behavior, not new behavior. Remove or rewrite it. |
+| "The test passes immediately — the code already handles this" | A passing test on first run means it tests existing behavior, not new behavior. Remove or rewrite it — unless the step is characterization or the test is a pin, and then prove it can fail. |
 | "This test is wrong, let me fix the assertion" | Default action is fix the implementation, not the test. Only fix tests with actual bugs (wrong setup, wrong assertion). |
 | "I'll add coverage tests at the end" | Coverage is checked per-cycle, not batched. Below-threshold files need tests NOW, not later. |
 | "I'm on cycle 4, one more try should work" | After 5 cycles, you STOP. After 3 identical failures, you STOP immediately. These limits exist because continuing wastes time. |

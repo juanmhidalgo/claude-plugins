@@ -283,6 +283,8 @@ a prompt defines for itself.
 
 ### Hooks for Next Step Guidance
 
+A `Stop` hook fires when a turn ends, and `once: true` makes that the *first* turn. Use one only for a command that finishes in a single turn. A command that asks the user anything (AskUserQuestion, a confirmation, a round-trip) ends its first turn before its work is done, so the hook prints "done" too early and never fires again. For those, make the command's last step print the next command itself, with the artifact path it already knows. feature-dev removed its Stop hooks in 1.27.0 for this reason.
+
 ```yaml
 hooks:
   - event: Stop
@@ -316,7 +318,7 @@ Use the Agent tool with `subagent_type: "Explore"` to understand:
 | Generic skill description | Won't trigger correctly | Be specific about when/what |
 | Skill has generic knowledge | Wastes context tokens | Only include institutional knowledge |
 | Long skill (200+ lines) | Context bloat | Use progressive disclosure |
-| No hooks | Poor UX, no next steps | Add Stop hooks |
+| No next-step guidance | Poor UX, no next steps | Stop hook for single-turn commands; a final step that prints the next command for interactive ones |
 | Missing shell context | Less useful output | Use `!` backticks |
 | `context: fork` on interactive skill | Subagent can't ask user questions | Only fork complete tasks |
 | No `disable-model-invocation` on destructive | Claude might auto-trigger | Add to deploy, commit, delete actions |

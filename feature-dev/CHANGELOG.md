@@ -1,5 +1,62 @@
 # Changelog
 
+## 1.27.0 (2026-09-27)
+
+Second batch from the same retro: fewer hand-made handoffs between steps, scope settled before anything else, and nothing lost when artifacts are cleaned up.
+
+### Added
+- **`/feature-dev:explore-plan` reviews its own plan.** After the generator writes the plan, the command runs `spec-plan-validator` on it in a fresh context. On Blocking findings it re-dispatches the generator once to fix them in place, re-baselining any `Verify` it changes, then validates again. The findings lead the review brief. **Why:** `plan-review` was optional and ran in only 2 of 6 features, and one of those runs was pasted in from another session. `/feature-dev:plan-review` remains for plans edited by hand.
+- **`/feature-dev:spec-review` offers to apply its fixes.** "Never auto-fix" becomes "never fix without confirmation". Findings whose edit follows directly from the finding (a missing AC id, a drifted path) can be applied after one question. Findings that need a decision, such as a REFUTED claim an AC depends on, stay in the brief. **Why:** users typed "Fix your findings" by hand, and interrupted `explore-plan` to do it.
+- **A scope question before anything else in `/spec`.** It asks which repos and components are in and what is explicitly out, as a single question with a recommended option, before assumptions and before exploring. The spec gains `## Non-Goals`, which feeds the brief's Out of scope group. The validator's "Out of Scope statement" row becomes a Non-Goals row (Nice to Have). **Why:** in 2 of 6 features the scope changed after the spec was approved, forcing re-plans. A scope question mixed in with other questions sat unanswered for almost 7 hours.
+- **`/feature-dev:cleanup` rescues before deleting.** When a spec has Decisions Log entries or unticked QA items, cleanup offers three options for it: post them as a comment on the open PR of *the spec's own* `branch:`, save them to `docs/decisions/<slug>.md`, or delete anyway, in which case the report lists what was lost. It comments rather than editing the PR body, because re-typing someone else's description is where a slip overwrites it. Headings carry the slug, so a rerun never posts twice. A spec whose rescue failed is not deleted. **Why:** a real cleanup deleted a manual QA checklist that had not been run and the only copy of a feature's decisions.
+- **The QA Checklist has a fixed shape:** `### Happy path` / `### Edge cases` / `### Error states` groups of `- [ ]` items that the user ticks while verifying. This gives cleanup something reliable to detect.
+- **`/feature-dev:tdd SPEC-<slug>.md`** runs without a plan. Criteria come from the spec's tasks or AC ids, decisions go to that spec's Decisions Log, and the spec is marked `implemented` on success. It is meant for small features; `explore-plan` is still the default.
+
+### Changed
+- **The Stop hooks of `spec`, `spec-review`, `explore-plan`, `plan-review` and `tdd` are gone.** Each command's last step now prints the exact next command with the artifact path it just wrote or read, and suggests `/clear` before `/tdd`. A halted `/tdd` run prints its own resume command. **Why:** a `once: true` Stop hook fires at the end of the *first* turn. In a command that asks questions (scope, then assumptions, or explore-plan's draft-spec confirmation) that is before the artifact exists, and the hook never fires again. The old generic text hid this; a hook printing a concrete path would have pointed at an older, possibly implemented, artifact.
+- `explore-plan` now accepts a `SPEC-*.md` path and `tdd` a `PLAN-*.md` path as their argument, so the printed command works as-is.
+- `spec-review` applies fixes before writing its brief, lets you pick fixes with a multi-select, and never touches `status:`.
+
+## 1.26.0 (2026-09-27)
+
+Driven by a retro of 19 sessions (6 features, 6 repos, 2026-09-14 → 09-27) that ran the spec → explore-plan → tdd flow. The gates existed but did not catch what later stalled implementation. The fixes move that discovery earlier and shrink what the user has to read.
+
+### Added
+- **The plan carries a `### Baseline`.** The explore-plan generator runs every distinct `Verify` and gate command once on HEAD before writing the plan, and records each as `pass`, `expected-red`, `pre-existing-fail`, `hollow` or `not-run`. It never installs, starts or restarts anything to make a command runnable.
+  - **Why:** in 5 of 6 features at least one `Verify` was broken on HEAD and nobody knew until `/tdd` reached it. Causes included master already red, 99 pre-existing ruff findings, and a migration gate that loaded zero apps without an env var, so it checked nothing. In one feature this caused 4 of 6 halts and about 2.5 h of waiting on the user.
+  - **How `/tdd` uses it:**
+    - Failure attribution becomes a lookup: a failure listed as `pre-existing-fail` belongs to the baseline, and anything else belongs to the change. Lint rows carry per-file counts for the files the plan touches, so a finding is attributable when its file's count has not grown. This gives the existing "an unattributable verification is a failure" rule a data source; it does not relax the rule.
+    - `not-run` carries a reason: `missing`, `slow` or `writes`. Only `hollow` and `not-run: missing` gate a step. `/tdd` settles every gated step in Phase 2, before the first dispatch, with one question each: fix the environment, replace the `Verify`, or accept the step as verified by its own tests. It writes the answer into the plan (`accepted by user: …`), so a resumed run does not ask again.
+    - A precondition step that moves HEAD, such as a rebase, re-runs the remaining Baseline commands instead of invalidating them.
+    - The full-suite, lint and coverage commands of Phases 4–5 are baselined too.
+  - Plans without a Baseline keep the previous behaviour, and `plan-review` flags them.
+- **Code-claims pass in `spec-review`.** The validator pulls up to ~15 load-bearing claims about the existing code out of the spec: paths, symbols, nullability and FK direction, import direction, migration numbers, config keys. It checks each with Read and Grep and reports it as CONFIRMED, DRIFTED, REFUTED or UNVERIFIED, with `file:line` and the quoted line. A REFUTED claim that an acceptance criterion depends on is Blocking. The validator still offers no opinions on design.
+  - **Why:** three specs passed with 0 Blocking and then proved wrong against the code, found by explore-plan or `/tdd` between 12 minutes and hours later. The errors were an inverted mapping, an import cycle, and a non-null FK that made an acceptance criterion unreachable.
+  - The validator has no Bash, and its contract forbids claiming it ran anything; anything that needs execution is UNVERIFIED. The validator now runs on **opus**, because an A/B on the sibling `issue-verifier` showed sonnet confirming a harmful fix that opus refuted.
+  - `plan-review` gains a path check: Files to Modify must exist, and Files to Create must not.
+- **Review brief at every approval gate.** `/spec`, `/spec-review` and `/explore-plan` no longer re-print the artifact. They end with a block of about 15 lines: Decided, Assumed (confirm), Unverified claims about the code, and Out of scope. Items are numbered continuously, so the user can answer "2: no, 5: ok".
+  - **Why:** specs of 332–378 lines were approved 37–72 s after being written, and decisions were answered from the chat summary ("D2 … D3 …", "1.OK 2.OK"). The brief makes the fast approval an approval of the things that matter.
+- **`tdd-runner` characterization mode and `Pins:`.**
+  - `Kind: characterization` covers refactor, deprecation and removal steps. The runner writes tests against the current code, sees them pass, proves each one can fail with a temporary mutation that it restores in the same command, then makes the structural change. New outcome: `pinned`.
+  - `Pins:` covers tests that only lock in behavior that already exists. They ride on the step that creates their test file and are proven falsifiable the same way. A pin that fails on first run is a behavior gap and is reported as a blocker.
+  - **Why:** plans of 49 and 62 steps. Splitting on every "and" turned each regression pin into its own step. In one run 16 of 45 steps passed at RED, and in another 4 of 4. Each such step cost a runner plus about 6k tokens of orchestrator context; one run grew from 98k to 389k.
+- **Acceptance criteria carry stable ids (`**AC-1**`).** Ids are never renumbered. Plan steps and spec tasks may cite them in `Covers:`, and `/tdd` without a plan starts from them.
+
+### Changed
+- **`/spec` stops at the spec.** The Implementation Plan and Tasks phases now run only with `--with-tasks`, for when `explore-plan` will not run. Before this, the spec carried a plan that explore-plan then re-derived with different numbering (bulk: T1–T19 became 23 steps), and one spec grew to 1073 lines. The architectural Consequences block moves into Phase 1 of `spec-driven-development`.
+- **Plan size guidance.** Step 2b rule 2 now splits on "and" for new behavior only. A new rule 7 says to re-examine a plan with more than ~20 steps; above 25, `plan-review` raises Should Address. Optional `#### Milestone N — <name>` headings group steps for reading, and step numbering stays continuous.
+- **`tdd-runner` gets `plan-step-executor`'s hard rules:**
+  - no mutating the environment to unblock itself;
+  - no git state changes of any kind (one runner ran `git stash` and then contradicted itself in its report);
+  - enumerate before you mutate, and hand back a `Tree state: BROKEN` manifest when it stops mid-change.
+  
+  It also gets a budget section: run only the step's `Verify` during cycles, stop early on a step that is too big for the budget, and re-check the tree when resumed. `maxTurns` stays at 25.
+- **`/tdd` resumes a turn-limit stop once** with SendMessage before doing anything else. A second stop on the same step is treated as a mis-sized step and halts, matching `feature-implementer` (1.24.1). The retro counted 15 turn-limit stops.
+- **`/tdd` progress is one line per step, in the user's language only.** There is no longer a duplicated recap in two languages. `/tdd` waits for notifications instead of polling with `sleep`, and prints one line when a new milestone starts.
+- **`feature-implementer` halts on steps with `Pins:` or `Kind: characterization`** and points to `/feature-dev:tdd`, because only `tdd-runner` writes pins and does the falsifiability proof. It reads the Baseline the same way `/tdd` does. Before this, those plans would have silently dropped the pins on the non-TDD path.
+- **The global coverage threshold moves from `tdd-runner` to `/tdd` Phase 4.** Checking it per step would need a full-suite run, which the runner's new budget rule forbids.
+- **`tdd-patterns` now allows first-run passes in characterization mode and for pins,** provided a mutation shows each test can fail. A runner measures coverage within its step's `Verify` scope; the full suite runs only in the orchestrator's aggregate pass.
+
 ## 1.25.1 (2026-09-22)
 
 ### Fixed
