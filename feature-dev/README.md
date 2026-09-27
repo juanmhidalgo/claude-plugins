@@ -11,7 +11,7 @@ Feature development workflows with structured phases and quality gates.
 | `/feature-dev:explore-plan <feature>` | Parallel codebase exploration with 4 agents, synthesized implementation plan |
 | `/feature-dev:spec-review [file]` | Validate a `SPEC-*.md` for structural gaps and check its claims about the existing code; emits Blocking / Should Address / Nice to Have checklist |
 | `/feature-dev:plan-review [file]` | Validate a `PLAN-*.md` for structural gaps, step contract and baseline; emits Blocking / Should Address / Nice to Have checklist |
-| `/feature-dev:cleanup` | Bulk-delete implemented `SPEC-*.md` and stale `PLAN-*.md` artifacts; explicit Y/N confirmation required |
+| `/feature-dev:cleanup` | Bulk-delete implemented `SPEC-*.md` and stale `PLAN-*.md` artifacts; first offers to save a spec's Decisions Log and unticked QA items as a comment on the spec's PR or to `docs/decisions/`; explicit Y/N confirmation required |
 
 ## Agents
 
@@ -59,9 +59,9 @@ Feature development workflows with structured phases and quality gates.
 
 The commands are designed to chain:
 
-1. **`/feature-dev:spec`** — Define requirements and create a specification. It stops at the spec: what, why, numbered acceptance criteria (`AC-1`…), QA checklist and boundaries. Pass `--with-tasks` to also append a high-level plan and task list, for when you will not run `explore-plan`.
-2. **`/feature-dev:spec-review`** *(optional)* — Structural check plus a **code-claims pass**: the spec's load-bearing claims about the existing code (paths, symbols, nullability, relationship direction, migration numbers) are checked against the repo and reported as CONFIRMED / DRIFTED / REFUTED / UNVERIFIED.
-3. **`/feature-dev:explore-plan`** — Understand the codebase and create the plan. The plan is the only place implementation steps live, and it carries a **Baseline**: every `Verify` command run once on HEAD, so broken or hollow gates surface at planning time instead of mid-run.
+1. **`/feature-dev:spec`** — Define requirements and create a specification. It asks for scope and non-goals first, on their own, then stops at the spec: what, why, numbered acceptance criteria (`AC-1`…), QA checklist and boundaries. Pass `--with-tasks` to also append a high-level plan and task list, for when you will not run `explore-plan`.
+2. **`/feature-dev:spec-review`** *(optional)* — Structural check plus a **code-claims pass**: the spec's load-bearing claims about the existing code (paths, symbols, nullability, relationship direction, migration numbers) are checked against the repo and reported as CONFIRMED / DRIFTED / REFUTED / UNVERIFIED. It offers to apply the fixes that need no decision.
+3. **`/feature-dev:explore-plan`** — Understand the codebase and create the plan. The plan is the only place implementation steps live, and it carries a **Baseline**: every `Verify` command run once on HEAD, so broken or hollow gates surface at planning time instead of mid-run. It then reviews its own plan (`plan-review` runs automatically) and fixes Blocking findings once before showing you the brief.
 4. **`/feature-dev:tdd`** — Execute the plan with test-driven development
 
 Each command can also be used independently.

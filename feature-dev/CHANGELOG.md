@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.27.0 (2026-09-27)
+
+Second batch from the same retro: fewer hand-made handoffs between steps, scope settled before anything else, and nothing lost when artifacts are cleaned up.
+
+### Added
+- **`/feature-dev:explore-plan` reviews its own plan.** After the generator writes the plan, the command runs `spec-plan-validator` on it in a fresh context. On Blocking findings it re-dispatches the generator once to fix them in place, re-baselining any `Verify` it changes, then validates again. The findings lead the review brief. **Why:** `plan-review` was optional and ran in only 2 of 6 features, and one of those runs was pasted in from another session. `/feature-dev:plan-review` remains for plans edited by hand.
+- **`/feature-dev:spec-review` offers to apply its fixes.** "Never auto-fix" becomes "never fix without confirmation". Findings whose edit follows directly from the finding (a missing AC id, a drifted path) can be applied after one question. Findings that need a decision, such as a REFUTED claim an AC depends on, stay in the brief. **Why:** users typed "Fix your findings" by hand, and interrupted `explore-plan` to do it.
+- **A scope question before anything else in `/spec`.** It asks which repos and components are in and what is explicitly out, as a single question with a recommended option, before assumptions and before exploring. The spec gains `## Non-Goals`, which feeds the brief's Out of scope group. The validator's "Out of Scope statement" row becomes a Non-Goals row (Nice to Have). **Why:** in 2 of 6 features the scope changed after the spec was approved, forcing re-plans. A scope question mixed in with other questions sat unanswered for almost 7 hours.
+- **`/feature-dev:cleanup` rescues before deleting.** When a spec has Decisions Log entries or unticked QA items, cleanup offers three options for it: post them as a comment on the open PR of *the spec's own* `branch:`, save them to `docs/decisions/<slug>.md`, or delete anyway, in which case the report lists what was lost. It comments rather than editing the PR body, because re-typing someone else's description is where a slip overwrites it. Headings carry the slug, so a rerun never posts twice. A spec whose rescue failed is not deleted. **Why:** a real cleanup deleted a manual QA checklist that had not been run and the only copy of a feature's decisions.
+- **The QA Checklist has a fixed shape:** `### Happy path` / `### Edge cases` / `### Error states` groups of `- [ ]` items that the user ticks while verifying. This gives cleanup something reliable to detect.
+- **`/feature-dev:tdd SPEC-<slug>.md`** runs without a plan. Criteria come from the spec's tasks or AC ids, decisions go to that spec's Decisions Log, and the spec is marked `implemented` on success. It is meant for small features; `explore-plan` is still the default.
+
+### Changed
+- **The Stop hooks of `spec`, `spec-review`, `explore-plan`, `plan-review` and `tdd` are gone.** Each command's last step now prints the exact next command with the artifact path it just wrote or read, and suggests `/clear` before `/tdd`. A halted `/tdd` run prints its own resume command. **Why:** a `once: true` Stop hook fires at the end of the *first* turn. In a command that asks questions (scope, then assumptions, or explore-plan's draft-spec confirmation) that is before the artifact exists, and the hook never fires again. The old generic text hid this; a hook printing a concrete path would have pointed at an older, possibly implemented, artifact.
+- `explore-plan` now accepts a `SPEC-*.md` path and `tdd` a `PLAN-*.md` path as their argument, so the printed command works as-is.
+- `spec-review` applies fixes before writing its brief, lets you pick fixes with a multi-select, and never touches `status:`.
+
 ## 1.26.0 (2026-09-27)
 
 Driven by a retro of 19 sessions (6 features, 6 repos, 2026-09-14 → 09-27) that ran the spec → explore-plan → tdd flow. The gates existed but did not catch what later stalled implementation. The fixes move that discovery earlier and shrink what the user has to read.

@@ -1,6 +1,6 @@
 ---
 name: spec-plan-validator
-description: "Validates a SPEC-*.md or PLAN-*.md artifact for structural and logical gaps before downstream work, and checks a spec's factual claims about the existing code (paths, symbols, fields, FK direction, endpoints) against the repository. Emits a categorical Blocking / Should Address / Nice to Have findings list plus a Code claims ledger for specs. Use when invoked by /feature-dev:spec-review or /feature-dev:plan-review."
+description: "Validates a SPEC-*.md or PLAN-*.md artifact for structural and logical gaps before downstream work, and checks a spec's factual claims about the existing code (paths, symbols, fields, FK direction, endpoints) against the repository. Emits a categorical Blocking / Should Address / Nice to Have findings list plus a Code claims ledger for specs. Use when invoked by /feature-dev:spec-review, /feature-dev:plan-review, or /feature-dev:explore-plan's automatic plan review."
 tools: Read, Grep, Glob
 model: opus
 ---
@@ -54,7 +54,7 @@ Check each item below. Flag the severity if missing or malformed.
 | Each acceptance criterion carries a stable id (`**AC-1**`, `**AC-2**`, …) | Nice to Have (specs written before ids existed lack them; plans and `/feature-dev:tdd` cite criteria by id) |
 | Acceptance criteria include at least one failure-path / error-state criterion | Should Address |
 | Body has a **QA Checklist** covering happy path + edge cases + error states | Should Address |
-| Body has an **Out of Scope** statement | Nice to Have |
+| Body has a `## Non-Goals` section | Nice to Have (older specs lack it; the review brief's Out of scope group is read from it) |
 | **If frontmatter `repos:` has 2+ entries**: body has a `## Cross-Repo Contracts` section with endpoint(s), request/response shape, error codes, and breaking-change flag | Blocking |
 | **If tasks are present and frontmatter `repos:` has 2+ entries**: every task is tagged with `Repo:` | Should Address |
 | Tasks (if present) follow the structure: `- [ ] Task: ... / Accept: ... / Verify: ... / Files: ...` | Should Address |
@@ -168,7 +168,7 @@ If there are zero Blocking findings, append this exact line at the end:
 
 ### 5. Stop
 
-Do not offer to fix anything. Do not modify the SPEC/PLAN file. The calling command's Stop hook handles handoff.
+Do not offer to fix anything. Do not modify the SPEC/PLAN file. The calling command decides what happens to the findings.
 
 ## Guidelines
 

@@ -21,7 +21,7 @@ allowed-tools:
   - SendMessage
 skills:
   - tdd-patterns
-argument-hint: "[feature spec — optional; auto-discovers PLAN-*.md] [--coordinator <session-name>]"
+argument-hint: "[PLAN-*.md or SPEC-*.md path, or feature description — optional; auto-discovers PLAN-*.md] [--coordinator <session-name>]"
 description: |
   Use when implementing a new feature or fixing a bug where you want tests to lead, not follow.
   Do NOT use for quick one-line fixes or refactors without behavioral change.
@@ -36,13 +36,6 @@ triggers:
   - "test-driven development"
   - "write tests first"
   - "implement feature with coverage"
-hooks:
-  - event: Stop
-    once: true
-    command: |
-      echo "TDD cycle complete."
-      echo "  - /code-review:branch to review before merge"
-      echo "  - /commit to commit changes"
 ---
 
 ## Context
@@ -56,14 +49,16 @@ hooks:
 **First, strip flags from `$ARGUMENTS`.** `--coordinator <session-name>` names a live Claude Code session acting as this feature's coordinator (Phase 3 routes cross-repo questions to it). Remove the flag and its value before anything else reads `$ARGUMENTS` — what remains is the feature spec, and it may now be empty, which is the normal auto-discovery path. Record the name. Do not resolve or validate it yet; a coordinator that turns out to be unreachable must not block a run that is otherwise fine.
 
 1. **Resolve the feature spec:**
-   - **If `$ARGUMENTS` is provided** → use it as the feature spec. Continue to step 2.
+   - **If `$ARGUMENTS` is the path of an existing `PLAN-*.md`** → read it and use it exactly as a single auto-discovered plan below (the closing lines of `/feature-dev:explore-plan` and `/feature-dev:plan-review` print this form).
+   - **If `$ARGUMENTS` is the path of an existing `SPEC-*.md`** → read its frontmatter, use `feature:` as the spec, and record the path as `source_spec`. There is no plan: skip the plan search in Phase 1 and take the no-plan path. This is the small-feature fallback `/feature-dev:spec` mentions; the spec's ACs (or its Tasks) are the reviewed anchor, the decisions go to its Decisions Log, and Phase 6 closes it. If its `status:` is `implemented`, say so and ask before continuing.
+   - **If `$ARGUMENTS` is anything else** → use it as the feature spec. Continue to step 2.
    - **If `$ARGUMENTS` is empty** → auto-discover plan files. Use Glob with pattern `PLAN-*.md` in the repo root:
      - **0 plans found** → **STOP** and ask the user for a feature description.
      - **1 plan found** → read it, extract the `feature:` value from its frontmatter, and use that as the spec. Record the plan path as the **pre-selected plan** for Phase 1. Inform the user: "Auto-selected plan: `PLAN-<slug>.md` (feature: <name>)".
      - **2+ plans found** → read each plan's frontmatter to extract the `feature:` value. Use AskUserQuestion to let the user pick one (label = feature name, description = filename). The chosen plan's `feature:` becomes the spec and its path is the **pre-selected plan** for Phase 1.
 2. **Check the working tree.**
    - **Clean** → proceed normally.
-   - **Dirty** → this may be a halted run, not stray edits. Read the frontmatter of the plan resolved in step 1. If it has `run_status: in-progress` or `run_status: halted` with a non-empty `completed_steps:`, the dirty tree is *this command's own* unfinished work → go to **Phase 1b: Resume** after Phase 1.
+   - **Dirty** → this may be a halted run, not stray edits. Read the frontmatter of the plan resolved in step 1 (a spec-only run has no plan, so it cannot be a resumable run: apply the stop below). If it has `run_status: in-progress` or `run_status: halted` with a non-empty `completed_steps:`, the dirty tree is *this command's own* unfinished work → go to **Phase 1b: Resume** after Phase 1.
    - **Dirty with no in-progress plan** → **STOP** and ask the user to commit or stash.
 
    A plan with no `run_status:` field predates v1.19.0. Treat it as `not-started` and apply the plain dirty-tree stop.
@@ -73,7 +68,8 @@ hooks:
 **First, determine the plan:**
 
 - **If a pre-selected plan was set in Phase 0** → use it directly; skip the search below.
-- **Otherwise** (spec came from `$ARGUMENTS`), look for `PLAN-*.md` files in the repo root (created by `/feature-dev:explore-plan`). If multiple exist, pick the one whose `feature:` frontmatter best matches the spec; if none clearly matches, ask the user which to use.
+- **If `source_spec` was set from a `SPEC-*.md` argument** → no plan; go to "If no plan file exists" below. Also load that spec's `## Decisions Log`, if it has one, as binding prior decisions (see "Load prior decisions").
+- **Otherwise** (spec came from `$ARGUMENTS` as text), look for `PLAN-*.md` files in the repo root (created by `/feature-dev:explore-plan`). If multiple exist, pick the one whose `feature:` frontmatter best matches the spec; if none clearly matches, ask the user which to use.
 
 **If a plan file is in use:**
 - Read it and use it as the source of truth for files to modify/create, implementation order, and key decisions
@@ -149,7 +145,7 @@ The plan's **Implementation Order** already carries them, one block per step:
 
 ### If no plan exists (spec came from `$ARGUMENTS`)
 
-Derive the criteria yourself, producing the same six fields per criterion. If the spec has a Tasks section (written with `--with-tasks`), start from its tasks — they already carry Accept, Verify, Files and Covers. Otherwise start from its acceptance criteria by id (`**AC-1**`…), carrying the ids in each criterion's `Covers:`, with the Phase 1 exploration filling in paths and commands — the ACs are then the only reviewed anchor. A criterion is correctly sized when it is:
+Derive the criteria yourself, producing the same six fields per criterion. The spec is the `source_spec` file when one was given, else the text. If the spec has a Tasks section (written with `--with-tasks`), start from its tasks — they already carry Accept, Verify, Files and Covers. Otherwise start from its acceptance criteria by id (`**AC-1**`…), carrying the ids in each criterion's `Covers:`, with the Phase 1 exploration filling in paths and commands — the ACs are then the only reviewed anchor. A criterion is correctly sized when it is:
 
 - **Specific and testable** — not "add the booking flow", but "when contact has no active subjects, `start_booking` returns `NO_SUBJECTS` error code"
 - **Independently verifiable** — one command proves it
@@ -254,7 +250,9 @@ Its brief is an input to the user's decision, not a substitute for it. Do not ac
 
    After each step that passes, use Edit on the `PLAN-*.md` frontmatter to append the step number to `completed_steps:` and set `run_status: in-progress`. **`completed_steps` must never contain a gap** — a recorded `[0,1,2,4]` claims step 3 was completed-and-skipped, which is not a state this command can produce. If you are about to write a gap, you have advanced past an unfinished step: stop and fix that instead. On a halt, set `run_status: halted` and add `halted_at: <step number>` plus a one-line `halt_reason:`. This is what makes the run resumable — a halted run that recorded nothing is a lost run.
 
-   Do **not** commit between steps. The command's contract is one reviewable change set at the end; `/commit` and `/code-review:branch` come after, via the Stop hook.
+   Do **not** commit between steps. The command's contract is one reviewable change set at the end; `/code-review:branch` and `/commit` come after, as Phase 6 tells the user.
+
+   A spec-only run has no plan frontmatter to record progress in. It is not resumable: on a halt, the Phase 6 halt message says so instead.
 
 5. **Record decisions that bind other work.** Most steps produce none — that is the normal case, and an empty log is a correct log. A decision qualifies only when **both** hold:
 
@@ -267,7 +265,7 @@ Its brief is an input to the user's decision, not a substitute for it. Do not ac
    - a **carry-over delta that touches the contract**: a new error code, a schema change, a renamed field another repo reads,
    - a **user answer that unblocked a halt** — otherwise it is lost the moment the run resumes, which is exactly the answer you will need again in the consuming repo.
 
-   Append each to the `## Decisions Log` of the file named by `source_spec:`, creating the section at the end of the spec if it is absent. Newest last:
+   Append each to the `## Decisions Log` of the `source_spec` file (the plan's `source_spec:`, or the `SPEC-*.md` passed as the argument), creating the section at the end of the spec if it is absent. Newest last:
 
    ```
    - **[repo: <repo name> · step <N>]** <the decision, one sentence>
@@ -277,7 +275,7 @@ Its brief is an input to the user's decision, not a substitute for it. Do not ac
 
    `Binds` is the field that earns the log its keep: it is what a run in the *other* repo reads to know the decision applies to it.
 
-   **If the plan has no `source_spec:`** (single-repo run from `$ARGUMENTS`), keep the entries under a `decisions:` key in the `PLAN-*.md` frontmatter instead, and reproduce them verbatim in the Phase 6 report — the plan is deleted on success, so the report is the only place they survive.
+   **If there is no `source_spec`** (a plan with `source_spec: null`, or a run from a text description), keep the entries under a `decisions:` key in the `PLAN-*.md` frontmatter when there is a plan, and reproduce them verbatim in the Phase 6 report either way — the plan is deleted on success, so the report is the only place they survive. A spec-only run always has a `source_spec`, so its decisions never go to a `decisions:` key.
 
 Thread only the **carry-over deltas** forward (new symbols, new fixtures, new test markers, schema changes) — not the full prior reports. The next agent needs the deltas, not a retrospective.
 
@@ -343,12 +341,19 @@ Output a final summary:
 ```
 
 If every criterion was met and the suite is green (apart from failures listed in the Baseline's `pre-existing-fail` rows):
-1. **Close the loop on the source spec (if any):** if the plan's frontmatter had a `source_spec:` pointing to a `SPEC-*.md` file, use Edit to set that spec's `status:` field to `implemented`. This prevents auto-discovery from re-surfacing a completed feature on future runs.
-2. **Delete the `PLAN-*.md` file** that was used (it has served its purpose — the implementation is done).
+1. **Close the loop on the source spec (if any):** if the plan's frontmatter had a `source_spec:` pointing to a `SPEC-*.md` file, or the run was given a `SPEC-*.md` as its argument, use Edit to set that spec's `status:` field to `implemented`. This prevents auto-discovery from re-surfacing a completed feature on future runs.
+2. **Delete the `PLAN-*.md` file** that was used, if any (it has served its purpose — the implementation is done).
 3. Suggest a commit message following the project's convention.
+4. End with the next commands:
+
+   ```
+   Next: /code-review:branch to review before merge, then /commit
+   ```
 
 If any criterion halted, do **none** of the above. Leave the plan and spec on disk with `run_status: halted`, and tell the user verbatim:
 
-> Halted at step `<N>`. Fix the blocker, then re-run `/feature-dev:tdd` — it will re-verify steps 1-`<N-1>` and resume from `<N>`. The dirty working tree is expected; do not stash it.
+> Halted at step `<N>`. Fix the blocker, then run `/feature-dev:tdd PLAN-<slug>.md` — it will re-verify steps 1-`<N-1>` and resume from `<N>`. The dirty working tree is expected; do not stash it.
+
+with the path of the plan this run used. A spec-only run has no plan to resume from; tell the user instead that the steps landed so far are uncommitted in the tree, and that the next step is `/feature-dev:explore-plan <spec path>` against that tree or finishing by hand — re-running `/feature-dev:tdd` on the spec would stop on the dirty tree.
 
 The stash instruction matters: stashing is the one action that makes the recorded progress unrecoverable.

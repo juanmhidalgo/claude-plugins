@@ -5,8 +5,8 @@ allowed-tools:
   - Glob
 argument-hint: "[plan-file-path — optional; auto-discovers PLAN-*.md if omitted]"
 description: |
-  Use to validate a PLAN-*.md for gaps before starting TDD implementation. Outputs Blocking / Should Address / Nice to Have findings.
-  Do NOT use for code review or SPEC review (use /feature-dev:spec-review).
+  Use to re-validate a PLAN-*.md edited by hand, or one written before explore-plan reviewed its own plans. Outputs Blocking / Should Address / Nice to Have findings.
+  Do NOT use right after /feature-dev:explore-plan (it already ran this review), for code review, or for SPEC review (use /feature-dev:spec-review).
 keywords:
   - plan-review
   - plan-validation
@@ -17,14 +17,6 @@ triggers:
   - "validate the plan"
   - "find gaps in the plan"
   - "is the plan ready"
-hooks:
-  - event: Stop
-    once: true
-    command: |
-      echo "Plan review complete. Next steps:"
-      echo "  - /feature-dev:tdd to start test-driven implementation"
-      echo "  - /feature-dev:explore-plan to regenerate the plan if exploration was incomplete"
-      echo "  - Edit the PLAN and re-run /feature-dev:plan-review to confirm fixes"
 ---
 
 <SUBAGENT-STOP>
@@ -64,11 +56,16 @@ After the agent returns:
 
 1. Show the report verbatim to the user.
 2. Do **NOT** modify the PLAN file — findings are advisory; the user decides what to address.
-3. Stop. The Stop hook surfaces the next-step options.
+3. End with the next commands, using the resolved plan path, then stop:
+
+   ```
+   Next: /clear, then /feature-dev:tdd <plan path>   (a fresh context leaves /tdd's budget to the steps)
+   Or edit the plan and re-run /feature-dev:plan-review <plan path>; regenerate it with /feature-dev:explore-plan if exploration was incomplete
+   ```
 
 ## Rules
 
 - **Never auto-fix the plan.** Findings are advisory. The user must explicitly edit and re-run, or re-invoke `/feature-dev:explore-plan` to regenerate.
 - **Never opine on technical choices.** This command checks structure, completeness, and that the paths the plan names exist — not whether the implementation order or chosen approach is right.
-- **Never gate other commands on this.** This command is opt-in by design.
+- **Never gate other commands on this.** `/feature-dev:explore-plan` already runs this review on every plan it writes; this command is the standalone re-check for a plan changed since.
 - **The PLAN file is a local working artifact.** Never suggest committing it and never run git commands against it. It should be listed in the project's `.gitignore` (added automatically by `/feature-dev:explore-plan`).

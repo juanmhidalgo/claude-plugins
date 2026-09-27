@@ -20,6 +20,7 @@ allowed-tools:
   - Grep
   - Glob
   - Write
+  - AskUserQuestion
 ---
 
 # Spec-Driven Development
@@ -49,7 +50,9 @@ Each gate ends with a short review brief (decided / assumed / unverified claims 
 
 ### Phase 1: Specify
 
-Surface assumptions immediately before writing anything:
+The first interaction is one scope question, asked alone (AskUserQuestion, a single question) before assumptions and before exploring any code: which repos and components are in, what is explicitly out, with a recommended option inferred from the description (the multi-repo detection below feeds it). Scope sizes everything after it, and a scope question bundled with others gets answered last; scope that moves after approval means a re-plan. What the answer rules out becomes the spec's `## Non-Goals`.
+
+Then surface assumptions, in their own round-trip:
 
 ```
 ASSUMPTIONS I'M MAKING:
@@ -59,15 +62,16 @@ ASSUMPTIONS I'M MAKING:
 → Correct me now or I'll proceed with these.
 ```
 
-Write a spec covering eight areas:
+Write a spec covering nine areas:
 1. **Objective** — What, why, who
-2. **Acceptance Criteria** — A dedicated, scannable section of observable, user-facing criteria (do not bury them in Objective), each with a stable id: `- **AC-1** — ...`. Never renumber on edit — new criteria take the next number, removed ones retire theirs — because plans and `/feature-dev:tdd` cite criteria by id. Include at least one failure/error-state criterion, not only happy-path outcomes. This is what downstream review, planning, and QA anchor to.
-3. **Commands** — Full executable commands (build, test, lint, dev)
-4. **Project Structure** — Where source, tests, and docs live
-5. **Code Style** — One real snippet showing conventions
-6. **Testing Strategy** — Framework, location, coverage, test levels (the engineering view)
-7. **QA Checklist** — A separate, QA-facing list grouped as happy path / edge cases / error states; distinct from the engineering-oriented Testing Strategy. Every error-state acceptance criterion gets a matching check.
-8. **Boundaries** — Always do / Ask first / Never do
+2. **Non-Goals** — `## Non-Goals` right after Objective: what the scope answer ruled out, one line each with why. The review brief's "Out of scope" group comes from it.
+3. **Acceptance Criteria** — A dedicated, scannable section of observable, user-facing criteria (do not bury them in Objective), each with a stable id: `- **AC-1** — ...`. Never renumber on edit — new criteria take the next number, removed ones retire theirs — because plans and `/feature-dev:tdd` cite criteria by id. Include at least one failure/error-state criterion, not only happy-path outcomes. This is what downstream review, planning, and QA anchor to.
+4. **Commands** — Full executable commands (build, test, lint, dev)
+5. **Project Structure** — Where source, tests, and docs live
+6. **Code Style** — One real snippet showing conventions
+7. **Testing Strategy** — Framework, location, coverage, test levels (the engineering view)
+8. **QA Checklist** — A separate, QA-facing `## QA Checklist` with `### Happy path`, `### Edge cases` and `### Error states` groups of `- [ ]` items, ticked (`- [x]`) by the user as they verify each one — `/feature-dev:cleanup` rescues the unticked ones. Distinct from the engineering-oriented Testing Strategy. Every error-state acceptance criterion gets a matching item under Error states.
+9. **Boundaries** — Always do / Ask first / Never do
 
 Reframe vague requirements as testable success criteria. Ban these words from acceptance criteria unless you immediately define them concretely: **fast**, **slow**, **easy**, **simple**, **user-friendly**, **intuitive**, **seamless**, **better**, **improved**.
 
@@ -133,15 +137,13 @@ Execute from the `PLAN-<slug>.md` (or, when the optional phases ran, from the sp
 
 ## Multi-Repo Features
 
-A feature is multi-repo when a single change must land in two or more repositories to be useful (e.g., backend exposes a new field, frontend renders it). Detect this in Phase 1 using **description intent plus at least one infrastructure signal**:
+A feature is multi-repo when a single change must land in two or more repositories to be useful (e.g., backend exposes a new field, frontend renders it). Detect this in Phase 1, before the scope question it feeds, using **description intent plus at least one infrastructure signal**:
 
 - **A (required)**: The feature description spans concerns owned by different repos ("API + UI", "service + worker").
 - **B**: `additionalDirectories` in `.claude/settings.local.json` lists sibling repos as accessible.
 - **C**: A parent `CLAUDE.md` (one level up from cwd) catalogs sibling repos with their purpose.
 
-Trigger multi-repo mode only when **A AND (B OR C)**. `additionalDirectories` alone is a false positive — sibling access is often granted for reference, not feature scope.
-
-When detected, the spec gains:
+Recommend multi-repo only when **A AND (B OR C)**. `additionalDirectories` alone is a false positive — sibling access is often granted for reference, not feature scope. Detection only shapes the recommended scope option; the scope answer decides. When that answer names two or more repos, the spec gains:
 
 - A `repos:` block in frontmatter listing each in-scope repo with `name`, `path` (relative to spec's repo), and `role` (`owns-contract` | `consumes-contract`).
 - A **Cross-Repo Contracts** section: endpoint(s), request/response shape, error codes, breaking-change flag. This is the artifact every repo commits to.
@@ -225,10 +227,10 @@ Catches *writing a bad spec*. Different failure mode from skipping. Catch yourse
 ## Verification
 
 Before proceeding to implementation:
-- [ ] Spec covers all eight core areas
+- [ ] Spec covers all nine core areas, with scope settled by its own question before assumptions
 - [ ] User has reviewed and approved the spec
 - [ ] Success criteria live in a dedicated **Acceptance Criteria** section (not buried in Objective), each with a stable `AC-n` id, and include at least one failure/error-state criterion
-- [ ] A **QA Checklist** (happy path / edge cases / error states) exists, distinct from the engineering Testing Strategy
+- [ ] A **QA Checklist** (`### Happy path` / `### Edge cases` / `### Error states`, each a list of `- [ ]` items) exists, distinct from the engineering Testing Strategy
 - [ ] Success criteria are specific and testable (no banned vague words without concrete definitions)
 - [ ] Boundaries (Always / Ask First / Never) are defined with one-line rationale per Never-do item
 - [ ] P0 list passes the cut-test (≤5 items, each truly required to solve the core problem)

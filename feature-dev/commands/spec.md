@@ -20,14 +20,7 @@ allowed-tools:
   - Glob
   - Write
   - Agent
-hooks:
-  - event: Stop
-    once: true
-    command: |
-      echo "Spec complete. Next steps:"
-      echo "  - /feature-dev:spec-review to check the spec for gaps and its claims against the code (optional)"
-      echo "  - /feature-dev:explore-plan to explore the codebase and write the step-level plan"
-      echo "  - /feature-dev:tdd SPEC-<slug>.md to implement straight from the spec (it auto-discovers only PLAN files; without one it derives criteria from the spec's tasks or AC ids)"
+  - AskUserQuestion
 ---
 
 <SUBAGENT-STOP>
@@ -59,32 +52,37 @@ Each phase that runs requires user approval before advancing.
 
 ### Phase 1: Specify
 
-1. **Detect multi-repo scope** (runs silently — feeds into step 2). A feature is multi-repo only when the description clearly spans concerns owned by different repos (e.g., "API + UI", "service + worker"). Confirm that first, then corroborate with at least one infrastructure signal:
+1. **Detect multi-repo scope** (runs silently — feeds the recommendation in step 2). A feature is multi-repo only when the description clearly spans concerns owned by different repos (e.g., "API + UI", "service + worker"). Confirm that first, then corroborate with at least one infrastructure signal:
 
    - **Signal A (required)**: the feature description spans concerns owned by different repos.
    - **Signal B**: `additionalDirectories` (Context block above) lists sibling repos as accessible.
    - **Signal C**: `../CLAUDE.md` exists and catalogs sibling repos with their purpose — read it to learn the repo set.
 
-   Treat as multi-repo only when **A AND (B OR C)** hold. `additionalDirectories` alone is a false positive (users grant access for reference, not feature scope). If only one repo is in scope, skip the multi-repo sections (frontmatter `repos:`, "Cross-Repo Contracts", repo task tags) for the rest of this command.
+   Recommend multi-repo only when **A AND (B OR C)** hold. `additionalDirectories` alone is a false positive (users grant access for reference, not feature scope). Detection only shapes the recommended option in step 2; the scope answer decides. If the answer names two or more repos, the multi-repo sections (frontmatter `repos:`, "Cross-Repo Contracts", repo task tags) are in for the rest of this command, whatever detection concluded; if it leaves one repo in, they are out.
 
-2. **Surface assumptions.** List 3-5 assumptions you're making about the tech stack, architecture, and scope. For multi-repo features, include the inferred repo set as one of the assumptions (e.g., "Scope: <backend-name> + <frontend-name>"). Ask the user to confirm or correct — single round-trip.
+2. **Ask the scope question — first, and on its own.** Before surfacing assumptions and before reading any code, ask one AskUserQuestion with a single question: which repos and components are in, and what is explicitly out. Offer a recommended option inferred from the description and step 1 (e.g. "<backend-name> API + <frontend-name> page; out: admin UI, other tenants") and one or two real alternatives — a narrower and a wider cut. Record what the answer rules out: it becomes the spec's `## Non-Goals`.
 
-3. **Reframe vague requirements.** If the input is vague, translate it into concrete, testable success criteria. Present these to the user for validation.
+   Scope goes first because everything after it is sized by it: a scope change after approval (a backend endpoint added, "not tied to one customer") has meant re-planning. It goes alone because a scope question bundled with other questions gets answered last — one sat unanswered for almost 7 hours.
 
-4. **Write the spec** covering these eight areas:
+3. **Surface assumptions.** Now list 3-5 assumptions about the tech stack, architecture, and behavior within the agreed scope. Ask the user to confirm or correct — its own round-trip, after the scope answer.
+
+4. **Reframe vague requirements.** If the input is vague, translate it into concrete, testable success criteria. Present these to the user for validation.
+
+5. **Write the spec** covering these nine areas:
    - **Objective**: What we're building, why, who it's for
+   - **Non-Goals**: A `## Non-Goals` section right after Objective — what the scope answer ruled out, one line each with why. It feeds the brief's "Out of scope" group, and it is what a scope change after approval has to argue against.
    - **Acceptance Criteria**: A dedicated, scannable `## Acceptance Criteria` section of observable, user-facing criteria — do NOT bury these as a "what success looks like" aside inside Objective. Give each criterion a stable id: `- **AC-1** — <criterion>`. Ids are never renumbered when the spec is edited: a new criterion takes the next free number and a removed one retires its id, because plans (`Covers:`) and `/feature-dev:tdd` cite criteria by id. Include **at least one failure/error-state criterion**, not only happy-path outcomes (e.g., "a draft requisition never appears via `GET /public/jobs`", "an invalid/absent `jobId` falls back to `jobTitle` without erroring"). This is the single artifact downstream review, planning, and QA anchor to.
    - **Commands**: Full executable commands (build, test, lint, dev). For multi-repo features, group commands per repo.
    - **Project Structure**: Where code, tests, and docs live (explore each in-scope repo first). For multi-repo features, render one subsection per repo.
    - **Code Style**: One real snippet from each in-scope repo showing conventions
    - **Testing Strategy**: Framework, test location, coverage expectations (per repo when multi-repo) — the *engineering* view of what gets tested and how.
-   - **QA Checklist**: A separate, QA-facing `## QA Checklist` grouped as **happy path / edge cases / error states** — a scannable list of behaviors a human verifies, distinct from the engineering-oriented Testing Strategy. Every error-state acceptance criterion should have a matching check here.
+   - **QA Checklist**: A separate, QA-facing `## QA Checklist` with three groups — `### Happy path`, `### Edge cases`, `### Error states` — each a list of `- [ ]` items, one behavior a human verifies per item. The user ticks an item (`- [x]`) as they verify it, which is how `/feature-dev:cleanup` later tells verified checks from ones nobody ran. Distinct from the engineering-oriented Testing Strategy. Every error-state acceptance criterion should have a matching item under Error states.
    - **Boundaries**: Always do / Ask first / Never do
 
    **Multi-repo features only** add one more section after Boundaries:
    - **Cross-Repo Contracts**: Endpoint(s), request/response shape, error codes, breaking-change flag, versioning notes. This is the artifact every in-scope repo commits to and the anchor for coordination. It belongs to the spec, so it is written with or without `--with-tasks`.
 
-5. **Save the spec** to `SPEC-<feature-slug>.md` in the project root. The file MUST begin with this frontmatter block (one single block — merge the optional `repos:` lines inside the `---` delimiters when multi-repo):
+6. **Save the spec** to `SPEC-<feature-slug>.md` in the project root. The file MUST begin with this frontmatter block (one single block — merge the optional `repos:` lines inside the `---` delimiters when multi-repo):
 
    ```markdown
    ---
@@ -108,11 +106,11 @@ Each phase that runs requires user approval before advancing.
    ---
    ```
 
-   Update `status:` to `approved` after the user validates the spec in step 7.
+   Update `status:` to `approved` after the user validates the spec in step 8.
 
-6. **Update `.gitignore`.** If the project's `.gitignore` does not already include `SPEC-*.md`, add it. The spec is a local working artifact, not a repo deliverable — this prevents accidental commits via `git add .`. (Mirrors the same step performed by `/feature-dev:explore-plan` for `PLAN-*.md`.)
+7. **Update `.gitignore`.** If the project's `.gitignore` does not already include `SPEC-*.md`, add it. The spec is a local working artifact, not a repo deliverable — this prevents accidental commits via `git add .`. (Mirrors the same step performed by `/feature-dev:explore-plan` for `PLAN-*.md`.)
 
-7. **Present the review brief** (below) — not the spec itself. Do NOT proceed until the user approves.
+8. **Present the review brief** (below) — not the spec itself. Do NOT proceed until the user approves.
 
 ### Review brief
 
@@ -123,11 +121,11 @@ Every approval gate in this command ends with this block instead of re-printing 
 **Decided** (review if you disagree)
 1. <a choice the spec makes that the user did not state — scope cut, contract shape, error behavior>
 **Assumed — confirm**
-2. <an assumption from step 2 that the user has not confirmed, or one added while writing>
+2. <an assumption from step 3 that the user has not confirmed, or one added while writing>
 **Unverified claims about the code**
 3. `<Model.field>` is nullable — not checked
 **Out of scope**
-- <the Never-do / out-of-scope items, one line each>
+- <each `## Non-Goals` item, one line>
 Reply with the numbers you want changed, or "approved".
 ```
 
@@ -181,11 +179,17 @@ Add tasks to the spec file and end with the review brief.
 After every phase that ran is approved:
 - The `SPEC-<slug>.md` file is a **local working artifact**, not a repo deliverable. Do NOT commit it, and do NOT run any git commands. Downstream commands read it directly from the working tree.
 - Confirm the spec's frontmatter `status:` is `approved` (it will be flipped to `implemented` automatically when `/feature-dev:tdd` finishes).
-- Stop here. The Stop hook will surface the next-step options (`/feature-dev:spec-review`, `/feature-dev:explore-plan`, or `/feature-dev:tdd`) — let the user choose.
+- End with the next command, using the spec path you just wrote, then stop and let the user choose:
+
+  ```
+  Next: /feature-dev:spec-review SPEC-<slug>.md (optional) or /feature-dev:explore-plan SPEC-<slug>.md
+  ```
+
+  Recommend explore-plan: it writes a reviewed step-level plan from the code. `/feature-dev:tdd SPEC-<slug>.md` (straight from the spec's ACs, or its Tasks with `--with-tasks`) is the fallback for a small feature, so mention it only when the spec is small enough that a plan adds nothing.
 
 ## Rules
 
-- **Never skip assumption surfacing.** Silent assumptions are the most dangerous form of misunderstanding.
+- **Never skip the scope question or assumption surfacing, and never merge them.** Silent assumptions are the most dangerous form of misunderstanding, and scope is the one that re-plans everything downstream when it moves.
 - **Never advance phases without user approval.** Each gate exists to catch misalignment early.
 - **Stop at the spec unless `--with-tasks` was passed.** Without the flag, no Implementation Plan or Tasks section is written — explore-plan produces the plan from the code, and a second plan in the spec only diverges from it.
 - **End each gate with the review brief, not the artifact.** The brief is what the user actually reads before approving; its "Unverified claims" group is where a wrong assumption about the code gets caught before it becomes an AC.
