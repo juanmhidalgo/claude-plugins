@@ -1,5 +1,38 @@
 # Changelog
 
+## 1.28.0 (2026-09-27)
+
+Third batch from the same retro of 19 sessions (6 features). It gives reviewers a real way to read what they approve, traces each acceptance criterion from spec to test, and keeps the `/tdd` orchestrator's context from growing unchecked.
+
+### Added
+- **`/feature-dev:review <SPEC|PLAN path>`: review in a local browser page.** `scripts/review_server.py` serves the artifact on `127.0.0.1` at a random free port and opens the browser. The command runs it in the background, so the harness wakes the model when it exits, with no polling. The page has:
+  - an outline built from the headings, with a spec's `AC-n` criteria highlighted;
+  - for a plan, each Key Decisions row as a card with **Accept** / **Change to**, and a highlighted Baseline table;
+  - comments anchored to any selected text and its nearest heading (or plan step);
+  - a **Changes** tab with a line diff against the previous version.
+  
+  There are three verdicts:
+  - **Approve**: the only verdict that sets a spec's `status: approved`.
+  - **Approve with notes**: the notes are context. They are recorded in the Decisions Log when they bind later work, and nothing changes unless a note asks.
+  - **Request changes**: each item is checked against the artifact and the code before it is applied, then another round is offered, which shows the diff.
+  
+  On submit, the verdict and the anchored items are written to `.feature-dev/reviews/<slug>-<UTC timestamp>.md`, with the `reviewed_sha256` of the version served. The command finds that file with `review_server.py latest <artifact> --since <start>`, not from the task's stdout. The script derives and sanitizes the slug itself, and it does not depend on Glob listing the gitignored `.feature-dev/`. `review_server.py url <artifact>` prints the page's URL when the browser did not open. A sha mismatch means the file changed while it was being reviewed; the command says so and applies nothing. After 4 h with no request the server exits and writes nothing. A visible tab pings it every minute, so a long read is not idle.
+  - **Nothing leaves the machine.** Python 3 stdlib only, no CDN, fonts or external scripts. The markdown renderer is a small inline one that escapes everything. A nonce-based CSP allows the page to talk only to its own server. Requests must carry a per-run token and a `127.0.0.1`/`localhost` Host header. Links are allowlisted: `http(s)`, `mailto`, fragments and relative paths only. Ids generated from the document are prefixed (`h-`, `ac-`), so a `## Submit` heading cannot shadow a page control.
+  - **Why:** specs and plans of 332–1073 lines were approved 37–72 s after being written. Users answered decisions from chat summaries and never opened the files in an IDE.
+  - `scripts/test_review_server.py` (unittest, stdlib) covers the page, submit, validation, a second submit (409), the idle timeout and the ping that defers it, token checks, slug sanitizing, `latest`/`url`, snapshots and the diff endpoint. When `node` is installed it also syntax-checks the page script and the link allowlist: `python3 feature-dev/scripts/test_review_server.py`.
+- **Version history for specs and plans.** Before `/spec`, the explore-plan generator (and its fix re-dispatch) or `/feature-dev:review` overwrites an existing SPEC or PLAN, it copies it to `.feature-dev/history/<slug>/<name>.<n>.md`. The review page diffs against the newest copy that differs. **Why:** nobody could see what changed between plan v1 and v2. `.feature-dev/` is added to `.gitignore` next to `SPEC-*.md` and `PLAN-*.md`.
+- **AC traceability, end to end.** 1.26.0 added `AC-n` ids and an informational `Covers:`. Now:
+  - When the source spec numbers its ACs, every behavior and characterization step in the plan carries `Covers:` (explore-plan rule 8).
+  - `spec-plan-validator` raises Should Address for an AC no step covers and for a `Covers:` citing an id the spec does not define, and for a behavior step without `Covers:`. An AC that the plan's Risks names by id as deliberately left out is not flagged. It reports `AC coverage: covered/total`, which leads explore-plan's brief.
+  - `/tdd`'s final report adds an **Acceptance criteria** line: ACs covered by met steps out of the total, with the uncovered and halted ones named.
+  - `tdd-runner` puts the AC id in the test's docstring or name where the project's style allows.
+  - **Why:** two ACs were lost between spec and plan. One was made unreachable by the code; a docs step was dispatched only because the user asked for it.
+
+### Changed
+- **`/tdd` prints a checkpoint line** at each `#### Milestone` boundary, or every ~8 steps in a plan without milestones. The line says progress is recorded and that `/clear` then `/feature-dev:tdd PLAN-<slug>.md` resumes, re-verifying the completed steps. It does not prompt or pause. **Why:** one orchestrator grew from 98k to 389k tokens.
+- **`/tdd` and `feature-implementer` stay silent on notifications for finished work.** An idle or completion notice for a subagent whose report was already processed gets no acknowledgement turn. **Why:** one run received 18 idle notices and spent 13 turns only acknowledging them.
+- The review briefs of `/spec`, `/spec-review` and `/explore-plan` end with one line offering `/feature-dev:review <path>`.
+
 ## 1.27.0 (2026-09-27)
 
 Second batch from the same retro: fewer hand-made handoffs between steps, scope settled before anything else, and nothing lost when artifacts are cleaned up.

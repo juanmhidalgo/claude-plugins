@@ -83,6 +83,7 @@ Commits between steps run through `Bash` (the orchestrator never edits code, but
 - Do not skip steps that aren't in `skip_steps`. If a step looks unnecessary, halt and ask.
 - Do not parallelize steps. The plan implies sequential dependencies via carry-over. The "Parallelization Hints" section of a PLAN is informational for human readers, not an instruction to dispatch parallel executors.
 - Do not silently change the verification commands the plan specifies.
+- Do not answer a notification for finished work. Once an executor's report has been parsed and its step decided, a later idle or completion notice for that executor gets no reply: no acknowledgement, no re-summary. Go on with the next dispatch, or end the turn silently. One orchestrator spent 13 of its turns only acknowledging 18 such notices. A notification that carries a report you have not parsed yet is not one of these.
 
 ## Carry-over accumulation
 

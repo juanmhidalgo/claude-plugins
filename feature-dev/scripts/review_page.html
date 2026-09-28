@@ -1,0 +1,745 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Artifact review</title>
+<style nonce="__NONCE__">
+:root {
+  color-scheme: light dark;
+  --bg: #ffffff; --fg: #1d1f23; --muted: #5d6470; --line: #d9dde3; --panel: #f5f6f8;
+  --accent: #2458c6; --accent-fg: #ffffff; --code: #eef0f3; --mark: #fff3b0;
+  --add: #e3f6e6; --add-fg: #135d23; --del: #fde7e7; --del-fg: #8a1c1c;
+  --ok: #1d7a35; --warn: #9a6200; --bad: #b3261e; --ac: #eaf1ff;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #16181c; --fg: #e3e5e8; --muted: #9aa1ac; --line: #30343b; --panel: #1e2126;
+    --accent: #7aa2ff; --accent-fg: #0d1117; --code: #262a31; --mark: #5a4b12;
+    --add: #15321d; --add-fg: #9fe0ad; --del: #3d1c1c; --del-fg: #f2a7a7;
+    --ok: #6fd18a; --warn: #e2b04a; --bad: #ff8a80; --ac: #1c2a45;
+  }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--fg); }
+body { font: 15px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+code, pre, textarea.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; }
+a { color: var(--accent); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+header { position: sticky; top: 0; z-index: 5; display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
+  padding: 8px 16px; background: var(--panel); border-bottom: 1px solid var(--line); }
+header h1 { font-size: 15px; margin: 0; }
+header .meta { color: var(--muted); font-size: 13px; }
+header .spacer { flex: 1; }
+.layout { display: grid; grid-template-columns: 220px minmax(0, 1fr) 340px; gap: 0; }
+nav#outline { position: sticky; top: 45px; align-self: start; max-height: calc(100vh - 45px); overflow: auto;
+  padding: 12px 10px; border-right: 1px solid var(--line); font-size: 13px; }
+nav#outline a { display: block; padding: 2px 4px; text-decoration: none; color: var(--fg); border-radius: 4px; }
+nav#outline a:hover { background: var(--code); }
+nav#outline a.l3 { padding-left: 14px; } nav#outline a.l4 { padding-left: 24px; color: var(--muted); }
+main { padding: 12px 28px 80px; min-width: 0; }
+#doc { max-width: 900px; }
+aside#panel { position: sticky; top: 45px; align-self: start; max-height: calc(100vh - 45px); overflow: auto;
+  padding: 12px; border-left: 1px solid var(--line); background: var(--panel); }
+@media (max-width: 1100px) {
+  .layout { grid-template-columns: minmax(0, 1fr) 320px; }
+  nav#outline { display: none; }
+}
+@media (max-width: 800px) {
+  .layout { grid-template-columns: 1fr; }
+  aside#panel { position: static; max-height: none; border-left: 0; border-top: 1px solid var(--line); }
+}
+h1, h2, h3, h4, h5, h6 { line-height: 1.3; margin: 1.3em 0 0.5em; }
+.blk h2 { border-bottom: 1px solid var(--line); padding-bottom: 4px; }
+p { margin: 0.5em 0; }
+code { background: var(--code); padding: 1px 4px; border-radius: 4px; }
+pre { background: var(--code); padding: 10px 12px; border-radius: 6px; overflow: auto; }
+pre code { background: none; padding: 0; }
+blockquote { margin: 0.5em 0; padding: 0 12px; border-left: 3px solid var(--line); color: var(--muted); }
+table { border-collapse: collapse; margin: 0.6em 0; display: block; overflow-x: auto; max-width: 100%; }
+th, td { border: 1px solid var(--line); padding: 4px 8px; text-align: left; vertical-align: top; }
+th { background: var(--panel); }
+ul, ol { padding-left: 1.5em; margin: 0.4em 0; }
+li { margin: 0.15em 0; }
+li.task { list-style: none; margin-left: -1.3em; }
+li.ac { background: var(--ac); border-radius: 4px; padding: 2px 6px; margin: 4px 0; list-style: none; margin-left: -1.3em; }
+.frontmatter { font-size: 13px; color: var(--muted); border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; }
+.frontmatter dt { float: left; clear: left; width: 120px; font-weight: 600; }
+.frontmatter dd { margin-left: 128px; }
+.blk.commented { box-shadow: -4px 0 0 var(--mark); }
+table.baseline td.r-pass, table.baseline td.r-expected-red { color: var(--ok); font-weight: 600; }
+table.baseline td.r-pre-existing-fail, table.baseline td.r-not-run { color: var(--warn); font-weight: 600; }
+table.baseline td.r-hollow { color: var(--bad); font-weight: 600; }
+.badge { display: inline-block; font-size: 12px; padding: 0 6px; border-radius: 10px; background: var(--code); color: var(--muted); }
+.cards { display: grid; gap: 10px; }
+.card { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+.card h4 { margin: 0 0 6px; }
+.card dl { margin: 0 0 8px; font-size: 14px; }
+.card dt { font-weight: 600; color: var(--muted); font-size: 12px; text-transform: uppercase; }
+.card dd { margin: 0 0 4px; }
+.card fieldset { border: 0; padding: 0; margin: 0; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+.card input[type=text] { flex: 1; min-width: 200px; }
+.card.changed { border-color: var(--warn); }
+button, input, textarea, select { font: inherit; color: inherit; }
+button { background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 4px 10px; cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+input[type=text], textarea { background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; width: 100%; }
+textarea { resize: vertical; }
+aside h2 { font-size: 14px; margin: 4px 0 8px; }
+aside section { margin-bottom: 16px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.hint { color: var(--muted); font-size: 12px; }
+.item { border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; margin-bottom: 8px; background: var(--bg); }
+.item .q { border-left: 3px solid var(--mark); padding-left: 6px; color: var(--muted); font-size: 13px; white-space: pre-wrap; max-height: 5.5em; overflow: hidden; }
+.item .s { font-size: 12px; color: var(--muted); }
+.item .c { white-space: pre-wrap; margin: 4px 0; }
+.item .row { display: flex; gap: 6px; }
+#composer { display: none; border: 1px solid var(--accent); border-radius: 6px; padding: 8px; background: var(--bg); margin-bottom: 8px; }
+#composer.open { display: block; }
+#composer label { display: block; font-size: 12px; color: var(--muted); margin-top: 6px; }
+.verdicts label { display: block; padding: 3px 0; }
+#status { font-size: 13px; margin-top: 8px; white-space: pre-wrap; }
+#status.err { color: var(--bad); } #status.ok { color: var(--ok); }
+#addc { position: absolute; display: none; z-index: 10; }
+#diffview { display: none; }
+.diff { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; border: 1px solid var(--line); border-radius: 6px; overflow: auto; }
+.diff div { white-space: pre-wrap; padding: 0 8px; min-height: 1.4em; }
+.diff .a { background: var(--add); color: var(--add-fg); }
+.diff .d { background: var(--del); color: var(--del-fg); }
+.diff .gap { color: var(--muted); background: var(--panel); font-style: italic; }
+.tabs button[aria-pressed=true] { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+</style>
+</head>
+<body>
+<script type="application/json" id="data">__DATA__</script>
+<header>
+  <h1 id="title">Review</h1>
+  <span class="meta" id="meta"></span>
+  <span class="spacer"></span>
+  <span class="tabs" id="tabs" hidden>
+    <button type="button" id="tab-doc" aria-pressed="true">Document</button>
+    <button type="button" id="tab-diff" aria-pressed="false">Changes</button>
+  </span>
+</header>
+<div class="layout">
+  <nav id="outline" aria-label="Outline"></nav>
+  <main>
+    <div id="doc"></div>
+    <div id="diffview"></div>
+  </main>
+  <aside id="panel" aria-label="Review">
+    <section>
+      <h2>Comments <span class="badge" id="count">0</span></h2>
+      <p class="hint">Select text in the document, then press <b>Comment</b> (or the <kbd>c</kbd> key). Without a selection the comment anchors to the section at the top of the view.</p>
+      <button type="button" id="new-comment">Add comment</button>
+      <div id="composer" role="group" aria-label="Comment">
+        <label for="c-quote">Quoted text</label>
+        <textarea id="c-quote" rows="2"></textarea>
+        <label for="c-sec">Section</label>
+        <input type="text" id="c-sec">
+        <label for="c-text">Comment</label>
+        <textarea id="c-text" rows="4"></textarea>
+        <div class="row">
+          <button type="button" class="primary" id="c-save">Save comment</button>
+          <button type="button" id="c-cancel">Cancel</button>
+        </div>
+        <p class="hint">Ctrl+Enter saves, Esc cancels.</p>
+      </div>
+      <div id="items"></div>
+    </section>
+    <section id="dec-summary" hidden>
+      <h2>Decisions</h2>
+      <p class="hint" id="dec-text"></p>
+    </section>
+    <section>
+      <h2>Verdict</h2>
+      <div class="verdicts" role="radiogroup" aria-label="Verdict">
+        <label><input type="radio" name="verdict" value="approve"> Approve</label>
+        <label><input type="radio" name="verdict" value="approve-with-notes"> Approve with notes</label>
+        <label><input type="radio" name="verdict" value="request-changes"> Request changes</label>
+      </div>
+      <p class="hint" id="verdict-hint"></p>
+      <button type="button" class="primary" id="submit" disabled>Submit review</button>
+      <div id="status" role="status" aria-live="polite"></div>
+    </section>
+  </aside>
+</div>
+<button type="button" id="addc" class="primary">Comment</button>
+<script nonce="__NONCE__">
+(function () {
+  "use strict";
+  var DATA = JSON.parse(document.getElementById("data").textContent);
+  var state = { items: [], decisions: {}, verdict: "", submitted: false };
+  var editing = -1;
+  // The draft survives a reload of this tab. localStorage is per origin, and the
+  // origin includes the server's random port, so it does not survive a new server.
+  var DRAFT_KEY = "fd-review:" + DATA.sha256;
+  // Ids the renderer gives to document content. No page control id starts with
+  // either prefix, so a heading such as "## Submit" cannot shadow a control.
+  var HEADING_ID_PREFIX = "h-", AC_ID_PREFIX = "ac-";
+
+  function esc(s) {
+    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  }
+  // Page controls are captured before the document is rendered, so lookups never
+  // resolve to an element that came from the artifact.
+  var CONTROLS = {};
+  Array.prototype.forEach.call(document.querySelectorAll("[id]"), function (el) { CONTROLS[el.id] = el; });
+  function $(id) { return CONTROLS[id] || null; }
+  var cards = {};
+
+  // ---------------------------------------------------------------- inline
+  // Allowlist: http(s), mailto, fragments, and relative paths (no colon before
+  // the first "/"). Browsers ignore control characters and spaces inside a URL,
+  // so they are stripped before the scheme is checked.
+  function safeHref(url) {
+    var u = url.replace(/[\x00-\x20\x7f]/g, "");
+    var raw = u.replace(/&amp;/g, "&");
+    if (/^(https?:|mailto:)/i.test(raw) || raw.charAt(0) === "#") return u;
+    var colon = raw.indexOf(":"), slash = raw.indexOf("/");
+    if (colon === -1 || (slash !== -1 && slash < colon)) return u;
+    return null;
+  }
+  function inlineText(s) {
+    var t = esc(s);
+    t = t.replace(/!\[([^\]]*)\]\(([^)\s]+)\)/g, function (_m, alt) { return "[image: " + alt + "]"; });
+    t = t.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, function (m, label, href) {
+      var h = safeHref(href);
+      return h === null ? label : '<a href="' + h + '" target="_blank" rel="noopener noreferrer">' + label + "</a>";
+    });
+    t = t.replace(/\*\*([^*]+?)\*\*/g, "<strong>$1</strong>");
+    t = t.replace(/(^|[^*\w])\*([^*\s][^*]*?)\*(?![*\w])/g, "$1<em>$2</em>");
+    return t;
+  }
+  function inline(s) {
+    var out = "", re = /(`+)([\s\S]*?[^`])\1(?!`)/g, last = 0, m;
+    while ((m = re.exec(s))) {
+      out += inlineText(s.slice(last, m.index)) + "<code>" + esc(m[2].trim()) + "</code>";
+      last = re.lastIndex;
+    }
+    return out + inlineText(s.slice(last));
+  }
+
+  // ---------------------------------------------------------------- blocks
+  var RE = {
+    fence: /^\s*(```+|~~~+)/, heading: /^(#{1,6})\s+(.*?)(?:\s+#+)?\s*$/, hr: /^\s*([-*_])(\s*\1){2,}\s*$/,
+    list: /^(\s*)([-*+]|\d+[.)])\s+(.*)$/, quote: /^\s*>\s?/, tsep: /^\s*\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?\s*$/,
+    comment: /^\s*<!--/
+  };
+  function splitRow(line) {
+    var s = line.trim();
+    if (s.charAt(0) === "|") s = s.slice(1);
+    if (s.charAt(s.length - 1) === "|" && s.charAt(s.length - 2) !== "\\") s = s.slice(0, -1);
+    var cells = [], cur = "", inCode = false;
+    for (var i = 0; i < s.length; i++) {
+      var ch = s.charAt(i);
+      if (ch === "\\" && s.charAt(i + 1) === "|") { cur += "|"; i++; continue; }
+      if (ch === "`") inCode = !inCode;
+      if (ch === "|" && !inCode) { cells.push(cur.trim()); cur = ""; continue; }
+      cur += ch;
+    }
+    cells.push(cur.trim());
+    return cells;
+  }
+  function startsBlock(line, next) {
+    return RE.fence.test(line) || RE.heading.test(line) || RE.hr.test(line) || RE.list.test(line) ||
+      RE.quote.test(line) || RE.comment.test(line) || (line.indexOf("|") >= 0 && next !== undefined && RE.tsep.test(next));
+  }
+  function renderList(items) {
+    var html = "", stack = [];
+    items.forEach(function (it) {
+      var tag = /^\d/.test(it.marker) ? "ol" : "ul";
+      while (stack.length && it.indent < stack[stack.length - 1].indent) {
+        html += "</li></" + stack.pop().tag + ">";
+      }
+      var top = stack[stack.length - 1];
+      if (top && it.indent === top.indent && top.tag !== tag) { html += "</li></" + stack.pop().tag + ">"; top = stack[stack.length - 1]; }
+      if (top && it.indent === top.indent) {
+        html += "</li>";
+      } else {
+        var start = tag === "ol" ? parseInt(it.marker, 10) : 1;
+        html += "<" + tag + (tag === "ol" && start !== 1 ? ' start="' + start + '"' : "") + ">";
+        stack.push({ indent: it.indent, tag: tag });
+      }
+      var text = it.text, cls = "", pre = "", id = "";
+      var task = /^\[([ xX])\]\s+/.exec(text);
+      if (task) {
+        cls = "task"; text = text.slice(task[0].length);
+        pre = '<input type="checkbox" disabled' + (task[1] === " " ? "" : " checked") + '> ';
+      }
+      var ac = /^\*\*(AC-\d+)\*\*/.exec(text);
+      if (ac) { cls = "ac"; id = ' id="' + AC_ID_PREFIX + ac[1].slice(3) + '"'; }
+      var value = tag === "ol" ? ' data-n="' + parseInt(it.marker, 10) + '"' : "";
+      html += "<li" + id + value + (cls ? ' class="' + cls + '"' : "") + ">" + pre + inline(text);
+    });
+    while (stack.length) html += "</li></" + stack.pop().tag + ">";
+    return html;
+  }
+  function parseBlocks(lines, onHeading) {
+    var out = [], i = 0;
+    while (i < lines.length) {
+      var line = lines[i];
+      if (!line.trim()) { i++; continue; }
+      var m;
+      if ((m = RE.fence.exec(line))) {
+        var fence = m[1], body = [];
+        i++;
+        while (i < lines.length && lines[i].trim().indexOf(fence) !== 0) body.push(lines[i++]);
+        i++;
+        out.push({ html: "<pre><code>" + esc(body.join("\n")) + "</code></pre>" });
+        continue;
+      }
+      if (RE.comment.test(line)) {
+        while (i < lines.length && lines[i].indexOf("-->") < 0) i++;
+        i++;
+        continue;
+      }
+      if ((m = RE.heading.exec(line))) {
+        var level = m[1].length, h = onHeading(level, m[2]);
+        out.push({ html: "<h" + level + ' id="' + h.id + '">' + inline(m[2]) + "</h" + level + ">", h: h });
+        i++;
+        continue;
+      }
+      if (RE.hr.test(line)) { out.push({ html: "<hr>" }); i++; continue; }
+      if (line.indexOf("|") >= 0 && i + 1 < lines.length && RE.tsep.test(lines[i + 1])) {
+        var head = splitRow(line), rows = [];
+        i += 2;
+        while (i < lines.length && lines[i].indexOf("|") >= 0 && lines[i].trim()) rows.push(splitRow(lines[i++]));
+        var t = "<table><thead><tr>" + head.map(function (c) { return "<th>" + inline(c) + "</th>"; }).join("") + "</tr></thead><tbody>";
+        rows.forEach(function (r) {
+          t += "<tr>" + head.map(function (_c, k) { return "<td>" + inline(r[k] || "") + "</td>"; }).join("") + "</tr>";
+        });
+        out.push({ html: t + "</tbody></table>", table: { head: head, rows: rows } });
+        continue;
+      }
+      if (RE.quote.test(line)) {
+        var q = [];
+        while (i < lines.length && RE.quote.test(lines[i])) q.push(lines[i++].replace(RE.quote, ""));
+        out.push({ html: "<blockquote>" + parseBlocks(q, onHeading).map(function (b) { return b.html; }).join("") + "</blockquote>" });
+        continue;
+      }
+      if (RE.list.test(line)) {
+        var items = [];
+        while (i < lines.length) {
+          var l = lines[i], lm = RE.list.exec(l);
+          if (lm) { items.push({ indent: lm[1].replace(/\t/g, "    ").length, marker: lm[2], text: lm[3] }); i++; continue; }
+          if (!l.trim()) {
+            var nxt = lines[i + 1];
+            if (nxt !== undefined && (RE.list.test(nxt) || /^\s{2,}\S/.test(nxt))) { i++; continue; }
+            break;
+          }
+          if (/^\s+\S/.test(l) && items.length && !RE.fence.test(l)) { items[items.length - 1].text += " " + l.trim(); i++; continue; }
+          if (items.length && !startsBlock(l, lines[i + 1])) { items[items.length - 1].text += " " + l.trim(); i++; continue; }
+          break;
+        }
+        out.push({ html: renderList(items), list: true });
+        continue;
+      }
+      var para = [line];
+      i++;
+      while (i < lines.length && lines[i].trim() && !startsBlock(lines[i], lines[i + 1])) para.push(lines[i++]);
+      out.push({ html: "<p>" + inline(para.join(" ")) + "</p>" });
+    }
+    return out;
+  }
+
+  // ---------------------------------------------------------------- render
+  var headings = [];
+  function render() {
+    var lines = DATA.content.replace(/\r\n?/g, "\n").split("\n");
+    var html = "";
+    if (lines[0] === "---") {
+      var end = lines.indexOf("---", 1);
+      if (end > 0) {
+        html += '<div class="blk" data-sec="Frontmatter"><dl class="frontmatter">';
+        lines.slice(1, end).forEach(function (l) {
+          var fm = /^([\w-]+):\s*(.*)$/.exec(l);
+          if (fm) html += "<dt>" + esc(fm[1]) + "</dt><dd>" + esc(fm[2] || " ") + "</dd>";
+          else if (l.trim() && !/^\s*#/.test(l)) html += "<dt></dt><dd>" + esc(l) + "</dd>";
+        });
+        html += "</dl></div>";
+        lines = lines.slice(end + 1);
+      }
+    }
+    var used = {};
+    function onHeading(level, text) {
+      var plain = text.replace(/[`*_]/g, "");
+      var base = plain.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "section";
+      base = HEADING_ID_PREFIX + base;
+      var id = base, n = 2;
+      while (used[id]) id = base + "-" + n++;
+      used[id] = true;
+      var h = { level: level, text: plain, id: id };
+      headings.push(h);
+      return h;
+    }
+    // Each top-level block is labelled with its two nearest enclosing headings
+    // (H1 is the title and only used when nothing else encloses the block).
+    var stack = [];
+    parseBlocks(lines, onHeading).forEach(function (b, k) {
+      if (b.h) {
+        while (stack.length && stack[stack.length - 1].level >= b.h.level) stack.pop();
+        stack.push(b.h);
+      }
+      var s = stack.filter(function (x) { return x.level > 1; });
+      if (!s.length) s = stack;
+      var sec = s.slice(-2).map(function (x) { return x.text; }).join(" › ");
+      html += '<div class="blk" data-i="' + k + '" data-sec="' + esc(sec) + '">' + b.html + "</div>";
+    });
+    $("doc").innerHTML = html;
+  }
+
+  function buildOutline() {
+    var nav = $("outline"), h = "";
+    headings.forEach(function (x) {
+      if (x.level < 2 || x.level > 4) return;
+      h += '<a class="l' + x.level + '" href="#' + x.id + '">' + esc(x.text) + "</a>";
+    });
+    nav.innerHTML = h || '<span class="hint">No headings</span>';
+  }
+
+  function findTableAfter(pattern) {
+    var hs = document.querySelectorAll("#doc h1, #doc h2, #doc h3, #doc h4, #doc h5, #doc h6");
+    for (var k = 0; k < hs.length; k++) {
+      if (!pattern.test(hs[k].textContent)) continue;
+      var blk = hs[k].parentNode.nextElementSibling;
+      while (blk && !blk.querySelector("h1,h2,h3,h4,h5,h6")) {
+        var t = blk.querySelector("table");
+        if (t) return t;
+        blk = blk.nextElementSibling;
+      }
+    }
+    return null;
+  }
+
+  function decorateBaseline() {
+    var t = findTableAfter(/^\s*Baseline\b/i);
+    if (!t) return;
+    t.classList.add("baseline");
+    var col = -1;
+    t.querySelectorAll("thead th").forEach(function (th, k) { if (/result/i.test(th.textContent)) col = k; });
+    if (col < 0) return;
+    t.querySelectorAll("tbody tr").forEach(function (tr) {
+      var td = tr.children[col];
+      if (!td) return;
+      var v = td.textContent.trim().toLowerCase();
+      ["pre-existing-fail", "expected-red", "not-run", "hollow", "pass"].some(function (r) {
+        if (v.indexOf(r) === 0) { td.classList.add("r-" + r); return true; }
+        return false;
+      });
+    });
+  }
+
+  var decisionRows = [];
+  function buildDecisionCards() {
+    var t = findTableAfter(/^\s*Key Decisions\b/i);
+    if (!t) return;
+    var head = [];
+    t.querySelectorAll("thead th").forEach(function (th) { head.push(th.textContent.trim()); });
+    var col = function (name, fallback) {
+      var k = head.findIndex(function (h) { return h.toLowerCase().indexOf(name) === 0; });
+      return k >= 0 ? k : fallback;
+    };
+    var cDec = col("decision", 0), cRec = col("recommend", 2);
+    var cards = document.createElement("div");
+    cards.className = "cards";
+    t.querySelectorAll("tbody tr").forEach(function (tr, k) {
+      var id = "D" + (k + 1), cells = tr.children;
+      var title = cells[cDec] ? cells[cDec].textContent.trim() : id;
+      var rec = cells[cRec] ? cells[cRec].textContent.trim() : "";
+      decisionRows.push({ id: id, label: title + (rec ? " → " + rec : "") });
+      var card = document.createElement("div");
+      card.className = "card";
+      cards[id] = card;
+      var dl = "";
+      head.forEach(function (h, c) {
+        if (c === cDec || !cells[c]) return;
+        dl += "<dt>" + esc(h) + "</dt><dd>" + cells[c].innerHTML + "</dd>";
+      });
+      card.innerHTML = "<h4>" + id + " — " + (cells[cDec] ? cells[cDec].innerHTML : "") + "</h4><dl>" + dl + "</dl>" +
+        '<fieldset><legend class="sr">' + id + "</legend>" +
+        '<label><input type="radio" name="dec-' + id + '" value="accept" checked> Accept</label>' +
+        '<label><input type="radio" name="dec-' + id + '" value="change"> Change to</label>' +
+        '<input type="text" aria-label="' + id + ' change to" placeholder="what it should be instead" disabled></fieldset>';
+      cards.appendChild(card);
+      var text = card.querySelector("input[type=text]");
+      card.querySelectorAll("input[type=radio]").forEach(function (r) {
+        r.addEventListener("change", function () {
+          var change = r.value === "change" && r.checked;
+          if (r.checked) {
+            state.decisions[id] = { mode: r.value, text: text.value };
+            text.disabled = r.value !== "change";
+            card.classList.toggle("changed", change);
+            if (change) text.focus();
+            update();
+          }
+        });
+      });
+      text.addEventListener("input", function () { state.decisions[id] = { mode: "change", text: text.value }; update(); });
+    });
+    t.parentNode.replaceChild(cards, t);
+    $("dec-summary").hidden = false;
+  }
+
+  // ---------------------------------------------------------------- comments
+  function blockOf(node) {
+    while (node && node !== document.body) {
+      if (node.nodeType === 1 && node.classList.contains("blk")) return node;
+      node = node.parentNode;
+    }
+    return null;
+  }
+  function anchorLabel(node) {
+    var blk = blockOf(node);
+    if (!blk) return "";
+    var label = blk.getAttribute("data-sec") || "";
+    var el = node.nodeType === 1 ? node : node.parentNode, li = null;
+    while (el && el !== blk) { if (el.tagName === "LI" && el.parentNode.parentNode === blk) li = el; el = el.parentNode; }
+    if (li && li.hasAttribute("data-n")) {
+      var noun = DATA.kind === "plan" && /Implementation Order|Milestone/i.test(label) ? "step " : "item ";
+      label += (label ? " › " : "") + noun + li.getAttribute("data-n");
+    }
+    if (li && li.id && li.id.indexOf(AC_ID_PREFIX) === 0) label += (label ? " › " : "") + "AC-" + li.id.slice(AC_ID_PREFIX.length);
+    return label;
+  }
+  function currentSelection() {
+    var sel = window.getSelection();
+    if (!sel || sel.isCollapsed || !sel.rangeCount) return null;
+    var r = sel.getRangeAt(0);
+    if (!$("doc").contains(r.startContainer)) return null;
+    var text = sel.toString().trim();
+    if (!text) return null;
+    var blk = blockOf(r.startContainer);
+    return { quote: text, heading: anchorLabel(r.startContainer), block: blk ? blk.getAttribute("data-i") : null };
+  }
+  function topSection() {
+    var blks = document.querySelectorAll("#doc .blk");
+    for (var k = 0; k < blks.length; k++) {
+      if (blks[k].getBoundingClientRect().bottom > 60) return { heading: blks[k].getAttribute("data-sec"), block: blks[k].getAttribute("data-i") };
+    }
+    return { heading: "", block: null };
+  }
+  var pending = null;
+  function openComposer(anchor, index) {
+    if (state.submitted) return;
+    editing = index === undefined ? -1 : index;
+    pending = anchor;
+    $("c-quote").value = anchor.quote || "";
+    $("c-sec").value = anchor.heading || "";
+    $("c-text").value = anchor.comment || "";
+    $("composer").classList.add("open");
+    $("addc").style.display = "none";
+    $("c-text").focus();
+  }
+  function closeComposer() { $("composer").classList.remove("open"); editing = -1; pending = null; }
+  function saveComment() {
+    var comment = $("c-text").value.trim();
+    if (!comment) { $("c-text").focus(); return; }
+    var item = { quote: $("c-quote").value.trim(), heading: $("c-sec").value.trim(), comment: comment, block: pending ? pending.block : null };
+    if (editing >= 0) state.items[editing] = item; else state.items.push(item);
+    closeComposer();
+    if (state.verdict === "approve" || !state.verdict) setVerdict("approve-with-notes");
+    update();
+  }
+  function renderItems() {
+    var box = $("items");
+    box.innerHTML = "";
+    document.querySelectorAll("#doc .blk.commented").forEach(function (b) { b.classList.remove("commented"); });
+    state.items.forEach(function (it, k) {
+      if (it.block !== null && it.block !== undefined) {
+        var b = document.querySelector('#doc .blk[data-i="' + it.block + '"]');
+        if (b) b.classList.add("commented");
+      }
+      var d = document.createElement("div");
+      d.className = "item";
+      d.innerHTML = "<div><b>" + (k + 1) + ".</b> <span class=\"s\">§ " + esc(it.heading || "(document)") + "</span></div>" +
+        (it.quote ? '<div class="q">' + esc(it.quote) + "</div>" : "") +
+        '<div class="c">' + esc(it.comment) + '</div><div class="row">' +
+        '<button type="button" data-act="edit">Edit</button><button type="button" data-act="del">Delete</button></div>';
+      d.querySelector('[data-act=edit]').addEventListener("click", function () { openComposer(it, k); });
+      d.querySelector('[data-act=del]').addEventListener("click", function () { state.items.splice(k, 1); update(); });
+      box.appendChild(d);
+    });
+    $("count").textContent = String(state.items.length);
+  }
+
+  // ---------------------------------------------------------------- verdict
+  function overrides() {
+    return decisionRows.filter(function (d) {
+      var s = state.decisions[d.id];
+      return s && s.mode === "change";
+    }).map(function (d) { return { id: d.id, change_to: state.decisions[d.id].text.trim(), label: d.label }; });
+  }
+  function setVerdict(v) {
+    state.verdict = v;
+    document.querySelectorAll("input[name=verdict]").forEach(function (r) { r.checked = r.value === v; });
+  }
+  function update() {
+    renderItems();
+    var ov = overrides(), notes = state.items.length + ov.length;
+    var approve = document.querySelector("input[name=verdict][value=approve]");
+    approve.disabled = notes > 0 || state.submitted;
+    if (notes > 0 && state.verdict === "approve") setVerdict("approve-with-notes");
+    var hint = "";
+    if (notes > 0) hint = "Approve is disabled while there are comments or decision changes.";
+    if (state.verdict === "approve-with-notes") hint += (hint ? " " : "") + "Notes are context, not change requests.";
+    if (state.verdict === "request-changes" && !notes) hint = "Request changes needs at least one comment or decision change.";
+    var emptyChange = ov.some(function (d) { return !d.change_to; });
+    if (emptyChange) hint = "A decision marked 'Change to' needs text.";
+    $("verdict-hint").textContent = hint;
+    $("submit").disabled = state.submitted || !state.verdict || emptyChange || (state.verdict === "request-changes" && !notes);
+    if (decisionRows.length) $("dec-text").textContent = decisionRows.length + " decisions — " + ov.length + " to change (" +
+      (ov.map(function (d) { return d.id; }).join(", ") || "none") + ").";
+    saveDraft();
+  }
+  function saveDraft() {
+    try { localStorage.setItem(DRAFT_KEY, JSON.stringify({ items: state.items, decisions: state.decisions, verdict: state.verdict })); } catch (e) { /* storage unavailable */ }
+  }
+  function loadDraft() {
+    try {
+      var d = JSON.parse(localStorage.getItem(DRAFT_KEY) || "null");
+      if (!d) return;
+      state.items = d.items || [];
+      Object.keys(d.decisions || {}).forEach(function (id) {
+        var card = cards[id];
+        if (!card) return;
+        var s = d.decisions[id];
+        state.decisions[id] = s;
+        card.querySelector('input[value="' + (s.mode === "change" ? "change" : "accept") + '"]').checked = true;
+        var text = card.querySelector("input[type=text]");
+        text.value = s.text || "";
+        text.disabled = s.mode !== "change";
+        card.classList.toggle("changed", s.mode === "change");
+      });
+      if (d.verdict) setVerdict(d.verdict);
+    } catch (e) { /* ignore a broken draft */ }
+  }
+  function submit() {
+    var payload = {
+      verdict: state.verdict,
+      items: state.items.map(function (it) { return { quote: it.quote, heading: it.heading, comment: it.comment }; }),
+      decisions: overrides()
+    };
+    $("submit").disabled = true;
+    var st = $("status");
+    st.className = ""; st.textContent = "Submitting…";
+    fetch("/submit", { method: "POST", headers: { "Content-Type": "application/json", "X-Review-Token": DATA.token }, body: JSON.stringify(payload) })
+      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, body: j }; }); })
+      .then(function (res) {
+        if (!res.ok) throw new Error(res.body.error || "rejected");
+        state.submitted = true;
+        try { localStorage.removeItem(DRAFT_KEY); } catch (e) { /* ignore */ }
+        st.className = "ok";
+        st.textContent = "Review saved to " + res.body.path + ".\nReturn to Claude Code; you can close this tab.";
+        document.querySelectorAll("aside button, aside input, aside textarea, #doc input").forEach(function (el) { el.disabled = true; });
+      })
+      .catch(function (e) {
+        st.className = "err";
+        st.textContent = "Not saved: " + e.message + ". If the review server has stopped, copy your comments from this panel before closing the tab: a new server opens a new page without them.";
+        $("submit").disabled = false;
+      });
+  }
+
+  // ---------------------------------------------------------------- diff
+  function loadDiff() {
+    fetch("/diff", { headers: { "X-Review-Token": DATA.token } })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (!d.available) return;
+        var add = 0, del = 0, html = "", run = [];
+        function flush(final) {
+          if (run.length > 6) {
+            var head = html ? run.slice(0, 3) : [], tail = final ? [] : run.slice(-3);
+            head.forEach(function (l) { html += "<div>" + esc(l) + "</div>"; });
+            html += '<div class="gap">⋯ ' + (run.length - head.length - tail.length) + " unchanged lines</div>";
+            tail.forEach(function (l) { html += "<div>" + esc(l) + "</div>"; });
+          } else run.forEach(function (l) { html += "<div>" + esc(l) + "</div>"; });
+          run = [];
+        }
+        d.rows.forEach(function (row) {
+          if (row[0] === " ") { run.push(row[1]); return; }
+          flush(false);
+          if (row[0] === "+") add++; else del++;
+          html += '<div class="' + (row[0] === "+" ? "a" : "d") + '">' + (row[0] === "+" ? "+ " : "- ") + esc(row[1]) + "</div>";
+        });
+        flush(true);
+        $("diffview").innerHTML = "<p class=\"hint\">Line diff against <code>" + esc(d.previous) + "</code>: +" + add + " / −" + del +
+          ". Comments are made on the Document tab.</p><div class=\"diff\">" + (add + del ? html : "<div>No changes.</div>") + "</div>";
+        $("tab-diff").textContent = "Changes (+" + add + " −" + del + ")";
+        $("tabs").hidden = false;
+      })
+      .catch(function () { /* diff is optional */ });
+  }
+  function showTab(diff) {
+    $("doc").style.display = diff ? "none" : "";
+    $("diffview").style.display = diff ? "block" : "none";
+    $("tab-doc").setAttribute("aria-pressed", String(!diff));
+    $("tab-diff").setAttribute("aria-pressed", String(diff));
+  }
+
+  // ---------------------------------------------------------------- wire up
+  document.title = "Review — " + DATA.name;
+  $("title").textContent = DATA.name;
+  render();
+  buildOutline();
+  decorateBaseline();
+  if (DATA.kind === "plan") buildDecisionCards();
+  var acs = document.querySelectorAll("#doc li.ac").length;
+  var lines = DATA.content.split("\n").length;
+  $("meta").textContent = DATA.kind.toUpperCase() + " · " + lines + " lines" + (acs ? " · " + acs + " acceptance criteria" : "") +
+    (decisionRows.length ? " · " + decisionRows.length + " decisions" : "") + " · sha256 " + DATA.sha256.slice(0, 12);
+  loadDraft();
+  update();
+  loadDiff();
+
+  // Keep the server's idle timer alive while the page is being read.
+  function ping() {
+    if (state.submitted || document.visibilityState !== "visible") return;
+    fetch("/ping", { headers: { "X-Review-Token": DATA.token } })
+      .then(function (r) { if (!r.ok) throw new Error(String(r.status)); })
+      .catch(function () {
+        var st = $("status");
+        if (st.className !== "ok") { st.className = "err"; st.textContent = "The review server is not reachable; submitting will fail. Copy your comments before closing this tab."; }
+      });
+  }
+  setInterval(ping, 60000);
+  document.addEventListener("visibilitychange", ping);
+
+  var addc = $("addc");
+  function onSelect() {
+    var s = currentSelection();
+    if (!s || state.submitted) { addc.style.display = "none"; return; }
+    var rect = window.getSelection().getRangeAt(0).getBoundingClientRect();
+    addc.style.top = (window.scrollY + rect.bottom + 6) + "px";
+    addc.style.left = (window.scrollX + rect.left) + "px";
+    addc.style.display = "block";
+  }
+  document.addEventListener("mouseup", function (e) { if (e.target !== addc) setTimeout(onSelect, 0); });
+  document.addEventListener("keyup", function (e) { if (e.shiftKey) onSelect(); });
+  addc.addEventListener("mousedown", function (e) { e.preventDefault(); });
+  addc.addEventListener("click", function () { var s = currentSelection(); if (s) openComposer(s); });
+  $("new-comment").addEventListener("click", function () { openComposer(currentSelection() || topSection()); });
+  $("c-save").addEventListener("click", saveComment);
+  $("c-cancel").addEventListener("click", closeComposer);
+  $("composer").addEventListener("keydown", function (e) {
+    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); saveComment(); }
+    if (e.key === "Escape") { e.preventDefault(); closeComposer(); }
+  });
+  document.addEventListener("keydown", function (e) {
+    var tag = (e.target.tagName || "").toLowerCase();
+    if (tag === "input" || tag === "textarea" || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.key === "c") { e.preventDefault(); openComposer(currentSelection() || topSection()); }
+  });
+  document.querySelectorAll("input[name=verdict]").forEach(function (r) {
+    r.addEventListener("change", function () { if (r.checked) { state.verdict = r.value; update(); } });
+  });
+  $("submit").addEventListener("click", submit);
+  $("tab-doc").addEventListener("click", function () { showTab(false); });
+  $("tab-diff").addEventListener("click", function () { showTab(true); });
+})();
+</script>
+</body>
+</html>
