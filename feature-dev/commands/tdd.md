@@ -11,6 +11,12 @@ allowed-tools:
   - Bash(make *)
   - Bash(cargo *)
   - Bash(go *)
+  - Bash(gh auth status)
+  - Bash(gh repo view --json nameWithOwner*)
+  - Bash(gh issue view *)
+  - Bash(gh issue comment *)
+  - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/issue_spec.py *)
+  - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/review_server.py snapshot *)
   - Read
   - Write
   - Edit
@@ -51,12 +57,13 @@ triggers:
 1. **Resolve the feature spec:**
    - **If `$ARGUMENTS` is the path of an existing `PLAN-*.md`** → read it and use it exactly as a single auto-discovered plan below (the closing lines of `/feature-dev:explore-plan` and `/feature-dev:plan-review` print this form).
    - **If `$ARGUMENTS` is the path of an existing `SPEC-*.md`** → read its frontmatter, use `feature:` as the spec, and record the path as `source_spec`. There is no plan: skip the plan search in Phase 1 and take the no-plan path. This is the small-feature fallback `/feature-dev:spec` mentions; the spec's ACs (or its Tasks) are the reviewed anchor, the decisions go to its Decisions Log, and Phase 6 closes it. If its `status:` is `implemented`, say so and ask before continuing.
+   - **If `$ARGUMENTS` is `#N`, `owner/repo#N`, or an issue URL** → resolve it per [issue-store.md's Argument parsing](../skills/spec-driven-development/references/issue-store.md#argument-parsing), then run [issue-store.md's Import algorithm](../skills/spec-driven-development/references/issue-store.md#import-ac-8-ac-9-ac-10-ac-11-ac-12) against it, start to finish. Do not restate Import's steps here — follow the reference; its own step 3 is where a closed issue asks before continuing, the same shape as this command's `status: implemented` check above. A failed `gh` preflight, or a failed `gh issue view` call, stops here and names the issue that could not be read. On success, continue as if `$ARGUMENTS` had been the resulting `SPEC-<slug>.md` path (the `SPEC-*.md` bullet above applies).
    - **If `$ARGUMENTS` is anything else** → use it as the feature spec. Continue to step 2.
    - **If `$ARGUMENTS` is empty** → auto-discover plan files. Use Glob with pattern `PLAN-*.md` in the repo root:
      - **0 plans found** → **STOP** and ask the user for a feature description.
      - **1 plan found** → read it, extract the `feature:` value from its frontmatter, and use that as the spec. Record the plan path as the **pre-selected plan** for Phase 1. Inform the user: "Auto-selected plan: `PLAN-<slug>.md` (feature: <name>)".
      - **2+ plans found** → read each plan's frontmatter to extract the `feature:` value. Use AskUserQuestion to let the user pick one (label = feature name, description = filename). The chosen plan's `feature:` becomes the spec and its path is the **pre-selected plan** for Phase 1.
-2. **Check the working tree.**
+2. **Check the working tree.** Use the `Working tree clean` field from the Context section above — it was captured before Phase 0 ran, so an issue import in step 1 (which writes a new, untracked `SPEC-<slug>.md` when no local copy exists) never trips this check on its own output.
    - **Clean** → proceed normally.
    - **Dirty** → this may be a halted run, not stray edits. Read the frontmatter of the plan resolved in step 1 (a spec-only run has no plan, so it cannot be a resumable run: apply the stop below). If it has `run_status: in-progress` or `run_status: halted` with a non-empty `completed_steps:`, the dirty tree is *this command's own* unfinished work → go to **Phase 1b: Resume** after Phase 1.
    - **Dirty with no in-progress plan** → **STOP** and ask the user to commit or stash.
@@ -285,6 +292,8 @@ Its brief is an input to the user's decision, not a substitute for it. Do not ac
 
    `Binds` is the field that earns the log its keep: it is what a run in the *other* repo reads to know the decision applies to it.
 
+   **If the source spec has `issue:`**, also post the decision as an issue comment (issue-store.md's [Decision comment format](../skills/spec-driven-development/references/issue-store.md#decision-comment-format-ac-13)): write it to a scratch file (the reference's Scratch files rule) under a `## Decision — <slug>` heading, then `gh issue comment <N> --repo <owner>/<repo> --body-file <file>`. A failed post, or a failed `gh` preflight, does not halt the run — add the decision text to a running "unposted decisions" list for the Phase 6 report and move on. This comment is the only write this command makes to the issue: it never edits the issue body and never closes the issue — `status: implemented` (Phase 6) stays a local edit to the spec file only.
+
    **If there is no `source_spec`** (a plan with `source_spec: null`, or a run from a text description), keep the entries under a `decisions:` key in the `PLAN-*.md` frontmatter when there is a plan, and reproduce them verbatim in the Phase 6 report either way — the plan is deleted on success, so the report is the only place they survive. A spec-only run always has a `source_spec`, so its decisions never go to a `decisions:` key.
 
 Thread only the **carry-over deltas** forward (new symbols, new fixtures, new test markers, schema changes) — not the full prior reports. The next agent needs the deltas, not a retrospective.
@@ -340,6 +349,9 @@ Output a final summary:
 
 ### Decisions Recorded: [count, or None]
 - [decision] — binds: [who] ([recorded in SPEC-<slug>.md | report only — no source_spec])
+
+### Unposted decisions: [count, or None]
+- [decision text, verbatim]
 
 ### Coordinator: [session name — N questions routed | not used | named but unreachable]
 
