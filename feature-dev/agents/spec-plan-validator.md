@@ -96,7 +96,12 @@ Then run the **code-claims pass** (step 3).
 | Body has a **Parallelization Hints** section (added in feature-dev v1.9.0) | Nice to Have |
 | Frontmatter has `run_status:` and `completed_steps:` (added in feature-dev v1.19.0; absent means the plan predates resume support and cannot be resumed if a `/feature-dev:tdd` run halts) | Nice to Have |
 
-`Covers:` is optional and not checked in this release.
+Then run the **AC coverage check** when frontmatter `source_spec:` resolves to a file whose acceptance criteria carry ids (`**AC-1**`, `**AC-2**`, …). Skip it silently otherwise, since there are no ids to trace. Read the spec's `## Acceptance Criteria` section and collect its ids. Retired ids are simply absent, and a gap in the numbering is not a finding. Then read every step's `Covers:`.
+- An AC id that no step's `Covers:` cites → **Should Address**, one finding per AC, naming it and quoting its text. An AC no step covers is one no runner will make true: ACs were lost between spec and plan in exactly this way.
+- A `Covers:` that cites an id the spec does not define → **Should Address**, naming the step and the id. It usually means the spec was renumbered or the step cites the wrong criterion.
+- A behavior or characterization step (its `Test:` is a path, not `n/a`) without `Covers:` → **Nice to Have**, one finding listing all such steps. Non-behavioral steps (`Test: n/a`) may omit it.
+
+Report the count as `AC coverage: <covered>/<total>` in the Summary (see the report format).
 
 Then run the **path check**: Glob every path in **Files to Modify** and **Files to Create**, resolved from the repository root. A path starting with `../<dir>/` belongs to a sibling repo: match `../<dir>` against the `path` entries of the source spec's `repos:` block to confirm it is in scope, then Glob it as written.
 - A Files to Modify path that does not exist → Blocking (the plan was written against code that is not there; the step that edits it cannot run as planned).
@@ -128,7 +133,7 @@ If the spec makes no checkable claims about existing code (a greenfield feature)
 
 ### 4. Generate the report
 
-Use exactly this format. Replace bracketed placeholders. Preserve the three severity headings even when empty (write "None." under empty sections). The `## Code claims` section and the second Summary line appear for specs only.
+Use exactly this format. Replace bracketed placeholders. Preserve the three severity headings even when empty (write "None." under empty sections). The `## Code claims` section and the Code claims Summary line appear for specs only. The AC coverage line appears for plans only, and only when the coverage check ran.
 
 ```markdown
 # [Spec|Plan] Review: [feature name from frontmatter]
@@ -139,6 +144,7 @@ Use exactly this format. Replace bracketed placeholders. Preserve the three seve
 ## Summary
 - Blocking: X | Should Address: Y | Nice to Have: Z
 - Code claims (spec only): N checked — C confirmed, D drifted, R refuted, U unverified
+- AC coverage (plan only, when the source spec numbers its ACs): <covered>/<total> — uncovered: AC-4, AC-7 (or "all covered")
 
 ## Blocking
 - [Finding] — [why this blocks downstream work] — section: `[section name]`

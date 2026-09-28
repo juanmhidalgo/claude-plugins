@@ -82,7 +82,7 @@ Each phase that runs requires user approval before advancing.
    **Multi-repo features only** add one more section after Boundaries:
    - **Cross-Repo Contracts**: Endpoint(s), request/response shape, error codes, breaking-change flag, versioning notes. This is the artifact every in-scope repo commits to and the anchor for coordination. It belongs to the spec, so it is written with or without `--with-tasks`.
 
-6. **Save the spec** to `SPEC-<feature-slug>.md` in the project root. The file MUST begin with this frontmatter block (one single block — merge the optional `repos:` lines inside the `---` delimiters when multi-repo):
+6. **Save the spec** to `SPEC-<feature-slug>.md` in the project root. If that file already exists, first copy it to `.feature-dev/history/<slug>/SPEC-<slug>.<n>.md`, where n is one more than the highest n already there (1 if none): Read it, then Write the copy. Do the same once per review round before editing a spec the user has already seen. `/feature-dev:review` diffs against that copy, and without it nobody can see what changed between versions. The file MUST begin with this frontmatter block (one single block — merge the optional `repos:` lines inside the `---` delimiters when multi-repo):
 
    ```markdown
    ---
@@ -108,7 +108,7 @@ Each phase that runs requires user approval before advancing.
 
    Update `status:` to `approved` after the user validates the spec in step 8.
 
-7. **Update `.gitignore`.** If the project's `.gitignore` does not already include `SPEC-*.md`, add it. The spec is a local working artifact, not a repo deliverable — this prevents accidental commits via `git add .`. (Mirrors the same step performed by `/feature-dev:explore-plan` for `PLAN-*.md`.)
+7. **Update `.gitignore`.** If the project's `.gitignore` does not already include `SPEC-*.md`, add it, and add `.feature-dev/` the same way (review files and version history). The spec is a local working artifact, not a repo deliverable — this prevents accidental commits via `git add .`. (Mirrors the same step performed by `/feature-dev:explore-plan` for `PLAN-*.md`.)
 
 8. **Present the review brief** (below) — not the spec itself. Do NOT proceed until the user approves.
 
@@ -127,6 +127,7 @@ Every approval gate in this command ends with this block instead of re-printing 
 **Out of scope**
 - <each `## Non-Goals` item, one line>
 Reply with the numbers you want changed, or "approved".
+Or review it in the browser: /feature-dev:review SPEC-<slug>.md
 ```
 
 "Unverified claims about the code" lists the facts about existing code the spec relies on — paths, symbols, field nullability, FK direction, endpoint paths, migration numbers, config keys — that you did not open the file to confirm. Say "not checked" rather than guessing; `/feature-dev:spec-review` checks them against the code.

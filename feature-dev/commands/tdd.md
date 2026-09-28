@@ -132,7 +132,7 @@ The plan's **Implementation Order** already carries them, one block per step:
    - Kind: ...        → routing (optional; default behavior)
    - Accept: ...      → behavior
    - Pins: ...        → existing behaviors to lock in (optional; passed to the runner)
-   - Covers: ...      → spec AC ids (optional; informational)
+   - Covers: ...      → spec AC ids (passed to the runner; Phase 6 reports AC coverage)
    - Impl: ...        → impl target path
    - Test: ...        → test target path (or `n/a — <reason>`)
    - Verify: ...      → verification command
@@ -205,7 +205,7 @@ A precondition step that moves HEAD (a rebase) makes the Baseline stale by desig
 
 For each criterion:
 
-1. **Spawn** the Agent tool with the routed `subagent_type`, passing that agent's contract fields plus the **accumulated carry-over** from all prior steps in this run.
+1. **Spawn** the Agent tool with the routed `subagent_type`, passing that agent's contract fields, the step's `Covers:` ids when it has them, and the **accumulated carry-over** from all prior steps in this run.
    If the step has Baseline rows, include them in the carry-over, so the agent does not spend its budget chasing a failure that was already there.
 2. **Parse its report.** `tdd-runner`: Behavior / Cycles run / Tests added / Pins / Production changes / Verification / Halt reason / Carry-over / Blockers. `plan-step-executor`: Files changed / Verification / Deviations / Carry-over / Blockers. Either may lead with a `Tree state: BROKEN` block.
 3. **Decide:**
@@ -247,6 +247,16 @@ Its brief is an input to the user's decision, not a substitute for it. Do not ac
 **Log first, announce second.** A *question* can go out immediately; there is nothing to store yet. A *decision* is written to the `## Decisions Log` **before** it is announced to anyone, and only after the user has accepted it. A decision that reached the coordinator session but not the log is exactly the split-brain the log exists to prevent: the session knows something the spec does not, and the session will not outlive the feature.
 
 4. **Record progress.** After each step, tell the user one line — `Step N/M — <name>: <outcome>` — in the user's language only; do not repeat it in a second language or recap earlier steps. When the next step opens a new `#### Milestone` heading, add one line naming it; it is not a prompt. Wait for each agent's completion notification rather than polling with `sleep`.
+
+   **Checkpoint line.** At each `#### Milestone` boundary, once the finished milestone's last step is recorded, print one line. In a plan without milestones, print it every ~8 completed steps:
+
+   ```
+   Progress recorded in PLAN-<slug>.md (steps 1–<N> done). To free context: /clear, then /feature-dev:tdd PLAN-<slug>.md; resume re-verifies the completed steps.
+   ```
+
+   Then continue with the next step in the same turn. Do not ask, and do not pause for an answer. The line exists because this orchestrator's context only grows: one run went from 98k to 389k tokens. Resume already re-verifies every recorded step (Phase 1b), so clearing between milestones costs one re-verification pass, not the run.
+
+   **Notifications for finished work get no turn.** Once a subagent's report has been parsed and its step recorded, a later idle or completion notification for that same agent needs nothing from you. Do not write an acknowledgement ("Noted", "Step 3 already recorded") and do not re-summarize; go on with the next action, or end the turn silently if there is none. One run received 18 such notices and spent 13 turns only acknowledging them. A notification that carries a report you have not processed yet is not one of these: parse it.
 
    After each step that passes, use Edit on the `PLAN-*.md` frontmatter to append the step number to `completed_steps:` and set `run_status: in-progress`. **`completed_steps` must never contain a gap** — a recorded `[0,1,2,4]` claims step 3 was completed-and-skipped, which is not a state this command can produce. If you are about to write a gap, you have advanced past an unfinished step: stop and fix that instead. On a halt, set `run_status: halted` and add `halted_at: <step number>` plus a one-line `halt_reason:`. This is what makes the run resumable — a halted run that recorded nothing is a lost run.
 
@@ -313,6 +323,8 @@ Output a final summary:
 
 ### Criteria: [N] total — [N] met, [N] pinned, [N] already satisfied, [N] halted
 
+### Acceptance criteria: [covered]/[total] covered by met steps — uncovered: [AC ids, or None] · halted: [AC ids on halted or never-run steps, or None]
+
 | # | Criterion | Cycles | Outcome |
 |---|-----------|--------|---------|
 | 1 | [criterion] | 2/5 | met |
@@ -339,6 +351,8 @@ Output a final summary:
 
 ### Ready to commit: Yes/No
 ```
+
+**The Acceptance criteria line** traces the run back to the spec. Take the AC ids from the `source_spec` (the plan's, or the spec passed as the argument). An AC is *covered* when at least one step whose `Covers:` cites it ended `met`, `pinned` or `RED passed early`. It is *halted* when every step citing it halted or never ran. It is *uncovered* when no step cites it. Omit the line when there is no source spec with numbered ACs. The line reports; it does not gate. An uncovered AC on an otherwise green run still gets named, because it is the criterion nobody built.
 
 If every criterion was met and the suite is green (apart from failures listed in the Baseline's `pre-existing-fail` rows):
 1. **Close the loop on the source spec (if any):** if the plan's frontmatter had a `source_spec:` pointing to a `SPEC-*.md` file, or the run was given a `SPEC-*.md` as its argument, use Edit to set that spec's `status:` field to `implemented`. This prevents auto-discovery from re-surfacing a completed feature on future runs.

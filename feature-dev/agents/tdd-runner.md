@@ -42,6 +42,7 @@ Your spawning prompt MUST include:
 7. **Cycle cap** — default 5. May be lower for tight bugs.
 8. **Mode** (optional) — `tdd` (default) or `characterization`.
 9. **Pins** (optional) — existing behaviors this step's test file must also lock in. See *Pins*.
+10. **Covers** (optional) — the spec AC ids this step makes true. Where the project's test style allows it, put them in each new test's docstring or name (`test_ac3_...`), so a failing test names the criterion it guards.
 
 If any of behavior / spec / verification is missing, halt and request — you cannot run TDD without a clear contract.
 

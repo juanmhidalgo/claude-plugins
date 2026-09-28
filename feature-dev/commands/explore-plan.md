@@ -111,7 +111,7 @@ Do NOT launch an explorer the caller did not select, and do NOT skip one it did.
 
 ## Step 2: Synthesize and Write Plan
 
-After all agents complete, synthesize the findings and draft the Implementation Order against the Step 2b rules. Run the Step 2c baseline on the draft's commands, then write the plan to [PLAN-<slug>.md] using the Write tool.
+After all agents complete, synthesize the findings and draft the Implementation Order against the Step 2b rules. Run the Step 2c baseline on the draft's commands, then write the plan to [PLAN-<slug>.md] using the Write tool. If that file already exists, first copy it to `.feature-dev/history/<slug>/PLAN-<slug>.<n>.md`, where n is one more than the highest n already there (1 if none). `/feature-dev:review` diffs against the newest copy; without it nobody can see what changed between plan versions.
 
 The plan MUST follow this template:
 
@@ -189,7 +189,7 @@ Run on `<short sha>` at plan time. /tdd uses this to attribute failures.
    - Kind: [behavior | characterization — optional, default behavior]
    - Accept: [one specific, testable acceptance criterion — observable behavior, not "implement X"]
    - Pins: [optional — existing behaviors this step's test file must also lock in; only on a step whose Test is a path it creates]
-   - Covers: [optional — spec AC ids, e.g. AC-3, AC-5]
+   - Covers: [spec AC ids this step makes true, e.g. AC-3, AC-5 — required on behavior and characterization steps when the source spec numbers its ACs (rule 8); may be omitted on non-behavioral steps]
    - Impl: [path to the production file this step changes]
    - Test: [path to the test file that proves it; add `(written by step N)` if an earlier step creates it; or `n/a — <reason>` for non-behavioral steps]
    - Verify: [exact runnable command scoped to this step]
@@ -233,6 +233,7 @@ The downstream agents halt on a step that violates these. A plan that fails them
 5. **Order by dependency, not by layer.** A step consuming a symbol another step introduces comes after it, and names it in `Depends on`.
 6. **Say who writes the test.** When one step writes a test file and a later step makes it pass, the later step's `Test:` must carry `(written by step N)`. Without that marker the executor cannot tell "write this test" from "make this existing test pass", and will try to write a test that already exists. A step whose `Test:` and `Impl:` are BOTH `n/a` is an environment precondition (rebase, migration check, dependency install) — legitimate, but it still needs a `Verify` command.
 7. **Re-examine a plan over ~20 steps before writing it.** Fold pin-only steps into `Pins:` and structure-only steps into `Kind: characterization`; above 25 the plan review flags it. What remains large can be grouped under `#### Milestone N — <name>` headings. Milestones are for reading; they add no gate.
+8. **Trace every acceptance criterion.** When the source spec numbers its ACs (`**AC-1**`…), every behavior and characterization step carries `Covers:` with the ids it makes true, and every AC is covered by at least one step. Steps with `Test: n/a` may omit it. Before writing, list the spec's AC ids and check each against the steps. An AC that no step covers gets a step, or a line in Risks saying why the plan leaves it out. ACs were lost between spec and plan before: one was made unreachable by the code, and a docs step was dispatched only because the user asked for it.
 
 ## Step 2c: Baseline — run every gate once on HEAD
 
@@ -251,7 +252,7 @@ The downstream agents halt on a step that violates these. A plan that fails them
 
 ## Step 3: Update .gitignore
 
-If PLAN-*.md is not in the project's .gitignore, add it.
+If PLAN-*.md is not in the project's .gitignore, add it. Add `.feature-dev/` the same way (review files and version history).
 ```
 
 ## Phase 2: Plan Review (automatic)
@@ -259,7 +260,7 @@ If PLAN-*.md is not in the project's .gitignore, add it.
 The plan is validated before the user sees it. When plan review was a separate, optional command it ran in 2 of 6 features, and in one of those the user carried the result over by pasting a review run in another session.
 
 1. Spawn `feature-dev:spec-plan-validator` with `artifact_type: plan` and `artifact_path: PLAN-<slug>.md`. Leave `name` unset, for the same reason as the generator: it is a nested worker, and its fresh context is what makes it a review rather than the generator re-reading its own work.
-2. **If it returns Blocking findings**, re-dispatch the generator once: a new anonymous `general-purpose` Agent (no `name`) whose prompt gives the plan path, the Blocking findings verbatim, and these instructions — fix each finding in place with Edit, touching only what the finding names; read the code a fix needs, but do not re-run the explorers; a changed or new step still follows Step 2b and a changed or new `Verify` is baselined per Step 2c (include both sections of the Phase 1 prompt verbatim in this prompt); a finding that cannot be fixed without a user decision is left as it is and named in the reply. Then spawn the validator again on the edited plan. There is no second re-dispatch: a Blocking finding that survives one fix needs the user, not another pass.
+2. **If it returns Blocking findings**, re-dispatch the generator once: a new anonymous `general-purpose` Agent (no `name`) whose prompt gives the plan path, the Blocking findings verbatim, and these instructions — fix each finding in place with Edit, touching only what the finding names; read the code a fix needs, but do not re-run the explorers; a changed or new step still follows Step 2b and a changed or new `Verify` is baselined per Step 2c (include both sections of the Phase 1 prompt verbatim in this prompt); a finding that cannot be fixed without a user decision is left as it is and named in the reply; before the first Edit, copy the plan to `.feature-dev/history/<slug>/PLAN-<slug>.<n>.md` as Step 2 does. Then spawn the validator again on the edited plan. There is no second re-dispatch: a Blocking finding that survives one fix needs the user, not another pass.
 3. **Should Address and Nice to Have findings** are not re-dispatched; they go into the brief.
 
 Keep the final validator report for Phase 3. Do not print it in full.
@@ -273,7 +274,7 @@ Read `PLAN-<slug>.md` from disk and end with a review brief instead of re-printi
 
 ```markdown
 ### Review brief — PLAN-<slug>.md (<N> lines, <T> steps)
-**Plan review** — <B> Blocking left (<F> fixed in one pass), <S> Should Address
+**Plan review** — <B> Blocking left (<F> fixed in one pass), <S> Should Address · AC coverage <c>/<t>
 1. Blocking: <finding, section>
 2. <Should Address finding, section>
 - Nice to Have: <n> — <short list, one line>
@@ -286,9 +287,10 @@ Read `PLAN-<slug>.md` from disk and end with a review brief instead of re-printi
 **Out of scope**
 - <what the plan deliberately leaves out>
 Reply with the numbers you want changed, or "approved".
+Or review it in the browser: /feature-dev:review PLAN-<slug>.md
 ```
 
-The **Plan review** group leads because a remaining Blocking finding is the one thing that stalls /tdd. Blocking findings come first, then Should Address. A finding that restates a Baseline row already listed under Unverified is not repeated. When the validator found nothing, the group is one line: `**Plan review** — clean`.
+The **Plan review** group leads because a remaining Blocking finding is the one thing that stalls /tdd. Blocking findings come first, then Should Address. A finding that restates a Baseline row already listed under Unverified is not repeated. When the validator found nothing, the group is one line: `**Plan review** — clean`. `AC coverage` is copied from the validator's summary; leave it out when the source spec has no numbered ACs. An uncovered AC is one of the Should Address findings in the group.
 
 Every Baseline row that gates a step — `hollow`, or `not-run` for `missing` — goes under **Unverified**, with a note that /tdd will ask about it before its first dispatch (fix the environment, give a replacement `Verify`, or accept the step as unverifiable by its gate). `not-run` for `slow` or `writes` goes there too, without the note: it does not gate, but nothing checked it on HEAD.
 

@@ -76,6 +76,7 @@ After the agent returns:
    **Out of scope**
    - ...
    Reply with the numbers you want changed, or "approved".
+   Or review it in the browser: /feature-dev:review <spec path>
    ```
 
    - **Decided**: choices the spec makes that a reader could disagree with (scope cuts, contract shape, error behavior). A `DRIFTED` claim that one of those choices rests on goes here, with the drift stated, so the user re-confirms the decision against what the code actually says.
