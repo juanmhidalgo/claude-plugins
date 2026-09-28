@@ -9,7 +9,12 @@ allowed-tools:
   - Edit
   - Write
   - AskUserQuestion
-argument-hint: "<SPEC-*.md or PLAN-*.md path — optional; asks when several exist>"
+  - Bash(gh auth status)
+  - Bash(gh repo view --json nameWithOwner*)
+  - Bash(gh issue view *)
+  - Bash(git branch --show-current)
+  - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/issue_spec.py *)
+argument-hint: "<SPEC-*.md or PLAN-*.md path, #issue, owner/repo#issue, or issue URL — optional; asks when several exist>"
 description: |
   Use to review a SPEC-*.md or PLAN-*.md in the browser — outline, decision cards, text-anchored comments, diff against the previous version — and apply the verdict.
   Do NOT use for a structural gap check (use /feature-dev:spec-review or /feature-dev:plan-review) or for code review.
@@ -33,10 +38,11 @@ The page is served by `review_server.py` on `127.0.0.1`, on a random free port. 
 
 ## Phase 0: Resolve the artifact
 
-1. **If `$ARGUMENTS` names an existing file** → use it. If it does not exist, STOP and report.
-2. **If `$ARGUMENTS` is empty** → Glob `SPEC-*.md` and `PLAN-*.md` in the repo root. 0 → STOP and point to `/feature-dev:spec`. 1 → use it. 2+ → AskUserQuestion (label = file name, description = its `feature:` and `status:`).
-3. Read its frontmatter. The kind is SPEC or PLAN, from `type:` or the file name prefix. Do not derive the slug yourself: the script sanitizes it, and every file path below comes from the script.
-4. If the project's `.gitignore` does not include `.feature-dev/`, add it. It holds review files and version history, which are local working artifacts, as the SPEC and PLAN files are.
+1. **If `$ARGUMENTS` is `#N`, `owner/repo#N`, or an issue URL** → resolve it per [issue-store.md's Argument parsing](../skills/spec-driven-development/references/issue-store.md#argument-parsing), then run [issue-store.md's Import algorithm](../skills/spec-driven-development/references/issue-store.md#import-ac-8-ac-9-ac-10-ac-11-ac-12) against it, start to finish. Do not restate Import's steps here — follow the reference. A failed `gh` preflight, or a failed `gh issue view` call, stops here and names the issue that could not be read. On success, continue as if `$ARGUMENTS` had been the resulting `SPEC-<slug>.md` path (the reference's own step 6). An issue argument only ever produces a SPEC — there is no PLAN equivalent.
+2. **If `$ARGUMENTS` names an existing file** → use it. If it does not exist, STOP and report.
+3. **If `$ARGUMENTS` is empty** → Glob `SPEC-*.md` and `PLAN-*.md` in the repo root. 0 → STOP and point to `/feature-dev:spec`. 1 → use it. 2+ → AskUserQuestion (label = file name, description = its `feature:` and `status:`).
+4. Read its frontmatter. The kind is SPEC or PLAN, from `type:` or the file name prefix. Do not derive the slug yourself: the script sanitizes it, and every file path below comes from the script.
+5. If the project's `.gitignore` does not include `.feature-dev/`, add it. It holds review files and version history, which are local working artifacts, as the SPEC and PLAN files are.
 
 ## Phase 1: Serve and wait
 

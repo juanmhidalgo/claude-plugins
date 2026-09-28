@@ -180,6 +180,18 @@ Operational tests, not definitions. Apply them in real time when writing a spec 
 - Keep as a local working artifact; do not commit
 - Reference spec sections in PRs
 
+### Issue Store (optional)
+
+By default the spec stays a local, uncommitted file. A project can opt into a
+GitHub-issue store instead: `spec_store: issue` in `.claude/feature-dev.local.md`
+makes `/feature-dev:spec --publish` write the spec into an issue, and
+`/feature-dev:explore-plan`, `/feature-dev:tdd`, `/feature-dev:spec-review` and
+`/feature-dev:review` all accept an issue argument (`#N`, `owner/repo#N`, or an
+issue URL) to read it back. The local file stays the working copy; the issue
+becomes its durable home once published. Format, fingerprints, and the
+publish/import algorithm are in [issue-store.md](references/issue-store.md) —
+every command that touches the store links there instead of restating it.
+
 ### Decisions Log
 
 The spec states what was decided *before* the work. The Decisions Log records what got decided *during* it — and it lives in the spec because the spec is the one artifact that outlives the run. A `PLAN-<slug>.md` is deleted when it completes; a decision written only there dies with it, and an implementation session's context dies sooner than that.

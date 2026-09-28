@@ -3,8 +3,14 @@ disable-model-invocation: true
 model: opus
 allowed-tools:
   - Read
+  - Write
   - Agent
   - Glob
+  - Bash(gh auth status)
+  - Bash(gh repo view --json nameWithOwner*)
+  - Bash(gh issue view *)
+  - Bash(git branch --show-current)
+  - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/issue_spec.py *)
   - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/review_server.py snapshot *)
 argument-hint: "[SPEC-*.md path or feature description — optional; auto-discovers SPEC-*.md if omitted]"
 description: |
@@ -34,6 +40,7 @@ triggers:
 
 1. **Resolve the feature:**
    - **If `$ARGUMENTS` is the path of an existing `SPEC-*.md`** → use that spec as if it had been auto-selected below (the closing lines of `/feature-dev:spec` and `/feature-dev:spec-review` print this form).
+   - **If `$ARGUMENTS` is `#N`, `owner/repo#N`, or an issue URL** → resolve it per [issue-store.md's Argument parsing](../skills/spec-driven-development/references/issue-store.md#argument-parsing), then run [issue-store.md's Import algorithm](../skills/spec-driven-development/references/issue-store.md#import-ac-8-ac-9-ac-10-ac-11-ac-12) against it, start to finish. Do not restate Import's steps here — follow the reference. A failed `gh` preflight, or a failed `gh issue view` call, stops here and names the issue that could not be read. On success, continue as if `$ARGUMENTS` had been the resulting `SPEC-<slug>.md` path (the reference's own step 6).
    - **If `$ARGUMENTS` is any other text** → use it as the feature description. Record `source_spec: null`.
    - **If `$ARGUMENTS` is empty** → auto-discover spec files. Use Glob with pattern `SPEC-*.md` in the repo root, then read each file's frontmatter and **filter out any spec with `status: implemented`** (those features are already shipped). From the remaining candidates:
      - **0 specs** → **STOP** and ask the user for a feature description.

@@ -133,6 +133,72 @@ On a halt that is a cross-repo *question* (not a defect), the run sends that ses
 
 **The log is the record; the message is a notification.** A decision is written to the spec's Decisions Log before it is announced, and only after you accept it. A session can be compacted, restarted or closed; the spec cannot.
 
+## GitHub Issue Store (optional)
+
+By default a spec stays a local, uncommitted `SPEC-*.md`. A project can opt into
+storing it on a GitHub issue instead — the issue becomes the durable copy, the
+local file stays the working copy. Format, fingerprints and the publish/import
+algorithm are in [issue-store.md](skills/spec-driven-development/references/issue-store.md);
+this section only covers how to turn it on and use it day to day.
+
+**Publish**: `/feature-dev:spec --publish <SPEC> new|#N` (also `owner/repo#N` or an
+issue URL for `#N`) skips the authoring phases and writes the spec straight into
+the issue. `new` creates one; targeting `#N` re-reads it first and, on a
+fingerprint mismatch (someone edited the issue since the last publish), asks
+overwrite the issue / import the issue's version instead / cancel — nothing is
+written silently over someone else's edit.
+
+**Import**: `/feature-dev:explore-plan`, `/feature-dev:tdd`, `/feature-dev:spec-review`
+and `/feature-dev:review` all accept an issue reference in place of a `SPEC-*.md`
+path — `#N` (current repo), `owner/repo#N`, or a full issue URL. Each resolves it,
+imports the marked section into a local `SPEC-<slug>.md` (creating it, or
+reconciling it with an existing one via a three-way fingerprint compare), and
+continues as if that path had been given directly. A closed issue asks for
+confirmation first.
+
+**Opting in**: set `spec_store: issue` in `.claude/feature-dev.local.md`:
+
+```markdown
+spec_store: issue
+```
+
+Any other value, an absent key, or a missing file is treated as "not set" (local
+only). With it set, `/feature-dev:spec`'s Phase 4 asks about publishing by
+default — "publish to #N" if the spec already has `issue:` in its frontmatter,
+otherwise "create an issue" — instead of defaulting to "keep local". A spec that
+already carries `issue:` is asked about publishing even without the setting.
+`.claude/feature-dev.local.md` is project config, not a generated working
+artifact like `SPEC-*.md` or `.feature-dev/` — whether to gitignore it is your
+call: commit it to make `spec_store: issue` a team default, or gitignore it to
+keep it a per-developer preference.
+
+**gh permissions**: the issue store calls `gh` only from command prose, never
+from a script, and only these six forms:
+
+```
+gh auth status
+gh repo view --json nameWithOwner*
+gh issue view *
+gh issue create *
+gh issue edit *
+gh issue comment *
+```
+
+None of these are pre-approved in this repo's [`settings.example.json`](../settings.example.json) —
+`gh issue create` / `edit` / `comment` write to GitHub, and pre-approving issue
+writes marketplace-wide is a bigger grant than the rest of that allowlist makes.
+Add the ones you want to your own `.claude/settings.json` (or
+`~/.claude/settings.json`) if you'd rather not approve each call by hand:
+
+```json
+"Bash(gh auth status)",
+"Bash(gh repo view --json nameWithOwner*)",
+"Bash(gh issue view *)",
+"Bash(gh issue create *)",
+"Bash(gh issue edit *)",
+"Bash(gh issue comment *)"
+```
+
 ## Installation
 
 ```bash

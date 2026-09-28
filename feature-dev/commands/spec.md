@@ -2,7 +2,7 @@
 description: |
   Use before writing code when requirements are ambiguous or a feature has non-obvious scope.
   Do NOT use for simple, self-evident changes.
-argument-hint: "<feature or project description> [--with-tasks]"
+argument-hint: "<feature or project description> [--with-tasks] | --publish <SPEC> new|#N|owner/repo#N|URL"
 model: opus
 keywords:
   - spec
@@ -19,8 +19,16 @@ allowed-tools:
   - Grep
   - Glob
   - Write
+  - Edit
   - Agent
   - AskUserQuestion
+  - Bash(gh auth status)
+  - Bash(gh repo view --json nameWithOwner*)
+  - Bash(gh issue view *)
+  - Bash(gh issue create *)
+  - Bash(gh issue edit *)
+  - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/issue_spec.py *)
+  - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/review_server.py snapshot *)
 ---
 
 <SUBAGENT-STOP>
@@ -42,7 +50,9 @@ If you were dispatched as a subagent to execute a specific task, skip this comma
 
 ## Spec-Driven Development Workflow
 
-**First, strip flags from `$ARGUMENTS`.** `--with-tasks` turns on the optional Plan and Tasks phases below. Remove it before anything else reads `$ARGUMENTS` — what remains is the feature description. Record whether it was passed.
+**First, check for `--publish <SPEC> <target>`.** If `$ARGUMENTS` starts with `--publish`, strip `--publish <SPEC> <target>` from `$ARGUMENTS` before anything else parses it, then go straight to [Publish Mode](#publish-mode) below — it skips the authoring phases (Specify, Plan, Tasks, Handoff) entirely and never reads the rest of `$ARGUMENTS` as a feature description. Otherwise, continue below.
+
+**Then strip the remaining flags from `$ARGUMENTS`.** `--with-tasks` turns on the optional Plan and Tasks phases below. Remove it before anything else reads `$ARGUMENTS` — what remains is the feature description. Record whether it was passed.
 
 You are creating a structured specification for the feature description left after stripping flags: **$ARGUMENTS**
 
@@ -180,6 +190,11 @@ Add tasks to the spec file and end with the review brief.
 After every phase that ran is approved:
 - The `SPEC-<slug>.md` file is a **local working artifact**, not a repo deliverable. Do NOT commit it, and do NOT run any git commands. Downstream commands read it directly from the working tree.
 - Confirm the spec's frontmatter `status:` is `approved` (it will be flipped to `implemented` automatically when `/feature-dev:tdd` finishes).
+- **Ask about publishing — once, gated, right here.** Read `.claude/feature-dev.local.md` (Read tool; a missing file is simply absent, no fallback value). This is the only place this question is asked: never on edits or review rounds — not when the user asks you to change something in an already-approved spec, and not at the end of any Phase 1/2/3 review brief. Phase 4 runs once, after the last phase that ran is approved, so asking only here already satisfies that.
+  - **Skip silently, changing nothing else in Handoff,** unless `.claude/feature-dev.local.md` sets `spec_store: issue` — the only recognized value; anything else present, or the key absent, or the file itself missing, is treated the same as "not set" — or the spec's own frontmatter already has `issue:`. Either condition alone is enough to ask.
+  - Otherwise ask one AskUserQuestion with the options "keep local", "publish to #N" (target `#N`; offered only when the spec's frontmatter already has `issue:`), and "create an issue" (target `new`).
+  - **Default**: default when `spec_store: issue` is set is the publishing option — "publish to #N" if the spec already has `issue:`, otherwise "create an issue" (there is no `#N` yet to publish to). When the question was asked only because the spec already has `issue:` (`spec_store: issue` not set), default to "keep local".
+  - "Publish to #N" or "create an issue" runs [Publish Mode](#publish-mode) against this `SPEC-<slug>.md` and the chosen target (`#N` or `new`), start to finish, then continues below with its result. "Keep local" changes nothing and continues below immediately.
 - End with the next command, using the spec path you just wrote, then stop and let the user choose:
 
   ```
@@ -187,6 +202,16 @@ After every phase that ran is approved:
   ```
 
   Recommend explore-plan: it writes a reviewed step-level plan from the code. `/feature-dev:tdd SPEC-<slug>.md` (straight from the spec's ACs, or its Tasks with `--with-tasks`) is the fallback for a small feature, so mention it only when the spec is small enough that a plan adds nothing.
+
+## Publish Mode
+
+Entered only when `$ARGUMENTS` started with `--publish <SPEC> <target>` (parsed and stripped above). This mode skips the authoring phases: it never asks the scope question, never surfaces assumptions, never writes Specify/Plan/Tasks content, and never presents a review brief.
+
+1. Resolve `<target>` (`new`, `#N`, `owner/repo#N`, or an issue URL) per [issue-store.md's Argument parsing](../skills/spec-driven-development/references/issue-store.md#argument-parsing).
+2. Run [issue-store.md's Publish algorithm](../skills/spec-driven-development/references/issue-store.md#publish-ac-1-ac-2-ac-3-ac-4-ac-5-ac-7) against `<SPEC>` and the resolved target, start to finish, including its `gh` preflight, its scratch-file handling, and its fingerprint verification. Do not restate those steps here — follow the reference.
+3. If the reference's mismatch branch (its step 3, target `#N`) offers "import the issue's version instead," and the user picks it, run [issue-store.md's Import algorithm](../skills/spec-driven-development/references/issue-store.md#import-ac-8-ac-9-ac-10-ac-11-ac-12) against that issue, start to finish, then stop — this invocation does not also publish. Do not restate Import's steps here — follow the reference.
+4. A failed `gh` preflight or a failed verification (the reference's steps 1 and 6) leaves the local spec untouched and reports that nothing was published.
+5. On a verified publish, report the issue URL from the reference's step 7 and stop.
 
 ## Rules
 

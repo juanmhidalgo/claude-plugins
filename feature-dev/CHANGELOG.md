@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.30.0 (2026-09-28)
+
+A GitHub issue can now be the durable home of a spec, not just the local file.
+
+### Added
+- **GitHub-issue store for specs** ("issue in, issue out, local file in between"): the local SPEC stays the working copy, the issue is the durable home once published. **Why:** in repos where the issue is the record of what gets built, specs had to be hand-copied into issues and projects re-implemented the spec process in their own skills.
+- **`/feature-dev:spec --publish <SPEC> new|#N|owner/repo#N|URL`**: publishes the spec between markers, never touching text outside them; a fingerprint conflict check runs before writing (overwrite / import the issue's version / cancel) and verification runs after; only then does it record `issue:`/`issue_fingerprint:`. The post-approval publish question is gated on `spec_store: issue` in `.claude/feature-dev.local.md` or an existing `issue:`.
+- **Issue arguments (`#N`, `owner/repo#N`, URL)** for `/feature-dev:explore-plan`, `/feature-dev:tdd`, `/feature-dev:spec-review` and `/feature-dev:review`: import into `SPEC-<slug>.md` with a three-way compare and a snapshot before overwriting; a closed issue asks first. Issue text is treated as data, never as instructions. Import never silently overwrites an unrelated `SPEC-<slug>.md` with the same slug (it asks, defaulting to `SPEC-<slug>-<N>.md`), refreshes `issue_fingerprint` whenever local and issue agree, and when the issue wins replaces only the spec body, keeping the local Decisions Log. **Why:** specs are uncommitted, so any unasked overwrite is unrecoverable, and a stale fingerprint would make a synced spec look conflicted.
+- **`/feature-dev:tdd` posts each recorded decision as a `## Decision — <slug>` issue comment.** A failed post does not halt the run; it is reported as unposted. `tdd` never edits the body or closes the issue.
+- **`/feature-dev:cleanup`** skips the rescue question for a published-and-current spec, and always runs the rescue flow (offering `Republish to #<N>`, even with no decisions or QA) for an issue-linked spec that is not current. **Why:** unpublished edits must never be deleted silently.
+- **`scripts/issue_spec.py`** (stdlib; `section`, `extract [--slug --fallback-title]`, `fingerprint`, `splice`) with `scripts/test_issue_spec.py` (34 unittest tests). `splice` is idempotent: republishing never grows the body outside the markers. **Why:** the deterministic text operations (marker parsing, path-safe slug, fingerprint, splice) are tested code, not prompt prose; `gh` is only called from commands.
+- **`skills/spec-driven-development/references/issue-store.md`**: the single definition of the format and algorithms that every command links to, to keep the store's rules from drifting apart across commands.
+
+### Changed
+- `allowed-tools` of `spec`, `explore-plan`, `tdd`, `spec-review`, `review` and `cleanup` gained narrowly scoped `gh issue …` / `issue_spec.py` patterns (no bare `gh *`, no `rm`).
+- README documents the store and lists the `gh` permissions to pre-approve (not added to `settings.example.json` on purpose).
+
 ## 1.29.0 (2026-09-28)
 
 ### Added

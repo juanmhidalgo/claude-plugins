@@ -2,10 +2,17 @@
 allowed-tools:
   - Agent
   - Read
+  - Write
   - Glob
   - Edit
   - AskUserQuestion
-argument-hint: "[spec-file-path — optional; auto-discovers SPEC-*.md if omitted]"
+  - Bash(gh auth status)
+  - Bash(gh repo view --json nameWithOwner*)
+  - Bash(gh issue view *)
+  - Bash(git branch --show-current)
+  - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/issue_spec.py *)
+  - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/review_server.py snapshot *)
+argument-hint: "[spec-file-path, #issue, owner/repo#issue, or issue URL — optional; auto-discovers SPEC-*.md if omitted]"
 description: |
   Use to validate a SPEC-*.md for gaps before planning or implementation. Outputs Blocking / Should Address / Nice to Have findings.
   Do NOT use to verify implementation (use /prd:validate).
@@ -32,8 +39,9 @@ If you were dispatched as a subagent to execute a specific task, skip this comma
 
 ## Phase 0: Resolve the Spec File
 
-1. **If `$ARGUMENTS` is provided** → use it as the path to the spec file. If the file does not exist, STOP and report.
-2. **If `$ARGUMENTS` is empty** → auto-discover spec files. Use Glob with pattern `SPEC-*.md` in the repo root, then read each file's frontmatter. Do **not** filter by `status:` — a spec with `status: implemented` is still legitimate to re-review (e.g., for retro learning). From the candidates:
+1. **If `$ARGUMENTS` is `#N`, `owner/repo#N`, or an issue URL** → resolve it per [issue-store.md's Argument parsing](../skills/spec-driven-development/references/issue-store.md#argument-parsing), then run [issue-store.md's Import algorithm](../skills/spec-driven-development/references/issue-store.md#import-ac-8-ac-9-ac-10-ac-11-ac-12) against it, start to finish. Do not restate Import's steps here — follow the reference. A failed `gh` preflight, or a failed `gh issue view` call, stops here and names the issue that could not be read. On success, continue as if `$ARGUMENTS` had been the resulting `SPEC-<slug>.md` path (the reference's own step 6).
+2. **If `$ARGUMENTS` is provided and is not an issue reference** → use it as the path to the spec file. If the file does not exist, STOP and report.
+3. **If `$ARGUMENTS` is empty** → auto-discover spec files. Use Glob with pattern `SPEC-*.md` in the repo root, then read each file's frontmatter. Do **not** filter by `status:` — a spec with `status: implemented` is still legitimate to re-review (e.g., for retro learning). From the candidates:
    - **0 specs** → STOP and ask the user to provide a path or run `/feature-dev:spec` first.
    - **1 spec** → use it. Inform the user: "Auto-selected spec: `SPEC-<slug>.md` (feature: <name>, status: <status>)".
    - **2+ specs** → use AskUserQuestion to let the user pick (label = `feature:` value, description = `<filename> — status: <status>`).

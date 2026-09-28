@@ -5,9 +5,14 @@ allowed-tools:
   - Glob
   - AskUserQuestion
   - Write
+  - Edit
   - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/review_server.py purge *)
   - Bash(gh pr view *)
   - Bash(gh pr comment *)
+  - Bash(gh auth status)
+  - Bash(gh issue view *)
+  - Bash(gh issue edit *)
+  - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/issue_spec.py *)
   - Bash(ls -1A .feature-dev/*)
   - Bash(curl -s -o /dev/null --max-time 2 http://127.0.0.1:*)
 description: |
@@ -79,12 +84,14 @@ Build three lists.
 
 ## Phase 1b: Detect Rescuable Content
 
-Specs are gitignored, so anything that exists only in one is gone once it is deleted. For each SPEC in the safe-to-delete list, Read the body and record:
+Specs are gitignored, so anything that exists only in one is gone once it is deleted. For each SPEC in the safe-to-delete list:
 
-- **Decisions** — the entries under `## Decisions Log` (written by `/feature-dev:tdd`), up to the next `## ` heading or end of file. Non-empty means at least one entry, not just the heading.
-- **Pending QA** — every unticked `- [ ]` line under `## QA Checklist`, up to the next `## ` heading. Keep the `###` group heading (`Happy path` / `Edge cases` / `Error states`) each item sits under; ticked `- [x]` items were verified by the user and are not rescued. An unticked item may have been checked and never ticked, so it is reported as unticked, not as unrun.
+1. **Published and current.** If the SPEC's frontmatter has `issue: <owner>/<repo>#<N>`, run the [gh preflight](../skills/spec-driven-development/references/issue-store.md#gh-preflight) — on failure, treat the SPEC as **not current** (per its "cleanup's 'published and current' check" rule) and continue to step 2. On success, compute the three [Fingerprints](../skills/spec-driven-development/references/issue-store.md#fingerprints): local (`issue_spec.py section <SPEC> | issue_spec.py fingerprint -`), recorded (the frontmatter's `issue_fingerprint:`), and issue (`gh issue view <N> --repo <owner>/<repo> --json body -q .body | issue_spec.py fingerprint -`). All three equal → the SPEC is **published and current**: skip step 2 for it, it is not rescuable, and it goes straight to Phase 2 without the rescue question — it still follows the existing status rules for deletion. Any mismatch → the SPEC is **not current**: note its `#<N>`, and continue to step 2, where a SPEC with `issue:` is rescuable regardless of what step 2 finds — the mismatch itself (an unpublished local edit, or an issue that moved since the last publish) is the thing that would otherwise be lost silently. A SPEC with no `issue:` at all also continues to step 2, under the decision/QA gate below — nothing in this step changes for it.
+2. Read the body and record:
+   - **Decisions** — the entries under `## Decisions Log` (written by `/feature-dev:tdd`), up to the next `## ` heading or end of file. Non-empty means at least one entry, not just the heading.
+   - **Pending QA** — every unticked `- [ ]` line under `## QA Checklist`, up to the next `## ` heading. Keep the `###` group heading (`Happy path` / `Edge cases` / `Error states`) each item sits under; ticked `- [x]` items were verified by the user and are not rescued. An unticked item may have been checked and never ticked, so it is reported as unticked, not as unrun.
 
-A SPEC with neither is not rescuable and goes straight to Phase 2.
+A published-and-current SPEC is not rescuable and goes straight to Phase 2. A SPEC with `issue:` that is not current is always rescuable, even with neither a decision nor pending QA — its difference from issue `#<N>` is itself worth a rescue question, via `Republish to #<N>` in Phase 2a (below). A SPEC with no `issue:` is rescuable only when it has a decision or pending QA; otherwise it goes straight to Phase 2.
 
 ## Phase 2: Present and Confirm
 
@@ -133,8 +140,8 @@ If the "Safe to delete" list is non-empty and Phase 1b found rescuable content, 
 
 ### Phase 2a: Rescue
 
-1. **Find each spec's PR.** A spec's PR is the one for the branch in its own frontmatter `branch:`, not the current branch — cleanup often runs from another branch than the one the feature shipped on. For each rescuable spec with a `branch:`, run `gh pr view <branch> --json number,state,comments`. Offer the PR option only when that returns `state: OPEN`. A spec with no `branch:`, a "no pull requests found" error, or a merged or closed PR means no PR option for that spec — say which in one line.
-2. **Build the text per spec.** Headed with the spec's slug so a rerun can recognise them:
+1. **Find each spec's PR.** A spec's PR is the one for the branch in its own frontmatter `branch:`, not the current branch — cleanup often runs from another branch than the one the feature shipped on. For each rescuable spec with a `branch:` **and at least one decision or pending QA item**, run `gh pr view <branch> --json number,state,comments`. Offer the PR option only when that returns `state: OPEN`. A spec with no `branch:`, a "no pull requests found" error, or a merged or closed PR means no PR option for that spec — say which in one line. Skip this step for a spec that is rescuable only because it is not current (no decision, no pending QA) — there is nothing to put in a PR comment.
+2. **Build the text per spec.** Skip this step too for a spec rescuable only because it is not current — it has no decisions or QA to write up; its rescue text is the issue diff itself, covered directly in step 3's question. For every other rescuable spec, headed with the slug so a rerun can recognise them:
 
    ```markdown
    ## Decisions — <slug>
@@ -149,14 +156,20 @@ If the "Safe to delete" list is non-empty and Phase 1b found rescuable content, 
    ```
 
    Include only the sections the spec has content for.
-3. **Ask.** One AskUserQuestion question per rescuable spec, at most 4 per call — batch the rest into further calls. Header `Rescue` (the header is capped at 12 characters, so the slug goes in the question), question naming the spec and what it holds (e.g. "SPEC-<slug>.md holds 3 decisions and 2 unticked QA items. Keep them before deleting?"). Options:
-   - `Comment on PR #<n>` — preview: the exact comment text from step 2. Omitted when step 1 found no open PR for this spec.
-   - `Save to docs/decisions/<slug>.md` — preview: the file content. The description says it is a tracked file the user commits; this command does not commit.
+3. **Ask.** One AskUserQuestion question per rescuable spec, at most 4 per call — batch the rest into further calls. Header `Rescue` (the header is capped at 12 characters, so the slug goes in the question). Question:
+   - **Has a decision or pending QA item** (whether or not it is also not current): name what it holds, e.g. "SPEC-<slug>.md holds 3 decisions and 2 unticked QA items. Keep them before deleting?"
+   - **Rescuable only because it is not current** (no decision, no pending QA — an `issue:` fingerprint mismatch is the only reason it is here): "SPEC-<slug>.md differs from issue #<N> — local edits were never published, or the issue changed since. Keep it before deleting?"
+
+   Options:
+   - `Comment on PR #<n>` — preview: the exact comment text from step 2. Omitted when step 1 found no open PR for this spec, or when the spec has neither a decision nor pending QA to comment (step 1/2 were skipped for it).
+   - `Save to docs/decisions/<slug>.md` — preview: the file content. The description says it is a tracked file the user commits; this command does not commit. Omitted for the same no-decision/no-QA case.
    - `Delete anyway` — nothing is kept; the Phase 3 report lists what was lost.
+   - `Republish to #<N>` — only offered when the spec's frontmatter has `issue: <owner>/<repo>#<N>`. A rescuable spec with one is already not current (Phase 1b step 1 sends a published-and-current spec straight to Phase 2, never through this question). Preview: "runs the publish algorithm against issue #<N>". Picking it runs [issue-store.md's Publish algorithm](../skills/spec-driven-development/references/issue-store.md#publish-ac-1-ac-2-ac-3-ac-4-ac-5-ac-7) against this spec and target `#<N>`, start to finish — its `gh` preflight, the AC-4 conflict ask if the issue's section changed since the last publish, and the AC-5 re-read-and-verify. Do not restate those steps here — follow the reference. For a spec with no decision/QA content, this and `Delete anyway` are the only two options.
 4. **Apply the choice.** Writing to a PR is visible to reviewers, so it happens only for a spec where the user picked that option — never as a default or a fallback from a failed save. The rescue is a new comment; the PR body is never edited, because a body rewrite can overwrite what the author or a bot put there since it was read.
    - **PR**: if the comments from step 1 already contain every heading this spec's text has (`## Decisions — <slug>`, `## Pending QA — <slug>`), report "already on PR #<n>" and treat the spec as rescued — a rerun never posts twice. Otherwise Write the step 2 sections not already there to a file at a path unique to this spec and run — `feature-dev-cleanup-<slug>-<random>.md` in the session scratchpad if one is listed, else under `/tmp/`. Read the path first and pick another name if it already exists, so a stale file from an earlier run is never posted. Run `gh pr comment <n> --body-file <file>`. Then re-run `gh pr view <branch> --json comments` and confirm a comment now carries each heading; a heading still missing after posting is a failed rescue.
    - **File**: if `docs/decisions/<slug>.md` exists, Read it and Write its content plus the sections it does not already have; otherwise Write a new file with a `# <feature>` title and the sections.
-   - **Failure**: if `gh` or Write fails, or the verification above finds a heading missing, show the error verbatim and mark the spec **rescue failed**. A failed spec is removed from the delete list — deleting it would lose exactly what the user chose to keep. Its plan (if any) is still deleted only if it qualified on its own.
+   - **Republish**: run the reference's Publish algorithm linked in step 3, against `#<N>` from the spec's own `issue:` frontmatter. On the reference's AC-4 mismatch ask, offer only "overwrite the issue" or "cancel" — this command does not carry Import's tools (no `gh issue create`, no `review_server.py snapshot`), so "import the issue's version instead" is out of scope here; treat that pick the same as **Failure** below, since nothing was published. On a verified publish (the reference's step 7, which writes `issue_fingerprint:` to the spec via Edit), the spec's content now lives on the issue and it keeps its place in the delete list.
+   - **Failure**: if `gh` or Write fails, or the verification above finds a heading missing (PR) or a fingerprint mismatch (Republish), show the error verbatim and mark the spec **rescue failed** — for Republish, say the **republish failed**. A failed spec is removed from the delete list — deleting it would lose exactly what the user chose to keep (for Republish, the content the republish tried to save). Its plan (if any) is still deleted only if it qualified on its own.
 
 Then continue to the confirmation, with N recounted after removing rescue-failed specs, and a rescue-failed spec's slug moved from "going with them" to kept (Phase 1a step 3). R is the slugs going with them plus the orphaned ones; P is the stale pointers.
 
@@ -194,7 +207,7 @@ If the user chose `Yes, delete all`:
    ...
    Total: N files, review data for R slugs and P stale pointers removed.
    ```
-3. Add one line per rescuable spec with its outcome: `Rescued SPEC-<slug>.md → PR #<n>` (comment) or `→ docs/decisions/<slug>.md (uncommitted — commit it yourself)`; `Kept SPEC-<slug>.md — rescue failed: <error>`; or, for `Delete anyway`, `Lost from SPEC-<slug>.md:` followed by the decisions (one line each) and the unticked QA items, so the loss is on record in this session.
+3. Add one line per rescuable spec with its outcome: `Rescued SPEC-<slug>.md → PR #<n>` (comment) or `→ docs/decisions/<slug>.md (uncommitted — commit it yourself)`; `Republished SPEC-<slug>.md → issue #<n>` (Republish, verified); `Kept SPEC-<slug>.md — rescue failed: <error>` (or, for Republish, `— republish failed: <error>`); or, for `Delete anyway`, `Lost from SPEC-<slug>.md:` followed by the decisions (one line each) and the unticked QA items, so the loss is on record in this session.
 
 ## Rules
 
