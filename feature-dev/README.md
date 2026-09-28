@@ -12,7 +12,7 @@ Feature development workflows with structured phases and quality gates.
 | `/feature-dev:spec-review [file]` | Validate a `SPEC-*.md` for structural gaps and check its claims about the existing code; emits Blocking / Should Address / Nice to Have checklist |
 | `/feature-dev:plan-review [file]` | Validate a `PLAN-*.md` for structural gaps, step contract and baseline; emits Blocking / Should Address / Nice to Have checklist |
 | `/feature-dev:review <SPEC\|PLAN>` | Review a spec or plan in a local browser page: outline, AC and Key Decision cards, comments anchored to selected text, diff against the previous version, and a verdict (Approve / Approve with notes / Request changes) that the command then applies |
-| `/feature-dev:cleanup` | Bulk-delete implemented `SPEC-*.md` and stale `PLAN-*.md` artifacts; first offers to save a spec's Decisions Log and unticked QA items as a comment on the spec's PR or to `docs/decisions/`; explicit Y/N confirmation required |
+| `/feature-dev:cleanup` | Bulk-delete implemented `SPEC-*.md` and stale `PLAN-*.md` artifacts; also removes the slug's local review history, and first offers to save a spec's Decisions Log and unticked QA items as a comment on the spec's PR or to `docs/decisions/`; explicit Y/N confirmation required |
 
 ## Agents
 
@@ -138,3 +138,8 @@ On a halt that is a cross-repo *question* (not a defect), the run sends that ses
 ```bash
 /plugin install feature-dev@juanmhidalgo-plugins
 ```
+
+## Evals
+
+`feature-dev/evals/` holds a plugin eval that checks `/feature-dev:explore-plan` really fans out to its explorer subagents. The failure it guards against is silent: a plan written by one reader looks like one written by eight. See [evals/README.md](evals/README.md) for the command. It costs a full Claude run, so run it when `explore-plan` or the explorer agents change.
+

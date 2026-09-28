@@ -1,5 +1,29 @@
 # Changelog
 
+## 1.29.0 (2026-09-28)
+
+### Added
+- **An eval guards the explore-plan fan-out** (`feature-dev/evals/explore-plan-fanout/`). It runs `/feature-dev:explore-plan` on a small scaffolded fixture project and checks with deterministic graders only (no LLM judge):
+  - the four core explorers were spawned;
+  - no `Agent` call passed a `name`;
+  - no spawn was refused with the teammate errors;
+  - the plan was written with a Baseline and one Exploration Findings subsection per explorer, and with no `Degraded exploration` line.
+
+  **Why:** the 1.25.0 bug (a named generator whose explorer spawns were all refused, falling back silently to a single reader) produced normal-looking plans in 3 runs before anyone noticed. Both regression graders were checked against the transcripts of those failing runs. Run it when `explore-plan` or the explorer agents change: one run costs about 4 minutes and $1.50. The command is in `feature-dev/evals/README.md`.
+
+### Changed
+- **`/feature-dev:cleanup` also removes local review data** (`.feature-dev/history/<slug>/` snapshots and `.feature-dev/reviews/<slug>-*.md` feedback), which accumulated forever after 1.28.0. Review data follows its slug rather than a file, because a SPEC and its PLAN share the slug:
+  - it goes in the same confirmation only when no remaining SPEC or PLAN uses that slug;
+  - a slug counts as orphaned only when every one of its reviews points at an artifact that no longer exists. History with no reviews, or reviews whose artifact still exists, is listed as ambiguous and never deleted;
+  - a slug with an `in-progress` or `halted` plan is never touched;
+  - a slug with a review server still answering is never touched either, and its SPEC or PLAN moves to active work ("review in progress").
+
+  The confirmation question counts every kind of deletion, stale server pointers included.
+- **Every deletion in cleanup goes through `review_server.py purge`.** It validates each name first (`SPEC-`/`PLAN-` files directly in the root, slugs without `/`, `..` or a leading dot), refuses symlinks and anything resolving outside `.feature-dev/`, skips git-tracked files, and deletes nothing if any argument is invalid. Cleanup runs it with `--dry-run` before asking.
+  - Its allowed-tools no longer carry any `rm` pattern. **Why:** a pre-approved `Bash(rm SPEC-*.md)` also matched `rm SPEC-a.md <any other path>`, because the trailing `*` spans spaces. This was already true before 1.29.0, and the new history patterns would have made it worse (`rm -r .feature-dev/history/../..`).
+- **`GET /alive`** on the review server answers liveness probes without resetting the idle timer. Cleanup probes it, so checking whether a forgotten server is alive no longer keeps it running for another 4 hours.
+- **History snapshots always use the sanitized slug.** `explore-plan` calls `review_server.py snapshot`, and `/spec` follows the same rule, so cleanup can map every history folder back to its artifact.
+
 ## 1.28.0 (2026-09-27)
 
 Third batch from the same retro of 19 sessions (6 features). It gives reviewers a real way to read what they approve, traces each acceptance criterion from spec to test, and keeps the `/tdd` orchestrator's context from growing unchecked.

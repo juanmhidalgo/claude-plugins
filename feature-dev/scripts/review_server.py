@@ -18,6 +18,7 @@ Usage:
     review_server.py sha <artifact>
     review_server.py latest <artifact> [--root DIR] [--since EPOCH]
     review_server.py url <artifact> [--root DIR]
+    review_server.py purge [--root DIR] [--artifact NAME]... [--slug SLUG]... [--pointer SLUG]... [--dry-run]
 
 ``snapshot`` copies the artifact to ``.feature-dev/history/<slug>/<name>.<n>.md``
 (n increments) and prints the copy's path. The review page diffs against the
@@ -27,6 +28,16 @@ most recent snapshot whose content differs from the artifact.
 or after ``--since``, in epoch seconds) and exits 1 when there is none. ``url``
 prints the running server's URL and exits 1 when no server is running. Both
 derive the slug exactly as ``serve`` does, so callers never re-derive it.
+
+``purge`` is the only deletion path for /feature-dev:cleanup. ``--artifact``
+removes a root ``SPEC-*.md``/``PLAN-*.md``; ``--slug`` removes that slug's
+history folder and its review files (exact slug, never a prefix); ``--pointer``
+removes that slug's server pointer. Every argument is validated before anything
+is deleted: one invalid argument deletes nothing and exits 2. Git-tracked files
+are skipped and reported. ``--dry-run`` prints the plan without deleting.
+
+A running server answers a token-free ``GET /alive`` with 204 without resetting
+its idle timer, so a liveness probe never keeps a review open.
 
 Set FEATURE_DEV_REVIEW_NO_BROWSER=1 to never open a browser (tests, SSH).
 """
@@ -41,6 +52,7 @@ import json
 import os
 import re
 import secrets
+import subprocess
 import sys
 import threading
 import time
@@ -56,6 +68,9 @@ MAX_BODY = 2 * 1024 * 1024
 EXIT_SUBMITTED = 0
 EXIT_USAGE = 2
 EXIT_NO_REVIEW = 3
+ARTIFACT_NAME = re.compile(r"^(SPEC|PLAN)-[A-Za-z0-9._-]+\.md$")
+SAFE_SLUG = re.compile(r"^[A-Za-z0-9._-]+$")
+REVIEW_SUFFIX = r"-\d{8}T\d{6}Z(?:-\d+)?\.md"
 
 
 # --------------------------------------------------------------------------
@@ -107,6 +122,11 @@ def slug_of(artifact: Path) -> str:
     return artifact_slug(artifact, read_frontmatter(text))
 
 
+def review_pattern(slug: str) -> re.Pattern:
+    """Review files of exactly ``slug`` — ``foo`` never matches ``foo-bar-<ts>.md``."""
+    return re.compile(r"^" + re.escape(slug) + REVIEW_SUFFIX + r"$")
+
+
 def latest_review(artifact: Path, root: Path, since: float = 0.0) -> Path | None:
     """Newest review file for ``artifact`` modified at or after ``since``.
 
@@ -117,7 +137,7 @@ def latest_review(artifact: Path, root: Path, since: float = 0.0) -> Path | None
     if not folder.is_dir():
         return None
     slug = slug_of(artifact)
-    pattern = re.compile(r"^" + re.escape(slug) + r"-\d{8}T\d{6}Z(?:-\d+)?\.md$")
+    pattern = review_pattern(slug)
     best: tuple[float, str, Path] | None = None
     for entry in folder.iterdir():
         if not pattern.match(entry.name) or not entry.is_file():
@@ -407,8 +427,13 @@ def make_handler(state: ReviewState, server_ref: dict):
             if not self._host_ok():
                 self._json(HTTPStatus.FORBIDDEN, {"error": "bad host"})
                 return
-            state.touch()
             path = self.path.split("?", 1)[0]
+            if path == "/alive":  # liveness probe: answers without extending the idle timer
+                self.send_response(HTTPStatus.NO_CONTENT)
+                self.send_header("Cache-Control", "no-store")
+                self.end_headers()
+                return
+            state.touch()
             if path == "/":
                 nonce = secrets.token_urlsafe(16)
                 csp = (
@@ -504,6 +529,153 @@ def serve(artifact: Path, root: Path, timeout: float, open_browser: bool) -> int
     return EXIT_NO_REVIEW
 
 
+# --------------------------------------------------------------------------
+# Purge (the deletion path of /feature-dev:cleanup)
+# --------------------------------------------------------------------------
+
+class PurgeError(ValueError):
+    """An argument that makes the whole purge refuse to run."""
+
+
+def valid_slug(slug: str) -> bool:
+    return bool(SAFE_SLUG.fullmatch(slug)) and not slug.startswith(".") and ".." not in slug
+
+
+def is_tracked(root: Path, rel: str) -> bool:
+    """True when git tracks ``rel`` under ``root``. Outside a repo nothing is tracked."""
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(root), "ls-files", "--error-unmatch", "--", rel],
+            capture_output=True, text=True,
+        )
+    except OSError:
+        return False
+    return result.returncode == 0
+
+
+def _inside(path: Path, base: Path) -> bool:
+    try:
+        path.resolve().relative_to(base.resolve())
+    except ValueError:
+        return False
+    return True
+
+
+def plan_purge(
+    root: Path, artifacts: list[str], slugs: list[str], pointers: list[str]
+) -> tuple[list[Path], list[tuple[Path, str]]]:
+    """Validate every argument and return ``(delete, skip)``.
+
+    ``delete`` is ordered so a directory follows its contents. Raises
+    PurgeError on the first invalid argument, before anything is touched.
+    """
+    delete: list[Path] = []
+    skip: list[tuple[Path, str]] = []
+    for name in artifacts:
+        if not ARTIFACT_NAME.fullmatch(name):
+            raise PurgeError(f"--artifact {name!r}: must be SPEC-<name>.md or PLAN-<name>.md at the root")
+        path = root / name
+        if path.is_symlink() or not path.is_file():
+            raise PurgeError(f"--artifact {name!r}: not a regular file in {root}")
+        if is_tracked(root, name):
+            skip.append((path, "tracked by git"))
+        else:
+            delete.append(path)
+    for option, values in (("--slug", slugs), ("--pointer", pointers)):
+        for slug in values:
+            if not valid_slug(slug):
+                raise PurgeError(f"{option} {slug!r}: a slug is [A-Za-z0-9._-]+, with no leading '.' and no '..'")
+    base = root / ".feature-dev"
+    if (slugs or pointers) and base.is_symlink():
+        raise PurgeError(f"{base} is a symlink")
+    for folder in (base / "history", base / "reviews"):
+        if (slugs or pointers) and folder.is_symlink():
+            raise PurgeError(f"{folder} is a symlink")
+
+    def claim(path: Path) -> None:
+        if path.is_symlink():
+            raise PurgeError(f"{path} is a symlink")
+        if not _inside(path, base):
+            raise PurgeError(f"{path} resolves outside {base}")
+        rel = str(path.relative_to(root))
+        if is_tracked(root, rel):
+            skip.append((path, "tracked by git"))
+        else:
+            delete.append(path)
+
+    for slug in slugs:
+        folder = history_dir(root, slug)
+        found = False
+        if folder.is_symlink():
+            raise PurgeError(f"{folder} is a symlink")
+        if folder.is_dir():
+            found = True
+            for current, dirs, files in os.walk(folder, topdown=False, followlinks=False):
+                here = Path(current)
+                for entry in sorted(files) + sorted(d for d in dirs if (here / d).is_symlink()):
+                    claim(here / entry)
+                if not _inside(here, base):
+                    raise PurgeError(f"{here} resolves outside {base}")
+                delete.append(here)  # removed only if empty once its files are gone
+        pattern = review_pattern(slug)
+        reviews = reviews_dir(root)
+        if reviews.is_dir():
+            for entry in sorted(reviews.iterdir()):
+                if pattern.match(entry.name):
+                    found = True
+                    claim(entry)
+        if not found:
+            skip.append((folder, f"no review data for slug {slug}"))
+    for slug in pointers:
+        path = url_file(root, slug)
+        if path.is_symlink() or path.exists():
+            claim(path)
+        else:
+            skip.append((path, "no such pointer"))
+    return delete, skip
+
+
+def purge(root: Path, artifacts: list[str], slugs: list[str], pointers: list[str], dry_run: bool) -> int:
+    try:
+        delete, skip = plan_purge(root, artifacts, slugs, pointers)
+    except PurgeError as exc:
+        print(f"error: {exc}; nothing was deleted", file=sys.stderr)
+        return EXIT_USAGE
+    delete = list(dict.fromkeys(delete))  # a repeated argument names a path once
+    skip = list(dict.fromkeys(skip))
+
+    def show(path: Path) -> str:
+        try:
+            rel = str(path.relative_to(root))
+        except ValueError:
+            rel = str(path)
+        return rel + "/" if path.is_dir() and not path.is_symlink() else rel
+
+    failed = False
+    for path in delete:
+        label = show(path)
+        is_dir = path.is_dir() and not path.is_symlink()
+        if dry_run:
+            print(f"would delete {label}")
+            continue
+        try:
+            if is_dir:
+                if any(path.iterdir()):
+                    print(f"skipped {label}: not empty (tracked files kept)")
+                    continue
+                path.rmdir()
+            else:
+                path.unlink()
+        except OSError as exc:
+            print(f"failed {label}: {exc}")
+            failed = True
+            continue
+        print(f"deleted {label}")
+    for path, reason in skip:
+        print(f"skipped {show(path)}: {reason}")
+    return 1 if failed else 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=(__doc__ or "").split("\n\n", 1)[0])
     sub = parser.add_subparsers(dest="command", required=True)
@@ -524,7 +696,16 @@ def main(argv: list[str] | None = None) -> int:
     url_p = sub.add_parser("url", help="print the running review server's URL")
     url_p.add_argument("artifact")
     url_p.add_argument("--root", default=".", help="project root (default: cwd)")
+    purge_p = sub.add_parser("purge", help="delete cleanup candidates: artifacts, a slug's review data, pointers")
+    purge_p.add_argument("--root", default=".", help="project root (default: cwd)")
+    purge_p.add_argument("--artifact", action="append", default=[], help="SPEC-*.md or PLAN-*.md at the root")
+    purge_p.add_argument("--slug", action="append", default=[], help="delete the slug's history and review files")
+    purge_p.add_argument("--pointer", action="append", default=[], help="delete the slug's .<slug>.url pointer")
+    purge_p.add_argument("--dry-run", action="store_true", help="print what would be deleted, delete nothing")
     args = parser.parse_args(argv)
+
+    if args.command == "purge":
+        return purge(Path(args.root), args.artifact, args.slug, args.pointer, args.dry_run)
 
     artifact = Path(args.artifact)
     root = Path(getattr(args, "root", "."))

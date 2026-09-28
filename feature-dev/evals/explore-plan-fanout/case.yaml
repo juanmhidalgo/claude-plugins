@@ -1,0 +1,87 @@
+schema_version: "1.1"
+name: explore-plan-fanout
+description: >
+  Guards the 1.25.0 regression: /feature-dev:explore-plan must fan out to the
+  feature-dev explorers through an anonymous generator. A named generator is a
+  teammate, every explorer spawn is refused, and the run still writes a
+  normal-looking plan from a single reader.
+tags: [explore-plan, fanout, regression]
+runs: 1
+
+context:
+  # Copies ./fixture into the run's cwd and builds a 3-commit git history.
+  # Only runs with --scaffold.
+  scaffold_script: scaffold.sh
+
+execution:
+  prompt: /feature-dev:explore-plan SPEC-task-due-dates.md
+  # Top-level turns only: the orchestrator reads the spec, spawns the
+  # generator and the validator, then reads the plan. The explorers and the
+  # generator have their own turn budgets.
+  max_turns: 60
+  timeout_seconds: 2400
+  # Agent: the generator, the explorers, the validator.
+  # Bash: the command's `!git` context lines, history-explorer, and the
+  # plan's Baseline. Write/Edit: the plan and .gitignore.
+  allowed_tools: [Read, Glob, Grep, Agent, Bash, Write, Edit]
+
+graders:
+  # --- Fan-out: each always-on explorer was spawned (trace = parent and
+  # --- subagent tool calls, matched on the Agent call's JSON input).
+  - name: spawned-backend-explorer
+    type: tool_used
+    tool: Agent
+    input_match: '"subagent_type":\s*"feature-dev:backend-explorer"'
+  - name: spawned-frontend-explorer
+    type: tool_used
+    tool: Agent
+    input_match: '"subagent_type":\s*"feature-dev:frontend-explorer"'
+  - name: spawned-test-explorer
+    type: tool_used
+    tool: Agent
+    input_match: '"subagent_type":\s*"feature-dev:test-explorer"'
+  - name: spawned-history-explorer
+    type: tool_used
+    tool: Agent
+    input_match: '"subagent_type":\s*"feature-dev:history-explorer"'
+
+  # --- The root cause: no Agent call anywhere carried a top-level `name`.
+  # [{,] before the key keeps a `"name":` quoted inside a prompt string
+  # (serialized as \"name\":) from matching.
+  - name: no-named-agent-spawn
+    type: tool_used
+    tool: Agent
+    input_match: '[{,]"name"\s*:'
+    min: 0
+    max: 0
+
+  # --- The symptom: no spawn was refused as a teammate. Anchored to the start
+  # of a tool-result string, so the command body quoting the message mid-
+  # sentence does not count; only the harness's refusal does.
+  - name: no-teammate-refusal
+    type: regex
+    target: trace
+    match: not_contains
+    pattern: '"(content|text|tool_use_result|toolUseResult)":"(<tool_use_error>)?(Error: )?(Teammates cannot spawn other teammates|In-process teammates cannot spawn background agents)'
+
+  # --- The plan itself.
+  - name: plan-written
+    type: file_exists
+    path: PLAN-task-due-dates.md
+  - name: plan-not-degraded
+    type: regex
+    target: { source: file, path: PLAN-task-due-dates.md }
+    match: not_contains
+    pattern: 'Degraded exploration'
+  - name: plan-has-baseline
+    type: regex
+    target: { source: file, path: PLAN-task-due-dates.md }
+    flags: m
+    pattern: '^### Baseline\s*$'
+  # Secondary signal, readable without the trace: one findings subsection per
+  # always-on explorer.
+  - name: plan-has-explorer-sections
+    type: regex
+    target: { source: file, path: PLAN-task-due-dates.md }
+    flags: m
+    pattern: '^(?=[\s\S]*^#### Backend)(?=[\s\S]*^#### Frontend)(?=[\s\S]*^#### Tests)(?=[\s\S]*^#### History)'

@@ -351,6 +351,26 @@ class ReviewServerTest(unittest.TestCase):
         self.assertEqual(code, review_server.EXIT_NO_REVIEW)
         self.assertIn("No review submitted", out)
 
+    def test_alive_is_token_free_and_does_not_extend_idle_timeout(self):
+        server = self.start(self.spec, timeout=1.0)
+        status, _headers, body = server.get("alive")
+        self.assertEqual((status, body), (204, ""))
+        with self.assertRaises(urllib.error.HTTPError) as ctx:
+            server.get("alive", headers={"Host": "evil.example:80"})
+        self.assertEqual(ctx.exception.code, 403)
+        started = time.monotonic()
+        while server.proc.poll() is None and time.monotonic() - started < 6.0:
+            try:
+                server.get("alive")
+            except (urllib.error.URLError, ConnectionError):
+                break
+            time.sleep(0.2)
+        code, out = server.finish(wait=15)
+        # Probed every 0.2 s against a 1 s idle timeout, and it still timed out.
+        self.assertLess(time.monotonic() - started, 4.0)
+        self.assertEqual(code, review_server.EXIT_NO_REVIEW)
+        self.assertIn("No review submitted", out)
+
     def test_second_submit_is_a_conflict(self):
         # In-process, with shutdown stubbed, so both requests reach the handler.
         state = review_server.ReviewState(self.spec, self.root, timeout=60)
@@ -436,6 +456,122 @@ class ReviewServerTest(unittest.TestCase):
             capture_output=True, text=True,
         )
         self.assertEqual(result.returncode, review_server.EXIT_USAGE)
+
+
+class PurgeTest(unittest.TestCase):
+    TS = "20260101T000000Z"
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self._tmp.name)
+        self.history = self.root / ".feature-dev" / "history"
+        self.reviews = self.root / ".feature-dev" / "reviews"
+        self.reviews.mkdir(parents=True)
+        for slug in ("foo", "foo-bar"):
+            (self.history / slug).mkdir(parents=True)
+            (self.history / slug / f"SPEC-{slug}.1.md").write_text("v1", encoding="utf-8")
+            (self.reviews / f"{slug}-{self.TS}.md").write_text("r", encoding="utf-8")
+        (self.reviews / f"foo-{self.TS}-2.md").write_text("r", encoding="utf-8")
+        (self.reviews / "foo-notes.md").write_text("not a review file", encoding="utf-8")
+        (self.reviews / ".foo.url").write_text("http://127.0.0.1:1/\n", encoding="utf-8")
+        (self.root / "SPEC-foo.md").write_text(SPEC, encoding="utf-8")
+        (self.root / "PLAN-foo.md").write_text(PLAN, encoding="utf-8")
+
+    def tearDown(self):
+        self._tmp.cleanup()
+
+    def purge(self, *args: str) -> subprocess.CompletedProcess:
+        return subprocess.run(
+            [sys.executable, "-B", str(SCRIPT), "purge", "--root", str(self.root), *args],
+            cwd=self.root, capture_output=True, text=True,
+        )
+
+    def listing(self) -> list[str]:
+        return sorted(str(p.relative_to(self.root)) for p in self.root.rglob("*") if ".git" not in p.parts)
+
+    def test_happy_path_deletes_exactly_the_named_data(self):
+        result = self.purge("--artifact", "SPEC-foo.md", "--slug", "foo", "--pointer", "foo")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("deleted SPEC-foo.md", result.stdout)
+        self.assertIn(f"deleted .feature-dev/reviews/foo-{self.TS}-2.md", result.stdout)
+        self.assertIn("deleted .feature-dev/history/foo/", result.stdout)
+        self.assertIn("deleted .feature-dev/reviews/.foo.url", result.stdout)
+        self.assertFalse((self.root / "SPEC-foo.md").exists())
+        self.assertFalse((self.history / "foo").exists())
+        self.assertFalse((self.reviews / ".foo.url").exists())
+        self.assertFalse((self.reviews / f"foo-{self.TS}.md").exists())
+        # PLAN not named, a non-review file, and the longer slug all survive.
+        self.assertTrue((self.root / "PLAN-foo.md").exists())
+        self.assertTrue((self.reviews / "foo-notes.md").exists())
+
+    def test_slug_never_matches_a_longer_slug_by_prefix(self):
+        result = self.purge("--slug", "foo")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue((self.reviews / f"foo-bar-{self.TS}.md").exists())
+        self.assertTrue((self.history / "foo-bar" / "SPEC-foo-bar.1.md").exists())
+        self.assertNotIn("foo-bar", result.stdout)
+        self.assertFalse(review_server.review_pattern("foo").match(f"foo-bar-{self.TS}.md"))
+        self.assertTrue(review_server.review_pattern("foo-bar").match(f"foo-bar-{self.TS}.md"))
+
+    def test_invalid_arguments_delete_nothing(self):
+        before = self.listing()
+        for args in (
+            ("--slug", ".."), ("--slug", "../foo"), ("--slug", "foo/bar"), ("--slug", ".foo"),
+            ("--slug", "foo bar"), ("--slug", "~"), ("--slug", "a..b"), ("--slug", ""),
+            ("--pointer", "../x"), ("--pointer", ".foo"),
+            ("--artifact", "SPEC-foo.md ~/x"), ("--artifact", "../SPEC-foo.md"), ("--artifact", "sub/SPEC-foo.md"),
+            ("--artifact", "SPEC-~.md"), ("--artifact", "README.md"), ("--artifact", "SPEC-missing.md"),
+        ):
+            # A valid argument alongside the invalid one is not deleted either.
+            result = self.purge("--slug", "foo", "--artifact", "PLAN-foo.md", *args)
+            self.assertEqual(result.returncode, review_server.EXIT_USAGE, args)
+            self.assertIn("nothing was deleted", result.stderr)
+            self.assertEqual(result.stdout, "")
+            self.assertEqual(self.listing(), before, args)
+
+    def test_symlinks_are_refused(self):
+        outside = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, outside)
+        (outside / "keep.md").write_text("keep", encoding="utf-8")
+        (self.root / "SPEC-link.md").symlink_to(outside / "keep.md")
+        (self.history / "linked").symlink_to(outside, target_is_directory=True)
+        (self.history / "foo" / "escape.md").symlink_to(outside / "keep.md")
+        for args in (("--artifact", "SPEC-link.md"), ("--slug", "linked"), ("--slug", "foo")):
+            result = self.purge(*args)
+            self.assertEqual(result.returncode, review_server.EXIT_USAGE, args)
+        self.assertTrue((outside / "keep.md").exists())
+        self.assertTrue((self.history / "foo" / "SPEC-foo.1.md").exists())
+
+    def test_dry_run_deletes_nothing(self):
+        before = self.listing()
+        result = self.purge("--artifact", "SPEC-foo.md", "--slug", "foo", "--pointer", "foo", "--dry-run")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("would delete SPEC-foo.md", result.stdout)
+        self.assertIn(f"would delete .feature-dev/reviews/foo-{self.TS}.md", result.stdout)
+        self.assertNotIn("deleted", result.stdout.replace("would delete", ""))
+        self.assertEqual(self.listing(), before)
+
+    @unittest.skipUnless(shutil.which("git"), "git not installed")
+    def test_tracked_files_are_skipped_and_reported(self):
+        def git(*args):
+            subprocess.run(["git", "-C", str(self.root), *args], check=True, capture_output=True)
+
+        git("init", "-q")
+        git("add", "-f", "SPEC-foo.md", f".feature-dev/reviews/foo-{self.TS}.md")
+        result = self.purge("--artifact", "SPEC-foo.md", "--artifact", "PLAN-foo.md", "--slug", "foo")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("skipped SPEC-foo.md: tracked by git", result.stdout)
+        self.assertIn(f"skipped .feature-dev/reviews/foo-{self.TS}.md: tracked by git", result.stdout)
+        self.assertTrue((self.root / "SPEC-foo.md").exists())
+        self.assertTrue((self.reviews / f"foo-{self.TS}.md").exists())
+        self.assertFalse((self.root / "PLAN-foo.md").exists())
+        self.assertFalse((self.reviews / f"foo-{self.TS}-2.md").exists())
+
+    def test_missing_slug_data_is_reported_not_an_error(self):
+        result = self.purge("--slug", "nothing-here", "--pointer", "nothing-here")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("no review data for slug nothing-here", result.stdout)
+        self.assertIn("no such pointer", result.stdout)
 
 
 if __name__ == "__main__":

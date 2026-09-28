@@ -5,6 +5,7 @@ allowed-tools:
   - Read
   - Agent
   - Glob
+  - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/review_server.py snapshot *)
 argument-hint: "[SPEC-*.md path or feature description — optional; auto-discovers SPEC-*.md if omitted]"
 description: |
   Use when starting a feature that touches multiple parts of the codebase and you need a
@@ -111,7 +112,7 @@ Do NOT launch an explorer the caller did not select, and do NOT skip one it did.
 
 ## Step 2: Synthesize and Write Plan
 
-After all agents complete, synthesize the findings and draft the Implementation Order against the Step 2b rules. Run the Step 2c baseline on the draft's commands, then write the plan to [PLAN-<slug>.md] using the Write tool. If that file already exists, first copy it to `.feature-dev/history/<slug>/PLAN-<slug>.<n>.md`, where n is one more than the highest n already there (1 if none). `/feature-dev:review` diffs against the newest copy; without it nobody can see what changed between plan versions.
+After all agents complete, synthesize the findings and draft the Implementation Order against the Step 2b rules. Run the Step 2c baseline on the draft's commands, then write the plan to [PLAN-<slug>.md] using the Write tool. If that file already exists, first run `${CLAUDE_PLUGIN_ROOT}/scripts/review_server.py snapshot PLAN-<slug>.md`, which copies it to `.feature-dev/history/<slug>/PLAN-<slug>.<n>.md` with the next n and the slug sanitized the way `/feature-dev:review` and `/feature-dev:cleanup` read it. If Bash is unavailable, make the copy by hand under the sanitized slug: every run of characters outside `A-Za-z0-9._-` replaced by `-`, leading and trailing `-`/`.` stripped (`artifact` if nothing is left), n one more than the highest already there (1 if none). `/feature-dev:review` diffs against the newest copy; without it nobody can see what changed between plan versions.
 
 The plan MUST follow this template:
 
@@ -260,7 +261,7 @@ If PLAN-*.md is not in the project's .gitignore, add it. Add `.feature-dev/` the
 The plan is validated before the user sees it. When plan review was a separate, optional command it ran in 2 of 6 features, and in one of those the user carried the result over by pasting a review run in another session.
 
 1. Spawn `feature-dev:spec-plan-validator` with `artifact_type: plan` and `artifact_path: PLAN-<slug>.md`. Leave `name` unset, for the same reason as the generator: it is a nested worker, and its fresh context is what makes it a review rather than the generator re-reading its own work.
-2. **If it returns Blocking findings**, re-dispatch the generator once: a new anonymous `general-purpose` Agent (no `name`) whose prompt gives the plan path, the Blocking findings verbatim, and these instructions — fix each finding in place with Edit, touching only what the finding names; read the code a fix needs, but do not re-run the explorers; a changed or new step still follows Step 2b and a changed or new `Verify` is baselined per Step 2c (include both sections of the Phase 1 prompt verbatim in this prompt); a finding that cannot be fixed without a user decision is left as it is and named in the reply; before the first Edit, copy the plan to `.feature-dev/history/<slug>/PLAN-<slug>.<n>.md` as Step 2 does. Then spawn the validator again on the edited plan. There is no second re-dispatch: a Blocking finding that survives one fix needs the user, not another pass.
+2. **If it returns Blocking findings**, re-dispatch the generator once: a new anonymous `general-purpose` Agent (no `name`) whose prompt gives the plan path, the Blocking findings verbatim, and these instructions — fix each finding in place with Edit, touching only what the finding names; read the code a fix needs, but do not re-run the explorers; a changed or new step still follows Step 2b and a changed or new `Verify` is baselined per Step 2c (include both sections of the Phase 1 prompt verbatim in this prompt); a finding that cannot be fixed without a user decision is left as it is and named in the reply; before the first Edit, snapshot the plan with `${CLAUDE_PLUGIN_ROOT}/scripts/review_server.py snapshot PLAN-<slug>.md` as Step 2 does. Then spawn the validator again on the edited plan. There is no second re-dispatch: a Blocking finding that survives one fix needs the user, not another pass.
 3. **Should Address and Nice to Have findings** are not re-dispatched; they go into the brief.
 
 Keep the final validator report for Phase 3. Do not print it in full.

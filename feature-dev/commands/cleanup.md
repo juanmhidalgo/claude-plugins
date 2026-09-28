@@ -5,12 +5,13 @@ allowed-tools:
   - Glob
   - AskUserQuestion
   - Write
-  - Bash(rm SPEC-*.md)
-  - Bash(rm PLAN-*.md)
+  - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/review_server.py purge *)
   - Bash(gh pr view *)
   - Bash(gh pr comment *)
+  - Bash(ls -1A .feature-dev/*)
+  - Bash(curl -s -o /dev/null --max-time 2 http://127.0.0.1:*)
 description: |
-  Use to bulk-delete completed/abandoned SPEC-*.md and PLAN-*.md artifacts. Lists only safe candidates and requires Y/N confirm.
+  Use to bulk-delete completed/abandoned SPEC-*.md and PLAN-*.md artifacts, together with their local review history and feedback under .feature-dev/ and any orphaned review data. Lists only safe candidates and requires Y/N confirm.
   Offers first to rescue a spec's Decisions Log and unticked QA items as a comment on its branch's PR or into docs/decisions/.
   Do NOT use during active feature work — destructive on confirmed candidates.
 keywords:
@@ -36,7 +37,9 @@ triggers:
 3. For each SPEC, Read its YAML frontmatter and capture `feature`, `slug`, `date`, `branch`, `status`.
 4. For each PLAN, Read its YAML frontmatter and capture `feature`, `slug`, `date`, `source_spec`, `run_status`, `completed_steps`. If `source_spec` is set to a path, Read that file's frontmatter and capture its `status`.
 
-If both Globs return zero files, STOP and tell the user: "No SPEC or PLAN files found at the project root. Nothing to clean up." Do not proceed.
+5. List the review data with `ls -1A .feature-dev/history` and `ls -1A .feature-dev/reviews` — not Glob, which can skip the gitignored `.feature-dev/`. A "No such file or directory" error means there is none of that kind. For each history directory, `ls -1A .feature-dev/history/<dir>` gives its snapshot count.
+
+If both Globs return zero files and step 5 found nothing, STOP and tell the user: "No SPEC, PLAN or review data found. Nothing to clean up." Do not proceed.
 
 ## Phase 1: Categorize
 
@@ -55,6 +58,24 @@ Build three lists.
 **Ambiguous (do not offer by default — user can delete manually):**
 - PLANs with `source_spec: null` — could be standalone work the user is still iterating on.
 - SPECs with malformed or missing `status:` frontmatter — broken artifact, surface but don't auto-include.
+
+## Phase 1a: Review Data
+
+`/spec`, explore-plan and `/feature-dev:review` keep, per slug, snapshots in `.feature-dev/history/<slug>/`, review files `.feature-dev/reviews/<slug>-<YYYYMMDDTHHMMSSZ>[-<n>].md`, and, while a review page is served, a pointer `.feature-dev/reviews/.<slug>.url`. They are gitignored and local, and nothing else ever deletes them.
+
+1. **Group by on-disk slug.** A history directory's name is its slug. A review file's slug is its name minus the `-<timestamp>[-<n>].md` suffix — never match by prefix, since `foo-*` also matches `foo-bar-…`. A pointer's slug is its name minus the leading `.` and the `.url`.
+2. **Map each SPEC/PLAN to its on-disk slug** the way `review_server.py` derives it: frontmatter `slug:` (else the file name minus `SPEC-`/`PLAN-` and `.md`), every run of characters outside `A-Za-z0-9._-` replaced by `-`, leading and trailing `-`/`.` stripped, `artifact` if nothing is left. A SPEC and its PLAN share the slug.
+3. **Classify each slug's data:**
+   - **Goes with the deletion**: the slug's SPEC/PLAN files are all in the safe-to-delete list, so none survives this run. SPECs later marked rescue-failed survive, so their slug drops out of this group.
+   - **Orphaned**: no SPEC or PLAN at the root maps to the slug, the slug has at least one review file, **and** every one of its review files names an `artifact:` (frontmatter) that no longer exists. Read each review file's frontmatter and Read that path, relative to the project root; a "does not exist" error means it is gone. An artifact can live outside the root, or have been renamed while its review stayed, so the missing root SPEC/PLAN alone does not prove the data is unused.
+   - **Ambiguous review data**: no SPEC or PLAN at the root maps to the slug, but it has only history and no review file, or a review whose `artifact:` still exists. Listed with that reason, never deleted.
+   - **Kept**: any other slug — something with that slug remains (active, ambiguous, or not offered). This covers every slug whose PLAN is `in-progress`/`halted`, which the same override as in Phase 1 protects: a resumed run and its review round still read that history.
+4. **Check pointers.** For every `.url` file — whatever its slug's group, except a kept slug protected by an `in-progress`/`halted` PLAN — Read it and probe `<url>alive` (the pointer ends in `/`): `curl -s -o /dev/null --max-time 2 <url>alive`. `/alive` answers without a token and without resetting the server's idle timer, so the probe never keeps a forgotten review open. Exit 7 (connection refused) means no server — the pointer is stale. Any other exit means something answers — a **review in progress**:
+   - take the whole slug out of both review-data groups (the server still reads its history and will write a review there);
+   - move the slug's SPEC/PLAN from Safe to delete to Active work with reason `review in progress` — the review's verdict is about to be applied to that file;
+   - say "review server running at <url> — submit or close it, then rerun".
+
+   Every stale pointer, of any group, goes in the stale-pointer list and is deleted on its own `--pointer`, because `review_server.py url` would otherwise keep printing a dead URL.
 
 ## Phase 1b: Detect Rescuable Content
 
@@ -87,9 +108,26 @@ Active work (left alone, M files):
 Ambiguous (not auto-included, K files):
   - PLAN-<slug>.md — "<feature>" — reason: source_spec is null
   ...
+
+Review data going with them (S slugs):
+  - <slug> — 3 snapshots, 2 reviews
+  ...
+
+Orphaned review data (O slugs — no SPEC or PLAN left, and every review's artifact is gone):
+  - <slug> — 1 snapshot, 2 reviews
+  ...
+
+Ambiguous review data (left alone, A slugs):
+  - <slug> — 2 snapshots, 0 reviews — reason: <history only | review of <artifact> which still exists>
+  ...
+
+Stale server pointers (P, no server answering):
+  - .feature-dev/reviews/.<slug>.url
 ```
 
-If the "Safe to delete" list is empty, STOP and tell the user: "No safe-delete candidates. M active-work files left alone, K ambiguous files surfaced for manual review." Do not prompt.
+Counts only — never list the individual files. Omit empty groups, and also list any slug skipped for a live server.
+
+If the "Safe to delete" list, both deletable review-data groups and the stale pointers are all empty, STOP and tell the user: "No safe-delete candidates. M active-work files left alone, K ambiguous files surfaced for manual review." Do not prompt.
 
 If the "Safe to delete" list is non-empty and Phase 1b found rescuable content, run Phase 2a before the confirmation below; otherwise go straight to it.
 
@@ -120,37 +158,52 @@ If the "Safe to delete" list is non-empty and Phase 1b found rescuable content, 
    - **File**: if `docs/decisions/<slug>.md` exists, Read it and Write its content plus the sections it does not already have; otherwise Write a new file with a `# <feature>` title and the sections.
    - **Failure**: if `gh` or Write fails, or the verification above finds a heading missing, show the error verbatim and mark the spec **rescue failed**. A failed spec is removed from the delete list — deleting it would lose exactly what the user chose to keep. Its plan (if any) is still deleted only if it qualified on its own.
 
-Then continue to the confirmation, with N recounted after removing rescue-failed specs:
+Then continue to the confirmation, with N recounted after removing rescue-failed specs, and a rescue-failed spec's slug moved from "going with them" to kept (Phase 1a step 3). R is the slugs going with them plus the orphaned ones; P is the stale pointers.
 
-- Question: "Delete N safe-to-delete files? This is irreversible — these files are not in git."
+Build the Phase 3 `purge` command now and run it once with `--dry-run`. Exit 2 means an argument is invalid and nothing would be deleted — show the error and fix or drop that argument before asking. A `skipped … tracked by git` line takes that path out of the counts: the question must not promise a deletion that will not happen.
+
+- Question: "Delete N safe-to-delete files, review data for R slugs and P stale pointers? This is irreversible — none of it is in git." Drop each part that is zero.
 - Header: "Delete" (the header is capped at 12 characters)
 - Options:
-  - `Yes, delete all N` — proceed with deletion
+  - `Yes, delete all` — proceed with deletion
   - `Cancel` — stop, delete nothing
 
 ## Phase 3: Delete
 
 If the user chose `Cancel`, report "Cancelled. No files deleted.", then one line per spec already rescued in Phase 2a (`Rescued SPEC-<slug>.md → PR #<n>` or `→ docs/decisions/<slug>.md (uncommitted — commit it yourself)`) — the comment or file already exists and cancelling does not undo it — and STOP.
 
-If the user chose `Yes, delete all N`:
+If the user chose `Yes, delete all`:
 
-1. For each file in the "Safe to delete" list, run the appropriate `rm` command:
-   - SPEC files: `rm SPEC-<slug>.md`
-   - PLAN files: `rm PLAN-<slug>.md`
-2. Report the result with one line per deleted file:
+1. Run one command that names exactly what the confirmation counted — never `rm`:
+   ```
+   ${CLAUDE_PLUGIN_ROOT}/scripts/review_server.py purge --artifact <SPEC-/PLAN- file> … --slug <slug> … --pointer <slug> …
+   ```
+   - `--artifact` once per file in the "Safe to delete" list (the bare file name, e.g. `SPEC-<slug>.md`).
+   - `--slug` once per slug going with the deletion or orphaned. It removes `.feature-dev/history/<slug>/` and only the review files named exactly `<slug>-<timestamp>[-<n>].md` — never a longer slug's.
+   - `--pointer` once per stale pointer's slug.
+
+   `purge` validates every argument before touching anything (names, slug characters, symlinks, paths that resolve outside `.feature-dev/`), and exit 2 means it deleted nothing — show the error and stop. It skips git-tracked files and prints `skipped <path>: <reason>` for each. Exit 1 means a deletion failed: show its `failed` lines.
+2. Report the result from `purge`'s output, with one line per deleted file or slug:
    ```
    Deleted SPEC-<slug>.md
    Deleted PLAN-<slug>.md
+   Deleted review data for <slug> — 3 snapshots, 2 reviews
+   Deleted orphaned review data for <slug> — 1 snapshot, 2 reviews
+   Removed stale pointer .<slug>.url
+   Skipped <path> — tracked by git
    ...
-   Total: N files removed.
+   Total: N files, review data for R slugs and P stale pointers removed.
    ```
 3. Add one line per rescuable spec with its outcome: `Rescued SPEC-<slug>.md → PR #<n>` (comment) or `→ docs/decisions/<slug>.md (uncommitted — commit it yourself)`; `Kept SPEC-<slug>.md — rescue failed: <error>`; or, for `Delete anyway`, `Lost from SPEC-<slug>.md:` followed by the decisions (one line each) and the unticked QA items, so the loss is on record in this session.
 
 ## Rules
 
-- **Never delete files outside the candidate list.** The categorization in Phase 1 is the source of truth — do not improvise.
+- **Never delete files outside the candidate list.** The categorization in Phase 1 and Phase 1a is the source of truth — do not improvise. Nothing is deleted that the confirmation question did not count.
 - **Never write to a PR without the user picking that option for that spec, and never edit its body.** A PR is read by others; the choice to publish a working artifact's contents there is the user's, and a comment adds to the PR without touching what anyone else wrote.
 - **Never delete without the explicit confirmation in Phase 2.** Even if the user invoked this command intentionally, the destructive step requires an in-command Y/N gate.
-- **Never delete files that are tracked by git.** The local-artifact convention says SPEC/PLAN should be `.gitignore`d; if a SPEC or PLAN somehow ended up tracked, surface it as a warning and skip — the user must decide whether to commit or untrack first.
-- **Never recurse into subdirectories.** Both Glob patterns must run only at the repo root. SPEC/PLAN files belong at the root by convention; files elsewhere are out of scope.
+- **Never delete files that are tracked by git** — SPEC/PLAN files and `.feature-dev/` entries alike. The local-artifact convention says both should be `.gitignore`d; if one somehow ended up tracked, surface it as a warning and skip — the user must decide whether to commit or untrack first. `purge` enforces this and reports each skip.
+- **Never recurse into subdirectories.** Both Glob patterns must run only at the repo root. SPEC/PLAN files belong at the root by convention; files elsewhere are out of scope. `.feature-dev/` is the one exception, and only the entries Phase 1a listed.
+- **Review data follows its slug, not its file.** A SPEC and a PLAN share a slug, so deleting one while the other stays must keep the history the survivor's next review diffs against.
+- **Delete only through `review_server.py purge`, never `rm`.** A pre-approved `rm` pattern ends in a wildcard that also matches extra paths (`rm SPEC-a.md ~/x`, `rm -r .feature-dev/history/../..`); `purge` accepts names, not paths, and refuses anything else. A `--slug` is one `ls` printed or one derived per Phase 1a step 2 — a slug read raw from frontmatter can differ from the sanitized one on disk.
+- **Liveness is `curl` on `/alive`, not `review_server.py url`.** `url` only reports that the pointer file exists; a server killed without cleanup leaves it behind and `url` still exits 0. Probe `/alive`, not the page: the page resets the server's idle timer and renders the whole document.
 - **No partial-list selection.** This is an intentional UX choice: surgical deletion is the user's job (`rm <specific-file>`); this command exists for bulk cleanup of unambiguous candidates only.
