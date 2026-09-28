@@ -47,7 +47,7 @@ The agent will:
 2. If frontmatter `source_spec:` is set, verify the linked SPEC file exists
 3. Run the PLAN-specific structural checklist, including the `### Baseline` section (steps whose `Verify:` is `hollow` or `not-run: missing` on HEAD and not yet `accepted by user`), `Kind:` / `Pins:` usage, and the step-count cap
 4. Check that every Files to Modify path exists and no Files to Create path already does
-5. When the source spec numbers its ACs, trace them: an AC no step `Covers:` and a `Covers:` citing an id the spec does not define are Should Address, and it reports `AC coverage: covered/total`
+5. When the source spec numbers its ACs, trace them: an AC no step `Covers:` (unless Risks names it as deliberately left out), a `Covers:` citing an id the spec does not define, and a behavior step without `Covers:` are Should Address, and it reports `AC coverage: covered/total`
 6. Emit a categorical report (Blocking / Should Address / Nice to Have) with section references
 7. State explicitly when no blocking gaps exist
 

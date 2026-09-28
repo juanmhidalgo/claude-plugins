@@ -5,7 +5,8 @@ Serves one self-contained page on 127.0.0.1 (random free port), opens the
 browser, and waits. On submit it writes the reviewer's feedback to
 ``.feature-dev/reviews/<slug>-<UTC timestamp>.md``, prints that path and exits 0.
 With no request for ``--timeout`` seconds it prints a "no review submitted"
-line, writes nothing, and exits 3.
+line, writes nothing, and exits 3. An open, visible tab pings the server every
+60 s, so reading for longer than the timeout does not end the review.
 
 Python 3 standard library only. Nothing is fetched from or sent to the
 network: the page carries no external script, stylesheet or font, and its
@@ -15,10 +16,17 @@ Usage:
     review_server.py serve <artifact> [--root DIR] [--timeout SECONDS] [--no-browser]
     review_server.py snapshot <artifact> [--root DIR]
     review_server.py sha <artifact>
+    review_server.py latest <artifact> [--root DIR] [--since EPOCH]
+    review_server.py url <artifact> [--root DIR]
 
 ``snapshot`` copies the artifact to ``.feature-dev/history/<slug>/<name>.<n>.md``
 (n increments) and prints the copy's path. The review page diffs against the
 most recent snapshot whose content differs from the artifact.
+
+``latest`` prints the newest review file written for this artifact (modified at
+or after ``--since``, in epoch seconds) and exits 1 when there is none. ``url``
+prints the running server's URL and exits 1 when no server is running. Both
+derive the slug exactly as ``serve`` does, so callers never re-derive it.
 
 Set FEATURE_DEV_REVIEW_NO_BROWSER=1 to never open a browser (tests, SSH).
 """
@@ -84,6 +92,45 @@ def artifact_slug(path: Path, front: dict[str, str]) -> str:
         slug = re.sub(r"^(SPEC|PLAN)-", "", path.stem)
     slug = re.sub(r"[^A-Za-z0-9._-]+", "-", slug).strip("-.")
     return slug or "artifact"
+
+
+def reviews_dir(root: Path) -> Path:
+    return root / ".feature-dev" / "reviews"
+
+
+def url_file(root: Path, slug: str) -> Path:
+    return reviews_dir(root) / f".{slug}.url"
+
+
+def slug_of(artifact: Path) -> str:
+    text = artifact.read_text(encoding="utf-8", errors="replace")
+    return artifact_slug(artifact, read_frontmatter(text))
+
+
+def latest_review(artifact: Path, root: Path, since: float = 0.0) -> Path | None:
+    """Newest review file for ``artifact`` modified at or after ``since``.
+
+    A SPEC and a PLAN share a slug, so the file's ``artifact:`` frontmatter must
+    name this artifact too.
+    """
+    folder = reviews_dir(root)
+    if not folder.is_dir():
+        return None
+    slug = slug_of(artifact)
+    pattern = re.compile(r"^" + re.escape(slug) + r"-\d{8}T\d{6}Z(?:-\d+)?\.md$")
+    best: tuple[float, str, Path] | None = None
+    for entry in folder.iterdir():
+        if not pattern.match(entry.name) or not entry.is_file():
+            continue
+        mtime = entry.stat().st_mtime
+        if mtime < since:
+            continue
+        front = read_frontmatter(entry.read_text(encoding="utf-8", errors="replace"))
+        if Path(front.get("artifact", "")).name != artifact.name:
+            continue
+        if best is None or (mtime, entry.name) > best[:2]:
+            best = (mtime, entry.name, entry)
+    return best[2] if best else None
 
 
 def history_dir(root: Path, slug: str) -> Path:
@@ -304,7 +351,7 @@ class ReviewState:
 
     def write_feedback(self, verdict: str, items: list[dict], decisions: list[dict]) -> Path:
         now = _dt.datetime.now(_dt.timezone.utc)
-        folder = self.root / ".feature-dev" / "reviews"
+        folder = reviews_dir(self.root)
         folder.mkdir(parents=True, exist_ok=True)
         stamp = now.strftime("%Y%m%dT%H%M%SZ")
         target = folder / f"{self.slug}-{stamp}.md"
@@ -357,10 +404,10 @@ def make_handler(state: ReviewState, server_ref: dict):
             self._send(status, json.dumps(payload).encode("utf-8"), "application/json; charset=utf-8")
 
         def do_GET(self):  # noqa: N802
-            state.touch()
             if not self._host_ok():
                 self._json(HTTPStatus.FORBIDDEN, {"error": "bad host"})
                 return
+            state.touch()
             path = self.path.split("?", 1)[0]
             if path == "/":
                 nonce = secrets.token_urlsafe(16)
@@ -371,19 +418,22 @@ def make_handler(state: ReviewState, server_ref: dict):
                     "form-action 'none'; frame-ancestors 'none'"
                 )
                 self._send(HTTPStatus.OK, state.page(nonce), "text/html; charset=utf-8", {"Content-Security-Policy": csp})
-            elif path == "/diff":
+            elif path in ("/diff", "/ping"):
                 if self.headers.get("X-Review-Token") != state.token:
                     self._json(HTTPStatus.FORBIDDEN, {"error": "bad token"})
                     return
-                self._json(HTTPStatus.OK, state.diff_payload())
+                if path == "/ping":  # the visible tab keeps the idle timer alive
+                    self._json(HTTPStatus.OK, {"ok": True})
+                else:
+                    self._json(HTTPStatus.OK, state.diff_payload())
             else:
                 self._json(HTTPStatus.NOT_FOUND, {"error": "not found"})
 
         def do_POST(self):  # noqa: N802
-            state.touch()
             if not self._host_ok() or self.headers.get("X-Review-Token") != state.token:
                 self._json(HTTPStatus.FORBIDDEN, {"error": "forbidden"})
                 return
+            state.touch()
             if self.path != "/submit":
                 self._json(HTTPStatus.NOT_FOUND, {"error": "not found"})
                 return
@@ -427,9 +477,9 @@ def serve(artifact: Path, root: Path, timeout: float, open_browser: bool) -> int
     server.daemon_threads = True
     server_ref["server"] = server
     url = f"http://127.0.0.1:{server.server_address[1]}/"
-    url_file = root / ".feature-dev" / "reviews" / f".{state.slug}.url"
-    url_file.parent.mkdir(parents=True, exist_ok=True)
-    url_file.write_text(url + "\n", encoding="utf-8")
+    url_path = url_file(root, state.slug)
+    url_path.parent.mkdir(parents=True, exist_ok=True)
+    url_path.write_text(url + "\n", encoding="utf-8")
     print(f"Review page for {state.display_path}: {url}", flush=True)
     stop = threading.Event()
     threading.Thread(target=watchdog, args=(state, server, stop), daemon=True).start()
@@ -443,7 +493,7 @@ def serve(artifact: Path, root: Path, timeout: float, open_browser: bool) -> int
         stop.set()
         server.server_close()
         try:
-            url_file.unlink()
+            url_path.unlink()
         except OSError:
             pass
     if state.result_path is not None:
@@ -455,7 +505,7 @@ def serve(artifact: Path, root: Path, timeout: float, open_browser: bool) -> int
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__.split("\n\n", 1)[0])
+    parser = argparse.ArgumentParser(description=(__doc__ or "").split("\n\n", 1)[0])
     sub = parser.add_subparsers(dest="command", required=True)
     serve_p = sub.add_parser("serve", help="serve the review page and wait for a verdict")
     serve_p.add_argument("artifact")
@@ -467,6 +517,13 @@ def main(argv: list[str] | None = None) -> int:
     snap_p.add_argument("--root", default=".", help="project root (default: cwd)")
     sha_p = sub.add_parser("sha", help="print the artifact's sha256 (compare with reviewed_sha256)")
     sha_p.add_argument("artifact")
+    latest_p = sub.add_parser("latest", help="print the newest review file for the artifact")
+    latest_p.add_argument("artifact")
+    latest_p.add_argument("--root", default=".", help="project root (default: cwd)")
+    latest_p.add_argument("--since", type=float, default=0.0, help="only files modified at or after this epoch")
+    url_p = sub.add_parser("url", help="print the running review server's URL")
+    url_p.add_argument("artifact")
+    url_p.add_argument("--root", default=".", help="project root (default: cwd)")
     args = parser.parse_args(argv)
 
     artifact = Path(args.artifact)
@@ -476,6 +533,18 @@ def main(argv: list[str] | None = None) -> int:
         return EXIT_USAGE
     if args.command == "sha":
         print(hashlib.sha256(artifact.read_bytes()).hexdigest())
+        return 0
+    if args.command == "latest":
+        found = latest_review(artifact, root, args.since)
+        if found is None:
+            return 1
+        print(found)
+        return 0
+    if args.command == "url":
+        path = url_file(root, slug_of(artifact))
+        if not path.is_file():
+            return 1
+        print(path.read_text(encoding="utf-8").strip())
         return 0
     if args.command == "snapshot":
         print(snapshot(artifact, root))

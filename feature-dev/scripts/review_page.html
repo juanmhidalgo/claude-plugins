@@ -173,20 +173,35 @@ aside section { margin-bottom: 16px; }
   var DATA = JSON.parse(document.getElementById("data").textContent);
   var state = { items: [], decisions: {}, verdict: "", submitted: false };
   var editing = -1;
+  // The draft survives a reload of this tab. localStorage is per origin, and the
+  // origin includes the server's random port, so it does not survive a new server.
   var DRAFT_KEY = "fd-review:" + DATA.sha256;
+  // Ids the renderer gives to document content. No page control id starts with
+  // either prefix, so a heading such as "## Submit" cannot shadow a control.
+  var HEADING_ID_PREFIX = "h-", AC_ID_PREFIX = "ac-";
 
   function esc(s) {
     return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
   }
-  function $(id) { return document.getElementById(id); }
+  // Page controls are captured before the document is rendered, so lookups never
+  // resolve to an element that came from the artifact.
+  var CONTROLS = {};
+  Array.prototype.forEach.call(document.querySelectorAll("[id]"), function (el) { CONTROLS[el.id] = el; });
+  function $(id) { return CONTROLS[id] || null; }
+  var cards = {};
 
   // ---------------------------------------------------------------- inline
+  // Allowlist: http(s), mailto, fragments, and relative paths (no colon before
+  // the first "/"). Browsers ignore control characters and spaces inside a URL,
+  // so they are stripped before the scheme is checked.
   function safeHref(url) {
-    var u = url.replace(/&amp;/g, "&");
-    if (/^(https?:|mailto:|#)/i.test(u)) return url;
-    if (/^[a-z][a-z0-9+.-]*:/i.test(u)) return null; // javascript:, data:, ...
-    return url; // relative
+    var u = url.replace(/[\x00-\x20\x7f]/g, "");
+    var raw = u.replace(/&amp;/g, "&");
+    if (/^(https?:|mailto:)/i.test(raw) || raw.charAt(0) === "#") return u;
+    var colon = raw.indexOf(":"), slash = raw.indexOf("/");
+    if (colon === -1 || (slash !== -1 && slash < colon)) return u;
+    return null;
   }
   function inlineText(s) {
     var t = esc(s);
@@ -256,7 +271,7 @@ aside section { margin-bottom: 16px; }
         pre = '<input type="checkbox" disabled' + (task[1] === " " ? "" : " checked") + '> ';
       }
       var ac = /^\*\*(AC-\d+)\*\*/.exec(text);
-      if (ac) { cls = "ac"; id = ' id="' + ac[1].toLowerCase() + '"'; }
+      if (ac) { cls = "ac"; id = ' id="' + AC_ID_PREFIX + ac[1].slice(3) + '"'; }
       var value = tag === "ol" ? ' data-n="' + parseInt(it.marker, 10) + '"' : "";
       html += "<li" + id + value + (cls ? ' class="' + cls + '"' : "") + ">" + pre + inline(text);
     });
@@ -353,6 +368,7 @@ aside section { margin-bottom: 16px; }
     function onHeading(level, text) {
       var plain = text.replace(/[`*_]/g, "");
       var base = plain.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "section";
+      base = HEADING_ID_PREFIX + base;
       var id = base, n = 2;
       while (used[id]) id = base + "-" + n++;
       used[id] = true;
@@ -437,7 +453,7 @@ aside section { margin-bottom: 16px; }
       decisionRows.push({ id: id, label: title + (rec ? " → " + rec : "") });
       var card = document.createElement("div");
       card.className = "card";
-      card.id = "card-" + id;
+      cards[id] = card;
       var dl = "";
       head.forEach(function (h, c) {
         if (c === cDec || !cells[c]) return;
@@ -486,7 +502,7 @@ aside section { margin-bottom: 16px; }
       var noun = DATA.kind === "plan" && /Implementation Order|Milestone/i.test(label) ? "step " : "item ";
       label += (label ? " › " : "") + noun + li.getAttribute("data-n");
     }
-    if (li && li.id && /^ac-/.test(li.id)) label += (label ? " › " : "") + li.id.toUpperCase();
+    if (li && li.id && li.id.indexOf(AC_ID_PREFIX) === 0) label += (label ? " › " : "") + "AC-" + li.id.slice(AC_ID_PREFIX.length);
     return label;
   }
   function currentSelection() {
@@ -588,7 +604,7 @@ aside section { margin-bottom: 16px; }
       if (!d) return;
       state.items = d.items || [];
       Object.keys(d.decisions || {}).forEach(function (id) {
-        var card = $("card-" + id);
+        var card = cards[id];
         if (!card) return;
         var s = d.decisions[id];
         state.decisions[id] = s;
@@ -622,7 +638,7 @@ aside section { margin-bottom: 16px; }
       })
       .catch(function (e) {
         st.className = "err";
-        st.textContent = "Not saved: " + e.message + ". If the server stopped (idle timeout), your draft is kept in this browser; re-run /feature-dev:review to submit it.";
+        st.textContent = "Not saved: " + e.message + ". If the review server has stopped, copy your comments from this panel before closing the tab: a new server opens a new page without them.";
         $("submit").disabled = false;
       });
   }
@@ -678,6 +694,19 @@ aside section { margin-bottom: 16px; }
   loadDraft();
   update();
   loadDiff();
+
+  // Keep the server's idle timer alive while the page is being read.
+  function ping() {
+    if (state.submitted || document.visibilityState !== "visible") return;
+    fetch("/ping", { headers: { "X-Review-Token": DATA.token } })
+      .then(function (r) { if (!r.ok) throw new Error(String(r.status)); })
+      .catch(function () {
+        var st = $("status");
+        if (st.className !== "ok") { st.className = "err"; st.textContent = "The review server is not reachable; submitting will fail. Copy your comments before closing this tab."; }
+      });
+  }
+  setInterval(ping, 60000);
+  document.addEventListener("visibilitychange", ping);
 
   var addc = $("addc");
   function onSelect() {

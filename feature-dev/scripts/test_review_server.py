@@ -10,9 +10,12 @@ import hashlib
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
+import threading
+import time
 import unittest
 import urllib.error
 import urllib.request
@@ -280,6 +283,152 @@ class ReviewServerTest(unittest.TestCase):
             [sys.executable, str(SCRIPT), "sha", str(self.spec)], capture_output=True, text=True, check=True
         )
         self.assertEqual(result.stdout.strip(), hashlib.sha256(SPEC.encode("utf-8")).hexdigest())
+
+    def abs(self, printed: str) -> Path:
+        """A path the CLI printed relative to the project root, made absolute."""
+        return (self.root / printed.strip()).resolve()
+
+    def run_cli(self, *args: str) -> subprocess.CompletedProcess:
+        return subprocess.run(
+            [sys.executable, "-B", str(SCRIPT), *args], cwd=self.root, capture_output=True, text=True
+        )
+
+    def test_latest_and_url_track_the_running_review(self):
+        self.assertEqual(self.run_cli("latest", str(self.spec)).returncode, 1)
+        self.assertEqual(self.run_cli("url", str(self.spec)).returncode, 1)
+        server = self.start(self.spec)
+        url = self.run_cli("url", str(self.spec))
+        self.assertEqual((url.returncode, url.stdout.strip()), (0, server.url.rstrip("/") + "/"))
+        status, body = server.post({"verdict": "approve"}, server.token())
+        self.assertEqual(status, 200)
+        server.finish()
+        latest = self.run_cli("latest", str(self.spec), "--since", "0")
+        self.assertEqual(latest.returncode, 0)
+        self.assertEqual(self.abs(latest.stdout), Path(body["path"]).resolve())
+        self.assertEqual(self.run_cli("latest", str(self.spec), "--since", "99999999999").returncode, 1)
+        self.assertEqual(self.run_cli("url", str(self.spec)).returncode, 1)
+        # A plan with the same slug does not pick up the spec's review.
+        plan = self.root / "PLAN-example-feature.md"
+        plan.write_text(PLAN, encoding="utf-8")
+        self.assertEqual(self.run_cli("latest", str(plan)).returncode, 1)
+
+    def test_slug_is_sanitized_everywhere(self):
+        self.assertEqual(review_server.artifact_slug(Path("SPEC-x.md"), {"slug": "../../evil dir/x"}), "evil-dir-x")
+        self.assertEqual(review_server.artifact_slug(Path("SPEC-a b.md"), {}), "a-b")
+        self.assertEqual(review_server.artifact_slug(Path("SPEC-x.md"), {"slug": "../.."}), "artifact")
+        odd = self.root / "SPEC-odd.md"
+        odd.write_text(SPEC.replace("slug: example-feature", "slug: ../../Odd Slug!"), encoding="utf-8")
+        snap = self.abs(self.run_cli("snapshot", str(odd)).stdout)
+        self.assertEqual(snap.parent, (self.root / ".feature-dev" / "history" / "Odd-Slug").resolve())
+        server = self.start(odd)
+        status, body = server.post({"verdict": "approve"}, server.token())
+        self.assertEqual(status, 200)
+        server.finish()
+        self.assertEqual(Path(body["path"]).parent, self.root / ".feature-dev" / "reviews")
+        self.assertTrue(Path(body["path"]).name.startswith("Odd-Slug-"))
+        self.assertEqual(self.abs(self.run_cli("latest", str(odd)).stdout), Path(body["path"]).resolve())
+
+    def test_diff_requires_token(self):
+        server = self.start(self.spec)
+        for headers in ({}, {"X-Review-Token": "wrong"}):
+            with self.assertRaises(urllib.error.HTTPError) as ctx:
+                server.get("diff", headers=headers)
+            self.assertEqual(ctx.exception.code, 403)
+
+    def test_ping_requires_token_and_keeps_server_alive(self):
+        server = self.start(self.spec, timeout=1.0)
+        token = server.token()
+        with self.assertRaises(urllib.error.HTTPError) as ctx:
+            server.get("ping")
+        self.assertEqual(ctx.exception.code, 403)
+        deadline = time.monotonic() + 3.0  # three times the idle timeout
+        while time.monotonic() < deadline:
+            status, _headers, _body = server.get("ping", headers={"X-Review-Token": token})
+            self.assertEqual(status, 200)
+            time.sleep(0.3)
+        self.assertIsNone(server.proc.poll())
+        code, out = server.finish(wait=15)  # pings stopped: the idle timeout ends it
+        self.assertEqual(code, review_server.EXIT_NO_REVIEW)
+        self.assertIn("No review submitted", out)
+
+    def test_second_submit_is_a_conflict(self):
+        # In-process, with shutdown stubbed, so both requests reach the handler.
+        state = review_server.ReviewState(self.spec, self.root, timeout=60)
+
+        class NoShutdown:
+            def shutdown(self):
+                return None
+
+        server = review_server.ThreadingHTTPServer(
+            ("127.0.0.1", 0), review_server.make_handler(state, {"server": NoShutdown()})
+        )
+        thread = threading.Thread(target=server.serve_forever, kwargs={"poll_interval": 0.05}, daemon=True)
+        thread.start()
+        try:
+            url = f"http://127.0.0.1:{server.server_address[1]}/submit"
+
+            def post():
+                req = urllib.request.Request(
+                    url, data=b'{"verdict": "approve"}', method="POST",
+                    headers={"Content-Type": "application/json", "X-Review-Token": state.token},
+                )
+                try:
+                    with urllib.request.urlopen(req, timeout=10) as resp:
+                        return resp.status, json.loads(resp.read())
+                except urllib.error.HTTPError as err:
+                    return err.code, json.loads(err.read())
+
+            first_status, first = post()
+            second_status, second = post()
+        finally:
+            server.shutdown()
+            server.server_close()
+        self.assertEqual(first_status, 200)
+        self.assertEqual(second_status, 409)
+        self.assertEqual(second["path"], first["path"])
+        self.assertEqual(len(self.reviews()), 1)
+
+    def test_control_ids_cannot_collide_with_document_ids(self):
+        template = review_server.PAGE_FILE.read_text(encoding="utf-8")
+        markup = template.split("<script nonce", 1)[0]
+        control_ids = re.findall(r'\bid="([^"]+)"', markup)
+        self.assertIn("submit", control_ids)
+        self.assertIn("items", control_ids)
+        for prefix in ("h-", "ac-"):
+            self.assertEqual([i for i in control_ids if i.startswith(prefix)], [], prefix)
+        self.assertIn('var HEADING_ID_PREFIX = "h-", AC_ID_PREFIX = "ac-";', template)
+        self.assertIn("base = HEADING_ID_PREFIX + base;", template)
+        self.assertIn("function $(id) { return CONTROLS[id] || null; }", template)
+        # CONTROLS is captured before the document is rendered.
+        self.assertLess(template.index("var CONTROLS = {};"), template.index("  render();"))
+
+    @unittest.skipUnless(shutil.which("node"), "node not installed")
+    def test_page_script_parses_and_safe_href_allowlist(self):
+        template = review_server.PAGE_FILE.read_text(encoding="utf-8")
+        script = template.split('<script nonce="__NONCE__">', 1)[1].split("</script>", 1)[0]
+        with tempfile.NamedTemporaryFile("w", suffix=".js", delete=False) as handle:
+            handle.write(script)
+        try:
+            check = subprocess.run(["node", "--check", handle.name], capture_output=True, text=True)
+        finally:
+            os.unlink(handle.name)
+        self.assertEqual(check.returncode, 0, check.stderr)
+
+        func = re.search(r"  function safeHref\(url\) \{.*?\n  \}", script, re.S).group(0)
+        cases = {
+            "https://example.com/a": True, "http://x": True, "mailto:a@b.c": True, "#h-summary": True,
+            "docs/a.md": True, "./a:b": True, "../x/y.md": True,
+            "javascript:alert(1)": False, "JavaScript:alert(1)": False, "\x01javascript:alert(1)": False,
+            " javascript:alert(1)": False, "java\tscript:alert(1)": False, "data:text/html,x": False,
+            "vbscript:x": False, "a:b/c": False,
+        }
+        program = func + "\nconst cases = " + json.dumps(cases) + ";\n" + (
+            "const bad = Object.entries(cases).filter(([u, ok]) => (safeHref(u) !== null) !== ok);\n"
+            "console.log(JSON.stringify(bad));\n"
+        )
+        result = subprocess.run(["node", "-e", program], capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(json.loads(result.stdout), [])
 
     def test_missing_artifact_is_a_usage_error(self):
         result = subprocess.run(
