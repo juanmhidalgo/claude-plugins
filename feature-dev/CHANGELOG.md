@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.30.1 (2026-09-28)
+
+### Changed
+- **The review page closes its own tab after a successful submit** (`scripts/review_page.html`), 1.5 s after showing where the feedback was saved. Browsers only allow a script to close a tab with a single history entry or one it opened, so when the close is blocked the page keeps the "you can close this tab" message. **Why:** the tab was left open after every spec or plan review in the browser, even though nothing on it is usable once the review is submitted.
+
 ## 1.30.0 (2026-09-28)
 
 A GitHub issue can now be the durable home of a spec, not just the local file.

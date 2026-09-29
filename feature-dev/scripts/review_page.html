@@ -633,8 +633,17 @@ aside section { margin-bottom: 16px; }
         state.submitted = true;
         try { localStorage.removeItem(DRAFT_KEY); } catch (e) { /* ignore */ }
         st.className = "ok";
-        st.textContent = "Review saved to " + res.body.path + ".\nReturn to Claude Code; you can close this tab.";
+        st.textContent = "Review saved to " + res.body.path + ".\nReturn to Claude Code; this tab closes itself.";
         document.querySelectorAll("aside button, aside input, aside textarea, #doc input").forEach(function (el) { el.disabled = true; });
+        // Browsers only let a script close a tab it opened or one with a single
+        // history entry, so window.close() can be a silent no-op. The delay lets
+        // the confirmation be read; if the tab survives, say so instead.
+        setTimeout(function () {
+          window.close();
+          setTimeout(function () {
+            st.textContent = "Review saved to " + res.body.path + ".\nReturn to Claude Code; you can close this tab.";
+          }, 300);
+        }, 1500);
       })
       .catch(function (e) {
         st.className = "err";
