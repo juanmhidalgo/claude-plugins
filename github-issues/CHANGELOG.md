@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.6.0 (2026-09-29)
+
+### Added
+- `work` checks the issue's assignees in Phase 1, before verifying anything: if someone else is assigned, it stops and asks whether to continue (adding you alongside them, never replacing them). **Why:** an assigned issue is probably being worked on, and verifying and planning it in parallel duplicates that work.
+- `work` assigns you (`gh issue edit --add-assignee @me`) in Phase 5, right before the first edit, after re-checking the assignees. Not earlier: verification can end the run, and an assignment would then claim work nobody is doing. Approving the plan approves the assignment; a failure does not stop the work and is reported in the close-out. Allowlist: `gh issue edit * --add-assignee @me`, `gh api user --jq .login`.
+- Verification reads the issue as its body **amended by its comments** (`references/verification.md`, "Comments amend the issue"): a comment that re-verified the issue at a commit is the baseline for the claims it covers, a comment that widened the scope widens the ledger, a check a comment completed is not reported as open, and what a comment splits off goes under Out of scope. Ledger rows name their source (body or comment), and drafted corrections leave out what an existing comment already says. **Why:** on an issue whose re-verification comment had moved every location, widened the fix from one call site to about ten, and completed the requested cross-repo check, verifying the body alone would re-report stale drift and size the fix to the original, smaller scope.
+
 ## 1.5.0 (2026-09-23)
 
 ### Added

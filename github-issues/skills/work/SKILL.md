@@ -31,6 +31,8 @@ allowed-tools:
   - Agent
   - Bash(gh issue view *)
   - Bash(gh issue comment *)
+  - Bash(gh issue edit * --add-assignee @me)
+  - Bash(gh api user --jq .login)
   - Bash(gh pr create *)
   - Bash(gh pr view *)
   - Bash(gh pr list *)
@@ -104,8 +106,15 @@ Follow the phases in order. Do not advance past a gate without the user.
 3. PR search hits are candidates, not answers: a PR addresses the issue only if its diff
    touches the code the issue is about (`gh pr view <n> --json files`). If the issue is closed, or a PR really
    addresses it, say so and ask whether to continue.
-4. Read every comment. A comment can change the scope or record a decision, but it is also
-   a claim: it goes in the ledger like the body does.
+4. **Check who owns it, before verifying anything.** If `assignees` holds anyone other than
+   you (`gh api user --jq .login`), **STOP**: name them and ask whether to continue — you
+   would be added alongside them, never in their place — or stop. An assigned issue is
+   probably being worked on; verifying and planning it in parallel duplicates that work.
+   Phase 5 does not ask again about the assignees accepted here.
+5. Read every comment. The issue is its body as amended by its comments — a later comment
+   can move locations, widen the scope, complete a check, or split something off — and each
+   comment is also a claim that goes in the ledger. See "Comments amend the issue" in
+   [verification.md](references/verification.md).
 
 ### Phase 2: Classify
 
@@ -183,13 +192,25 @@ out stays out), and every deviation from the issue's suggested fix with its reas
 1. If there are uncommitted changes, ask before stashing.
 2. Branch `{prefix}/issue-{number}-{slug}` — prefix from [work-types.md](references/work-types.md),
    unless the repo documents its own convention.
-3. Implement the approved plan. Tests follow the work type's strategy — a bug gets a test
+3. **Assign yourself — right before the first edit, never earlier.** Re-read
+   `gh issue view {number} --repo {owner}/{repo} --json assignees`:
+   - already includes you → nothing to do;
+   - someone was assigned since Phase 1 (not one the user already accepted there) → ask, as
+     in Phase 1;
+   - otherwise → `gh issue edit {number} --repo {owner}/{repo} --add-assignee @me`.
+     `--add-assignee` never removes anyone.
+
+   Not during Phases 1–4: verification can end the run, and the assignment would then claim
+   work nobody is doing. This is the one write to the issue that needs no text approved —
+   approving the plan is the approval. A failure (no write access, a `gh` error) does not stop
+   the work; the close-out says the issue was not assigned.
+4. Implement the approved plan. Tests follow the work type's strategy — a bug gets a test
    that fails before the fix; a refactor keeps existing tests green and adds characterization
    tests first where coverage is thin.
-4. The diff holds only what the plan calls for. No repo-wide formatters or reflows of lines
+5. The diff holds only what the plan calls for. No repo-wide formatters or reflows of lines
    you did not change: reformatting noise hides the change from review. If you delegate the
    implementation to a subagent, pass it this rule and the approved plan.
-5. Run the tests the plan named. Do not proceed with failures. Report what you ran and the
+6. Run the tests the plan named. Do not proceed with failures. Report what you ran and the
    result; never describe a check you did not run.
 
 ### Phase 6: Review
@@ -214,7 +235,8 @@ reviewer that has not seen this conversation.
 1. Does the work need changes in another repository? If yes, generate a handoff prompt
    (format in [critical rules](references/critical-rules.md)).
 2. Summarize: what changed, what the ledger corrected in the issue, what the review found
-   (fixed, put to the user, discarded and why), and what remains out of scope. Say whether the PR fully resolves the issue (`Closes #N`) or only part of it (`Refs #N`).
+   (fixed, put to the user, discarded and why), what remains out of scope, and whether you
+   were assigned to the issue. Say whether the PR fully resolves the issue (`Closes #N`) or only part of it (`Refs #N`).
 
 For rules that apply across all phases, including rationalization defenses, see
 [critical rules](references/critical-rules.md).

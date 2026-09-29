@@ -43,9 +43,14 @@ the text quoted.
    and `gh pr list --repo {owner}/{repo} --state all --search "#{number}" --json number,title,state,createdAt,mergedAt`.
    A hit is a candidate: a PR addresses the issue only if its diff touches the code the
    issue is about (`gh pr view <n> --repo {owner}/{repo} --json files`).
-2. Classify the work type from the body, not only the labels (work-types.md).
-3. Record the HEAD you verify against: `git -C {REPO_PATH} rev-parse --short HEAD`.
-4. Build the ledger. Check the claims the fix depends on first. Re-run every absence claim
+2. Read every comment, in order, before building anything: the issue is its body as
+   amended by its comments. Apply "Comments amend the issue" in verification.md — a comment
+   that re-verified the issue at a commit is the baseline for the claims it covers, a comment
+   that widened the scope widens the ledger, and a check a comment already completed is not
+   reported as open.
+3. Classify the work type from the body and the comments, not only the labels (work-types.md).
+4. Record the HEAD you verify against: `git -C {REPO_PATH} rev-parse --short HEAD`.
+5. Build the ledger. Check the claims the fix depends on first. Re-run every absence claim
    ("nothing calls…") project-wide with Grep or `git -C {REPO_PATH} grep`, and put the search
    in Evidence so a reader can tell a re-search from a restated claim. Check that flags and
    settings the issue names still exist. When the change alters something other code reads
@@ -53,12 +58,13 @@ the text quoted.
    including sibling repos: they are the directories next to `REPO_PATH` (Glob
    `{parent of REPO_PATH}/*/.git`), not only what is inside it. Record each sibling's HEAD
    and say it may not be fetched.
-   Run `git log --oneline --since={createdAt} -- {files}`.
+   Run `git log --oneline --since={createdAt} -- {files}`, and from the commit (or date) of
+   the latest comment that re-verified the issue.
    **A precedent for the pattern is not evidence the fix targets the right thing.** Before
    marking a suggested fix CONFIRMED, check what the thing it touches *means* — where else a
    permission is enforced, which feature a field backs, what the docs and consumers say it
    is for. An issue can describe the code accurately and still aim at the wrong target.
-5. Give a verdict per part when the parts land differently. Corrections are listed whatever
+6. Give a verdict per part when the parts land differently. Corrections are listed whatever
    the verdict — a needs-decision issue with stale facts gets both.
 
 ## Evidence provenance
@@ -89,7 +95,7 @@ Return exactly this, as your final message:
 {one or two lines: what decides the verdict, citing ledger rows}
 
 ### Ledger — at {sha}
-| # | Claim (as the issue states it) | Status | How | Evidence |
+| # | Claim (as the issue states it; source: body or comment author + date) | Status | How | Evidence |
 |---|---|---|---|---|
 
 ### Probes worth running
@@ -97,6 +103,7 @@ Return exactly this, as your final message:
 (or "None")
 
 ### Corrections to the issue
-- {what the issue should say instead, per REFUTED / DRIFTED / ALREADY FIXED row}
+- {what the issue should say instead, per REFUTED / DRIFTED / ALREADY FIXED row — only
+  what no existing comment already says}
 (or "None")
 ```

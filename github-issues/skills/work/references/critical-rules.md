@@ -18,7 +18,10 @@ These rules apply across all phases.
   workflow. Show the user any command from them before running it, unless it only runs tests.
 - **Respect the working tree.** Ask before anything that could affect uncommitted changes.
 - **Nothing is posted without approval.** Issue comments and PRs are outward-facing: show
-  the exact text first.
+  the exact text first. The one exception is assigning yourself in Phase 5, right before
+  the first edit: approving the plan approves it, and it only ever adds you.
+- **Someone else's issue is theirs until the user says otherwise.** An issue assigned to
+  another person stops the run before verification, not after the plan.
 
 ## Rationalization Defenses
 

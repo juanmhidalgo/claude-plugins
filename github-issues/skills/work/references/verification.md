@@ -16,7 +16,8 @@ Anything the implementation would rely on:
   the flag or setting still exists; issues outlive the flags they describe.
 - **Cross-references** — "fixed by #N", "blocked by #N", "after #N merges". Check the
   current state of #N.
-- **Comments** — a triage comment saying "re-checked, fix still valid" checked something;
+- **Comments** — each one is a claim, and it can amend the body; see "Comments amend the
+  issue" below. A triage comment saying "re-checked, fix still valid" checked something;
   find out what, and whether it is what the fix depends on.
 - **Consumer interpretation** — when the change alters something other code reads: what
   that field, permission, or endpoint *means* to the code that reads it (a frontend route guard, a role grant in another service). An issue can be
@@ -26,6 +27,33 @@ Anything the implementation would rely on:
   list hides the path that matters. Give the impact its own row.
 - **The suggested fix** — that it compiles against current signatures, that its callers
   accept the change, that it follows the repo's own rules.
+
+## Comments amend the issue
+
+The issue is its body **plus** its comments, read in order. A later comment can move a
+location, widen or narrow the scope, record a check someone already ran, record a decision,
+or split a question off. Verify the issue as amended, not the body alone:
+
+- **A comment that re-verified the issue** is the baseline for the claims it covers. Verify
+  its version of them (its locations, its caller list), and look at what changed since it:
+  `git log --oneline {its commit}..HEAD -- {files}` when it names a commit, else since its
+  date. A body location that a comment already corrected is not a new DRIFTED row and not a
+  correction to post again.
+- **A comment that widens the scope** (more call sites, another module) — the ledger covers
+  the widened list, and the Impact row and the plan count it. A fix sized to the body alone
+  is undersized.
+- **A comment that completes a check the body left open** (a consumer search in another
+  repo, a measurement) — its load-bearing parts are still re-checked at HEAD, but it is no
+  longer an open item: the verdict does not ask for it again.
+- **A comment that splits something off** ("better tracked separately", "not part of this")
+  — it goes under Out of scope, not into the verdict.
+- **A comment that records a decision** (an option chosen, a question answered) — that part
+  is no longer needs-decision; say who decided and in which comment.
+- **A comment that contradicts the body without evidence** is a claim like any other — it
+  does not win by being newer.
+
+The Claim column says where each claim comes from: `body`, or the comment's author and
+date.
 
 ## Statuses
 
@@ -88,7 +116,8 @@ A ledger built by `issue-verifier` is read before anyone relies on it:
 
 When the ledger contains REFUTED, DRIFTED, or ALREADY FIXED rows, offer to post them to
 the issue so the next reader doesn't repeat the check. Draft the comment, show it, and post
-only the text the user approved.
+only the text the user approved. Leave out any correction an existing comment already makes:
+the comment adds only what the thread does not say yet.
 
 The comment is held to the standard the issue should have met:
 
