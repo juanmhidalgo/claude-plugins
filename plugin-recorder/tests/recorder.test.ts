@@ -1,5 +1,5 @@
 import { describe, expect, mock, test } from 'claude-code/testing'
-import type { On } from 'claude-code'
+import type { On, RenderElement } from 'claude-code'
 
 import { bandLine, basename, dataDirFor, pluginOf, versionFrom } from '../hooks/lib'
 import { EMPTY_RUN } from '../hooks/lib'
@@ -151,6 +151,26 @@ describe('recording', () => {
 describe('band', () => {
   test('quiet when idle, shows a running subagent', async ($, on) => {
     world(on)
+    // The engine's own band beneath the plugin: an empty Box.
+    on('ui.render', { component: 'AbovePrompt' }, ($, e) => {
+      const { Box } = $.ui.resolve(e)
+      return h(Box, { key: 'engine' }) as RenderElement
+    })
+    // Hold an Agent call open so it counts as running while we draw.
+    let release: () => void = () => {}
+    const held = new Promise<void>(r => {
+      release = r
+    })
+    let reached: () => void = () => {}
+    const isReached = new Promise<void>(r => {
+      reached = r
+    })
+    // Beneath the plugin: by the time this runs, the plugin has marked the call running.
+    on('tool.call', { tool: 'Agent' }, async () => {
+      reached()
+      await held
+      return { result: { status: 'completed', agentId: 'ag2' } }
+    })
     const props = {
       hasSurvey: false,
       isWorking: true,
@@ -161,24 +181,19 @@ describe('band', () => {
     }
 
     const idle = await $.ui.mount({ plugin: 'plugin-recorder', surface: 'terminal', component: 'AbovePrompt', props })
-    expect(await idle.find({ key: 'band' })).toBe(undefined)
+    expect(await idle.find({ type: 'Text', text: /subagents? done/ })).toBe(undefined)
+    expect(await idle.find({ key: 'engine' })).toBeDefined()
     await idle.unmount()
 
     // Hold an Agent call open so it counts as running while we draw.
-    let release: () => void = () => {}
-    const held = new Promise<void>(r => {
-      release = r
-    })
-    on('tool.call', { tool: 'Agent' }, async () => {
-      await held
-      return { result: { status: 'completed', agentId: 'ag2' } }
-    })
     const call = $.tool.call({ tool: 'Agent', subagent_type: 'feature-dev:tdd-runner', prompt: 'p', description: 'd' })
-    // Let the hook's pre-call state write land before drawing.
-    for (let i = 0; i < 20; i++) await Promise.resolve()
+    await isReached
 
     const busy = await $.ui.mount({ plugin: 'plugin-recorder', surface: 'terminal', component: 'AbovePrompt', props })
-    expect((await busy.find({ key: 'band' }))?.text).toMatch(/tdd-runner running/)
+    expect(await busy.find({ key: 'band' })).toBeDefined()
+    expect((await busy.find({ type: 'Text', text: /subagents? done/ }))?.text).toMatch(
+      /^0 subagents done · tdd-runner running 0s$/,
+    )
     await busy.unmount()
 
     release()

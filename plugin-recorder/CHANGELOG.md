@@ -7,7 +7,16 @@
 - Mod (`hooks/register.tsx`) that records metadata-only events per session to `plugins/data/plugin-recorder-*/sessions/<session-id>.jsonl`: session start/end (cwd basename only), plugin command and skill invocations with the plugin's installed version, Agent tool calls (`subagent_type`, status, duration, tool-use and token totals), refused spawns, and turn completions (duration, reason, token usage, subagent type).
 - Progress band above the prompt while subagents run: last plugin invocation, subagents done/failed this turn, the longest-running one and its age, and the turn's age. Quiet when nothing runs.
 - Toast as soon as an Agent call errors or is denied, or a background subagent ends in an error.
-- Tests (`tests/recorder.test.ts`): the privacy rule (no prompt text or full path reaches disk), append-not-overwrite, command/skill de-duplication, and the band's quiet and busy states.
+- Tests (`tests/recorder.test.ts`, 6 passing under `claude plugin test`): the privacy rule (no prompt text or full path reaches disk), append-not-overwrite, command/skill de-duplication, and the band's quiet and busy states.
+
+### Fixed (before release)
+
+- `session.start` was not recorded when the host gave no `$.session.version()` answer: the failed call aborted the whole record. The version is now optional (`cc: null`).
+- The band's key moved from its `Text` to its `Box`, where a mounted drawing keeps it.
+
+### Verified
+
+- A real `claude -p --plugin-dir plugin-recorder` run wrote `plugins/data/plugin-recorder-inline/sessions/<session-id>.jsonl` with `session.start`, `turn` and `session.end`, so the derived data directory and `$.fs.write` persistence work headless.
 
 ### Why
 

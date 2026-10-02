@@ -11,11 +11,9 @@ there?" without anyone pasting session IDs from another project. While it is loa
 
 ## Needs
 
-- Claude Code **2.1.287+** with hooks modules (mods) turned on for your account. They are
-  behind a rollout switch: when it is off, Claude Code prints
-  `hooks module not loaded: ... the rollout switch served off` and nothing is recorded.
+- Claude Code **2.1.287+** (hooks modules / mods).
 - Terminal CLI. The band and toasts are drawn on the terminal surface; a `claude -p` run
-  records (when mods load there) but draws nothing.
+  records the same events but draws nothing.
 - To read the data: the `retro` plugin (`/retro:session --plugin <name>`), or `jq`.
 
 ## What it stores
@@ -77,6 +75,12 @@ installing, as you would any code you run.
 
 ```bash
 claude plugin validate --strict plugin-recorder
-claude plugin test plugin-recorder          # needs the mods rollout switch on
+claude plugin test plugin-recorder
 claude --plugin-dir plugin-recorder         # try it live
 ```
+
+Run `claude plugin test` and `claude -p --plugin-dir` from a plain shell. Started from
+inside a Claude Code session (a Bash tool call), they inherit that session's child-process
+environment (`CLAUDECODE`, `CLAUDE_CODE_CHILD_SESSION`, `CLAUDE_CODE_ENTRYPOINT`,
+`CLAUDE_CODE_SESSION_ID`, `CLAUDE_CODE_MESSAGING_*`) and report hooks modules as turned
+off. Clear those first, e.g. `env -u CLAUDECODE -u CLAUDE_CODE_CHILD_SESSION ... claude plugin test plugin-recorder`.

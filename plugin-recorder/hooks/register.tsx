@@ -123,7 +123,11 @@ export const register: Register = on => {
       const run = await read($, RUN)
       if (run.startedFor !== sid) {
         await update($, RUN, r => ({ ...r, startedFor: sid }))
-        const version = (await $.session.version()).version
+        // A host without a version answer must not cost the session.start record.
+        const version = await $.session
+          .version()
+          .then(v => v.version)
+          .catch(() => null)
         await record($, {
           ev: 'session.start',
           project: basename(e.cwd),
@@ -312,8 +316,8 @@ export const register: Register = on => {
     if (line === null) return next(e)
     const { Box, Text } = $.ui.resolve(e)
     return (
-      <Box>
-        <Text key="band" dimColor wrap="truncate">
+      <Box key="band">
+        <Text dimColor wrap="truncate">
           {line}
         </Text>
       </Box>

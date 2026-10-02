@@ -77,8 +77,8 @@ breakdown by project basename. Without plugin-recorder it prints a notice and ex
 ## Needs
 
 - `bash` and `jq`.
-- For plugin mode: the `plugin-recorder` plugin, installed and recording (it is a mod, so it
-  needs Claude Code's hooks modules turned on).
+- For plugin mode: the `plugin-recorder` plugin, installed and recording (a mod; Claude Code
+  2.1.287+).
 
 ## Notes on the log format
 
