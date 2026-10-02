@@ -205,6 +205,17 @@
       },
       "keywords": ["mod", "telemetry", "subagents", "progress", "observability", "retrospective"],
       "category": "productivity"
+    },
+    {
+      "name": "test-progress",
+      "source": "./test-progress",
+      "description": "Mod that shows a band above the prompt while a test command runs: live pytest counts from a progress file, elapsed time, and a summary row until the next prompt",
+      "version": "0.1.0",
+      "author": {
+        "name": "Juan M. Hidalgo"
+      },
+      "keywords": ["mod", "tests", "pytest", "progress", "band"],
+      "category": "development"
     }
   ]
 }
