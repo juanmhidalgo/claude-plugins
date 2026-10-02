@@ -29,9 +29,9 @@ For deeper conventions (frontmatter fields, discoverability, progressive disclos
 
 <critical_rules>
 
-<rule id="version-bump" priority="blocking" authority="repository-standard">
+<rule id="version-bump">
 
-## Version Management
+## Version Management (IMPORTANT: never skip)
 
 When modifying any plugin:
 
@@ -40,13 +40,17 @@ When modifying any plugin:
 3. **Update the CHANGELOG.md** in the plugin's root with the changes made
 4. **Mirror the new version** in `.claude-plugin/marketplace.json` — the registry duplicates every plugin's version, and a stale entry pins installs to the old version
 
-NEVER skip version bumping. Two `PostToolUse` hooks enforce this: `version-bump-check.sh` warns when a plugin file is edited without a bump or CHANGELOG entry, and `marketplace-sync-check.sh` warns when a registry version drifts from its `plugin.json`. Bypass either with `SKIP_VERSION_CHECK=1` for genuinely in-progress work.
+NEVER skip version bumping. Two `PostToolUse` hooks enforce this: `version-bump-check.sh` warns when a plugin file is edited without a bump or CHANGELOG entry, and `marketplace-sync-check.sh` warns when a registry version drifts from its `plugin.json`. Bypass either with `SKIP_VERSION_CHECK=1` for genuinely in-progress work. After touching either hook, run `bash .claude/hooks/test-hooks.sh`.
 
 When editing `marketplace.json`, change the version lines in place. Re-serializing the file (e.g. `json.dump`) reflows every inline `keywords` array and turns a 3-line change into a 120-line diff.
 
 </rule>
 
-<rule id="ai-review-verification" priority="critical">
+</critical_rules>
+
+<conventions>
+
+<rule id="ai-review-verification">
 
 ## AI Code Review Principle
 
@@ -54,15 +58,21 @@ Treat AI review comments as unverified: check each one against the actual code b
 
 </rule>
 
-<rule id="prd-observable-behavior" priority="recommended">
+<rule id="prd-observable-behavior">
 
 ## PRD Documentation Standard
 
-PRDs focus on **observable behavior**, not implementation details. Describe what users can do, not how it's implemented.
+PRDs focus on observable behavior, not implementation details. Describe what users can do, not how it's implemented.
 
 </rule>
 
-</critical_rules>
+</conventions>
+
+<compaction>
+
+When compacting, preserve: files modified, plugin versions bumped (plugin.json and marketplace.json), test commands run and their results, and open decisions.
+
+</compaction>
 
 <plugin_catalog>
 
