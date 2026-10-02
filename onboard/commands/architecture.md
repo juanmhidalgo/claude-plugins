@@ -2,11 +2,16 @@
 description: |
   Use when you need to understand the big picture of a project's structure before diving into details.
   Do NOT use for exploring a specific area — use /onboard:explore for that.
+argument-hint: "[ascii|html] [output-path]"
 allowed-tools:
   - Read
   - Glob
   - Grep
   - Agent
+  - Write
+  - AskUserQuestion
+  - Bash(xdg-open *)
+  - Bash(open *)
 hooks:
   - event: Stop
     once: true
@@ -19,6 +24,15 @@ hooks:
 # Architecture Overview
 
 Generate a high-level architecture map of this project.
+
+**Arguments**: $ARGUMENTS
+
+## Phase 0: Output Format
+
+If `$ARGUMENTS` names `ascii` or `html`, use it. Otherwise ask once with AskUserQuestion:
+
+- **ASCII** (default) — the overview below, in the terminal
+- **HTML page** — the same overview as a standalone page with a rendered diagram, written to a file and opened in the browser
 
 ## Phase 1: Discovery
 
@@ -111,6 +125,15 @@ Use the Agent tool with `subagent_type: "onboard:architecture-mapper"` to invest
 ```
 </output_format>
 
+## Phase 3: HTML Output (only if HTML was chosen)
+
+<html_output>
+1. Build one self-contained `.html` file with the same sections as the Markdown above. Draw the diagram as a Mermaid `flowchart` (components as nodes, dependencies and data flows as labeled edges, layers as subgraphs), rendered with the Mermaid script from `https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js`. Everything else inline — no other external assets.
+2. Write it with Write to the path in `$ARGUMENTS` if one was given; otherwise to `architecture-overview.html` in the system temp directory, so the repo stays clean.
+3. Open it: `xdg-open <path>` on Linux, `open <path>` on macOS. If that fails (no display, remote shell), print the path instead.
+4. In the terminal, print the path plus the System Type and Areas of Complexity — not the whole overview again.
+</html_output>
+
 <critical_rules>
 <rule priority="blocking">
 Base the diagram on actual code structure, not assumptions.
@@ -118,6 +141,10 @@ Base the diagram on actual code structure, not assumptions.
 
 <rule priority="blocking">
 Include specific file paths for each component.
+</rule>
+
+<rule priority="blocking">
+The HTML diagram shows the same components and edges as the ASCII map would — no node that lacks a file path in Component Breakdown.
 </rule>
 
 <rule priority="recommended">

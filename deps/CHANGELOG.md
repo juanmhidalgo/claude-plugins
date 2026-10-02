@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.1.1] - 2026-10-02
+
+### Changed
+- README gains a **Needs** section listing prerequisites (`gh`, MCP servers, browser, external CLIs), replacing the old Requirements list.
+
 ## [0.1.0] - 2026-09-22
 
 ### Added

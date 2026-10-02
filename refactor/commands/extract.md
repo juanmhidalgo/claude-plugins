@@ -77,6 +77,8 @@ Use AskUserQuestion to confirm:
 | Name for the extracted code? | Discoverability | [Suggest based on content] |
 </clarification>
 
+**Many consumers?** If updating the consumers touches many files (roughly 10+), list them for the user and offer handing the consumer updates off to the built-in `/batch` command, which updates them in parallel worktrees. Do the extraction itself here first; `/batch` only rewrites the call sites.
+
 ## Phase 3: Perform Extraction
 
 <extraction_steps>

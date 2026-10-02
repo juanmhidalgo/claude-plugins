@@ -225,10 +225,13 @@ Output includes `resolved` and `outdated` status for inline comments, with stats
 - **technical-decisions** - When and how to ask for technical decisions before implementing fixes
 - **coverage-gate** - GHA coverage threshold detection and local verification patterns
 
-## Requirements
+## Needs
 
-- `gh` CLI installed and authenticated
-- GitHub token with repo scope
+- `gh`, installed and authenticated with repo scope, for every PR command (`pr`, `triage`, `pipeline`, `dismiss`, `resolve-fixed`) and the agents they spawn
+- `jq`, used by the `scripts/pr-*.sh` helpers
+- For `coverage-gate`: the project's own test and coverage tooling (pytest-cov, jest, vitest, go test)
+- No MCP servers or browser
+- Optional: `/plugin configure code-review` sets a fallback coverage threshold and a default base branch for `coverage-gate`
 
 ## Installation
 

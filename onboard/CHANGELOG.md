@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.3.0] - 2026-10-02
+
+### Added
+- `architecture` takes `[ascii|html] [output-path]` and asks when no format is given. ASCII stays the default; HTML writes a standalone page with a Mermaid diagram (to the system temp directory unless a path is given) and opens it with `xdg-open`/`open`.
+
+### Changed
+- README gains a **Needs** section listing prerequisites (`gh`, MCP servers, browser, external CLIs), replacing the old Requirements list.
+
 ## [1.2.1] - 2026-09-22
 
 ### Fixed

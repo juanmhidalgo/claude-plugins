@@ -85,9 +85,8 @@ Run tests                   → Verify changes
 /commit                     → Commit when green
 ```
 
-## Requirements
+## Needs
 
-- Claude Code CLI
-- A codebase to refactor
-- Test suite (recommended for safe refactoring)
-- `gh`, authenticated, for the open-PR conflict scan (optional — without it the scan falls back to local git state and says so)
+- A codebase to refactor, ideally with a test suite
+- `gh`, authenticated, for the open-PR conflict scan (optional: without it the scan falls back to local git state and says so)
+- No MCP servers or browser

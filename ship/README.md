@@ -37,10 +37,12 @@ This means zero friction in the common case, but still catches the "I fixed a bu
 
 After a successful push to the default branch, `/ship` looks for other live Claude Code sessions working on the same repository (e.g., parallel worktrees) via [cross-session messaging](https://code.claude.com/docs/en/cross-session-messaging) and sends each one a short heads-up: what landed and whether rebasing is advisable. Best-effort by design — it's skipped for feature-branch pushes, with `--no-notify`, or when messaging isn't available (Claude Code < v2.1.224, Bedrock/Vertex/Foundry), and it can never fail the ship workflow.
 
-## Requirements
+## Needs
 
-- `gh` CLI installed and authenticated
-- Git remote configured
+- `gh`, installed and authenticated
+- A git remote
+- Optional: Copilot code review enabled on the repo (skip the request with `--skip-copilot-review`)
+- No MCP servers or browser
 
 ## Installation
 

@@ -39,13 +39,14 @@ Deep exploration of a specific topic in the codebase. Returns file references, c
 
 ---
 
-### `/onboard:architecture`
+### `/onboard:architecture [ascii|html] [output-path]`
 
-Generate a high-level architecture overview with component diagram, data flows, and external dependencies.
+Generate a high-level architecture overview with component diagram, data flows, and external dependencies. Output is an ASCII map in the terminal (default) or a standalone HTML page with a rendered diagram, written to a file and opened in the browser. Asks which one when no format is given.
 
 **Example:**
 ```
 /onboard:architecture
+/onboard:architecture html
 ```
 
 ## Agents
@@ -72,7 +73,8 @@ Dedicated agent spawned by `/onboard:architecture`. Maps project layers, compone
 /onboard:explore api        → Continue exploring
 ```
 
-## Requirements
+## Needs
 
-- Claude Code CLI
 - A codebase to explore
+- For `/onboard:architecture html`: a browser, opened with `xdg-open` (Linux) or `open` (macOS), and network access to load the Mermaid script from jsDelivr
+- No `gh` or MCP servers

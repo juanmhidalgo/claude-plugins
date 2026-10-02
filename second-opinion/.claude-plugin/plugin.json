@@ -1,8 +1,34 @@
 {
   "name": "second-opinion",
   "description": "Get second opinions from external AIs (Codex, Gemini, Copilot, Claude) on code reviews, architecture decisions, and implementation approaches",
-  "version": "1.2.1",
+  "version": "1.3.0",
   "author": {
     "name": "Juan M. Hidalgo"
+  },
+  "userConfig": {
+    "enable_codex": {
+      "type": "boolean",
+      "title": "Enable Codex",
+      "description": "Allow /second-opinion to call the Codex CLI. Turn off for a backend you do not have installed or authenticated.",
+      "default": true
+    },
+    "enable_gemini": {
+      "type": "boolean",
+      "title": "Enable Gemini",
+      "description": "Allow /second-opinion to call the Gemini CLI. Turn off for a backend you do not have installed or authenticated.",
+      "default": true
+    },
+    "enable_copilot": {
+      "type": "boolean",
+      "title": "Enable Copilot",
+      "description": "Allow /second-opinion to call the Copilot CLI. Turn off for a backend you do not have installed or authenticated.",
+      "default": true
+    },
+    "enable_claude": {
+      "type": "boolean",
+      "title": "Enable Claude",
+      "description": "Allow /second-opinion to call the Claude CLI. Turn off for a backend you do not have installed or authenticated.",
+      "default": true
+    }
   }
 }

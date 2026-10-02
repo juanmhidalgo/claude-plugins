@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.3.0] - 2026-10-02
+
+### Added
+- `userConfig` booleans `enable_codex`, `enable_gemini`, `enable_copilot`, `enable_claude` (all default `true`), set with `/plugin configure second-opinion`. The skill reads them via `${user_config.*}` in its body: a disabled backend's script is never run, and with no `--backend` the first enabled backend is used instead of always Codex. Gating lives in the skill because plugin options reach scripts as `CLAUDE_PLUGIN_OPTION_*` only in hook processes, not in Bash tool calls.
+
+### Changed
+- README gains a **Needs** section listing prerequisites (`gh`, MCP servers, browser, external CLIs), replacing the old Requirements list. Fixes the Gemini and Copilot install commands, which named non-existent `@anthropic-ai/*` packages.
+
 ## [1.2.1] - 2026-05-27
 
 ### Added

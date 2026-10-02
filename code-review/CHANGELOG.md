@@ -1,5 +1,15 @@
 # Changelog
 
+## 3.5.0 (2026-10-02)
+
+### Added
+- `userConfig` in `plugin.json`: `coverage_threshold` (number, 0-100) and `base_branch` (string), set with `/plugin configure code-review`. Both are optional and have no default.
+- `coverage-gate` reads them via `${user_config.*}`: the base branch is used when no argument is passed (before `origin/HEAD` detection); the threshold fills categories CI leaves unset (instead of the 55/80/65 defaults) and lets the gate run when CI has no coverage config at all (it used to stop). CI-configured thresholds still win. Unset options fall back to the previous inference.
+- After the 2-cycle cap, `coverage-gate` offers the built-in `/goal` with the numeric target as its condition, to keep iterating until it is met. It offers; it never sets the goal itself.
+
+### Changed
+- README gains a **Needs** section listing prerequisites (`gh`, MCP servers, browser, external CLIs), replacing the old Requirements list.
+
 ## 3.4.0 (2026-09-23)
 
 ### Changed

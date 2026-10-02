@@ -35,7 +35,8 @@ Every security decision falls into one of three tiers:
 - **Ask First** — New auth flows, sensitive data storage, CORS changes, file upload handlers
 - **Never Do** — Commit secrets, log sensitive data, trust client-side validation, expose stack traces
 
-## Requirements
+## Needs
 
-- Git repository (for code analysis)
+- A git repository (for code analysis)
 - `npm` / `pip` (for dependency auditing)
+- No `gh`, MCP servers, or browser

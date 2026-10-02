@@ -13,6 +13,11 @@ Customer message  →  /intake:feasibility  →  /discuss:feature  →  /feature
 
 Each plugin owns one stage. `intake` produces a verifiable feasibility report. The handoff to `/discuss:feature` or `/feature-dev:spec` happens after a human picks which capabilities to pursue.
 
+## Needs
+
+- Optional: a ClickUp MCP server named `clickup-local`, used by `feasibility` to read task details and attachments. Without it, paste the request text instead
+- No `gh`, browser, or external CLIs
+
 ## Installation
 
 ```bash

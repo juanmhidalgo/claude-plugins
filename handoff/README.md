@@ -82,6 +82,7 @@ Best practices for documenting API changes including:
 - Common edge cases (null handling, pagination, timestamps)
 - Handoff checklists
 
-## Requirements
+## Needs
 
-- Git repository (for diff analysis in API handoff commands)
+- A git repository (for diff analysis in the API handoff commands)
+- No `gh`, MCP servers, browser, or external CLIs
