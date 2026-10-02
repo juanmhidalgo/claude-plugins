@@ -1,5 +1,10 @@
-// Review band: one row above the prompt per SPEC/PLAN changed since its
-// latest browser review, with a way into /feature-dev:review.
+// Review band: the SPEC/PLAN files changed since their latest browser review,
+// with a way into /feature-dev:review. One pending artifact gets its own row;
+// two or more collapse into one summary row that "Show all" expands.
+//
+// Only recent changes are shown: an artifact modified within the last
+// `review_band_window_hours`, or since this session started. Old legacy files
+// that were never reviewed in the browser stay out of the way.
 //
 // Draws only where the engine raises `AbovePrompt` (the interactive terminal
 // and desktop). Under `claude -p`, VS Code, --safe-mode or disableAllHooks
@@ -12,6 +17,8 @@ import type { PendingArtifact } from '../types'
 
 const pendingAtom = atom({ plugin: 'feature-dev', key: 'pending' } as const, [] as PendingArtifact[])
 const dismissedAtom = atom({ plugin: 'feature-dev', key: 'dismissed' } as const, {} as Record<string, number>)
+const sessionStartAtom = atom({ plugin: 'feature-dev', key: 'sessionStart' } as const, 0)
+const expandedAtom = atom({ plugin: 'feature-dev', key: 'expanded' } as const, false)
 
 /** Mirrors ARTIFACT_NAME in scripts/review_server.py. */
 const ARTIFACT_NAME = /^(SPEC|PLAN)-[A-Za-z0-9._-]+\.md$/
@@ -34,6 +41,22 @@ type Paths = {
 const DEFAULT_ARTIFACTS_DIR = '.feature-dev'
 /** The `artifacts_dir` option, set by register(); same rules as artifacts_dir() in review_server.py. */
 let artifactsDir = DEFAULT_ARTIFACTS_DIR
+
+const DEFAULT_WINDOW_HOURS = 24
+const HOUR_MS = 60 * 60 * 1000
+/** The `review_band_window_hours` option, set by register(). */
+let windowHours = DEFAULT_WINDOW_HOURS
+
+/**
+ * Defensive, like cleanArtifactsDir: the engine validates `options` against
+ * userConfig before register() runs, but a literal `${user_config.…}` (an
+ * unsaved option in a command's text) or a non-number still means the default.
+ */
+function cleanWindowHours(raw: unknown): number {
+  if (typeof raw === 'string' && raw.includes('${')) return DEFAULT_WINDOW_HOURS
+  const value = typeof raw === 'number' ? raw : typeof raw === 'string' ? Number(raw.trim()) : NaN
+  return Number.isFinite(value) && value >= 1 ? value : DEFAULT_WINDOW_HOURS
+}
 
 function cleanArtifactsDir(raw: unknown): string {
   const value = typeof raw === 'string' ? raw.trim() : ''
@@ -102,9 +125,16 @@ async function liveUrl($: EngineInterface, pointer: string): Promise<string | un
   }
 }
 
-/** Artifacts whose mtime is newer than every review that names them. */
+/**
+ * Artifacts whose mtime is newer than every review that names them, and
+ * recent: within the window, or modified since this session started.
+ */
 export async function scanPending($: EngineInterface): Promise<PendingArtifact[]> {
   const paths = await artifactPaths($)
+  const now = await $.clock.now()
+  const sessionStart = await read($, sessionStartAtom)
+  const isRecent = (mtimeMs: number) =>
+    mtimeMs >= now - windowHours * HOUR_MS || (sessionStart > 0 && mtimeMs >= sessionStart)
   const reviewEntries = await list($, paths.reviewsDir)
   const reviews = reviewEntries.filter(e => e.kind === 'file' && REVIEW_FILE.test(e.name))
   const pointers = new Set(reviewEntries.filter(e => e.name.endsWith('.url')).map(e => e.name))
@@ -117,6 +147,7 @@ export async function scanPending($: EngineInterface): Promise<PendingArtifact[]
       const { name } = entry
       if (entry.kind !== 'file' || !ARTIFACT_NAME.test(name) || HISTORY_COPY.test(name) || seen.has(name)) continue
       seen.add(name)
+      if (!isRecent(entry.mtimeMs)) continue
       let isReviewed = false
       for (const review of reviews) {
         if (review.mtimeMs < entry.mtimeMs) continue
@@ -169,9 +200,15 @@ async function openReview($: EngineInterface, path: string): Promise<void> {
 export const register: Register = (on, options) => {
   if (options.review_band === false) return
   artifactsDir = cleanArtifactsDir(options.artifacts_dir)
+  windowHours = cleanWindowHours(options.review_band_window_hours)
 
   on('session.start', async ($, e, next) => {
     const result = await next(e)
+    // A hot reload fires session.start again; keep the first start time.
+    if ((await read($, sessionStartAtom)) === 0) {
+      const now = await $.clock.now()
+      await update($, sessionStartAtom, prev => prev || now)
+    }
     if (e.isInteractive) await refresh($)
     return result
   })
@@ -189,28 +226,59 @@ export const register: Register = (on, options) => {
     if (rows.length === 0) return next(e)
 
     const { Box, Text, Button, Link } = $.ui.resolve(e)
+    /** The live review page when its server answers, else a button that runs the command. */
+    const openOrLink = (p: PendingArtifact, key: string, label: string, linkLabel: string) =>
+      p.url ? (
+        <Link key={`link:${key}`} href={p.url} label={linkLabel} />
+      ) : (
+        <Button
+          key={`open:${key}`}
+          label={label}
+          variant="primary"
+          onPress={() => openReview($, p.path).catch(err => $.ui.toast(`Could not open the review: ${String(err)}`))}
+        />
+      )
+    const row = (p: PendingArtifact) => (
+      <Box key={`row:${p.name}`} flexDirection="row" gap={1}>
+        <Text wrap="truncate-middle">{p.name} · not reviewed since last change</Text>
+        {openOrLink(p, p.name, 'Open review', 'Review page')}
+        <Button
+          key={`dismiss:${p.name}`}
+          label="Dismiss"
+          onPress={() => update($, dismissedAtom, d => ({ ...d, [p.name]: p.mtimeMs }))}
+        />
+      </Box>
+    )
+    if (rows.length === 1) return <Box flexDirection="column">{rows.map(row)}</Box>
+
+    const expanded = await read($, expandedAtom)
+    if (expanded) {
+      return (
+        <Box flexDirection="column">
+          <Box key="summary" flexDirection="row" gap={1}>
+            <Text>{rows.length} not reviewed</Text>
+            <Button key="collapse" label="Collapse" onPress={() => update($, expandedAtom, () => false)} />
+          </Box>
+          {rows.map(row)}
+        </Box>
+      )
+    }
+
+    const latest = rows.reduce((a, b) => (b.mtimeMs > a.mtimeMs ? b : a))
     return (
       <Box flexDirection="column">
-        {rows.map(p => (
-          <Box key={`row:${p.name}`} flexDirection="row" gap={1}>
-            <Text wrap="truncate-middle">{p.name} · not reviewed since last change</Text>
-            {p.url ? (
-              <Link href={p.url} label="Review page" />
-            ) : (
-              <Button
-                key={`open:${p.name}`}
-                label="Open review"
-                variant="primary"
-                onPress={() => openReview($, p.path).catch(err => $.ui.toast(`Could not open the review: ${String(err)}`))}
-              />
-            )}
-            <Button
-              key={`dismiss:${p.name}`}
-              label="Dismiss"
-              onPress={() => update($, dismissedAtom, d => ({ ...d, [p.name]: p.mtimeMs }))}
-            />
-          </Box>
-        ))}
+        <Box key="summary" flexDirection="row" gap={1}>
+          <Text>{rows.length} not reviewed</Text>
+          {openOrLink(latest, 'latest', `Open ${latest.name}`, `Open ${latest.name}`)}
+          <Button key="show-all" label="Show all" onPress={() => update($, expandedAtom, () => true)} />
+          <Button
+            key="dismiss-all"
+            label="Dismiss all"
+            onPress={() =>
+              update($, dismissedAtom, d => ({ ...d, ...Object.fromEntries(rows.map(p => [p.name, p.mtimeMs])) }))
+            }
+          />
+        </Box>
       </Box>
     )
   })

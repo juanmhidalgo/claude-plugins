@@ -17,6 +17,10 @@ declare module 'claude-code' {
       pending: PendingArtifact[]
       /** name → mtimeMs at dismissal; hidden until the mtime changes. */
       dismissed: Record<string, number>
+      /** `$.clock.now()` at the first session.start of this session; 0 until then. */
+      sessionStart: number
+      /** Whether "Show all" expanded the 2+ artifact summary into one row each. */
+      expanded: boolean
     }
   }
 }
