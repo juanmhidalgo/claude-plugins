@@ -198,6 +198,8 @@ If the user chose `Yes, delete all`:
    - `--pointer` once per stale pointer's slug.
 
    `purge` validates every argument before touching anything (names, slug characters, symlinks, paths that resolve outside `.feature-dev/`), and exit 2 means it deleted nothing — show the error and stop. It skips git-tracked files and prints `skipped <path>: <reason>` for each. Exit 1 means a deletion failed: show its `failed` lines.
+
+   Once a SPEC/PLAN is deleted, `purge` also drops its entry from the review band's Dismiss file `.feature-dev/band-dismissed.json` (an `updated …` line), or removes the file when no entry is left (`deleted …`). That file is not an argument and needs no confirmation of its own: it only records which band rows the user dismissed. Never edit or delete it any other way.
 2. Report the result from `purge`'s output, with one line per deleted file or slug:
    ```
    Deleted SPEC-<slug>.md

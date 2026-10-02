@@ -4,7 +4,13 @@
 //
 // Only recent changes are shown: an artifact modified within the last
 // `review_band_window_hours`, or since this session started. Old legacy files
-// that were never reviewed in the browser stay out of the way.
+// that were never reviewed in the browser stay out of the way, and so does a
+// SPEC whose frontmatter says `status: approved`.
+//
+// Dismiss persists per repository in `.feature-dev/band-dismissed.json`
+// (gitignored with the rest of `.feature-dev/`), as artifact name → mtime:
+// hidden in every session until the file changes again. Not `$.store`, which
+// every project on the machine shares.
 //
 // Draws only where the engine raises `AbovePrompt` (the interactive terminal
 // and desktop). Under `claude -p`, VS Code, --safe-mode or disableAllHooks
@@ -28,6 +34,11 @@ const HISTORY_COPY = /\.\d+\.md$/
 const REVIEW_FILE = /-\d{8}T\d{6}Z(?:-\d+)?\.md$/
 const SERVER_URL = /^http:\/\/127\.0\.0\.1:(\d{1,5})\/$/
 const REVIEW_COMMAND = 'feature-dev:review'
+const CLEANUP_COMMAND = 'feature-dev:cleanup'
+/** Mirrors BAND_DISMISSED in scripts/review_server.py, whose `purge` forgets deleted artifacts. */
+const DISMISSED_FILE = 'band-dismissed.json'
+/** Frontmatter sits at the top; an approval past this many characters is not looked for. */
+const FRONTMATTER_LIMIT = 4096
 
 type Paths = {
   /** Absolute project root; artifact paths shown to the command are relative to it. */
@@ -36,7 +47,11 @@ type Paths = {
   artifactDirs: string[]
   /** Where review_server.py writes reviews and `.<slug>.url` pointers. */
   reviewsDir: string
+  /** The persistent Dismiss state: `{ version: 1, dismissed: { name: mtimeMs } }`. */
+  dismissedFile: string
 }
+
+type Dismissed = Record<string, number>
 
 const DEFAULT_ARTIFACTS_DIR = '.feature-dev'
 /** The `artifacts_dir` option, set by register(); same rules as artifacts_dir() in review_server.py. */
@@ -78,11 +93,12 @@ export async function artifactPaths($: EngineInterface): Promise<Paths> {
     root,
     artifactDirs: [`${root}/${artifactsDir}/specs`, `${root}/${artifactsDir}/plans`, root],
     reviewsDir: `${root}/.feature-dev/reviews`,
+    dismissedFile: `${root}/.feature-dev/${DISMISSED_FILE}`,
   }
 }
 
 function frontmatter(text: string): Record<string, string> {
-  const lines = text.split(/\r?\n/)
+  const lines = text.slice(0, FRONTMATTER_LIMIT).split(/\r?\n/)
   const out: Record<string, string> = {}
   if (lines[0]?.trim() !== '---') return out
   for (const line of lines.slice(1)) {
@@ -105,10 +121,23 @@ function baseName(path: string): string {
 }
 
 async function list($: EngineInterface, dir: string): Promise<readonly FsEntry[]> {
+  return (await listChecked($, dir)).entries
+}
+
+/**
+ * Lists `dir`; `ok` is false when the listing failed for a folder that is
+ * there (unreadable, an I/O error), so its contents are unknown. A folder
+ * that does not exist lists as empty and ok: nothing is in it.
+ */
+async function listChecked($: EngineInterface, dir: string): Promise<{ entries: readonly FsEntry[]; ok: boolean }> {
   try {
-    return await $.fs.list(dir)
+    return { entries: await $.fs.list(dir), ok: true }
   } catch {
-    return []
+    const isMissing = await $.fs.exists(dir).then(
+      exists => !exists,
+      () => false,
+    )
+    return { entries: [], ok: isMissing }
   }
 }
 
@@ -126,10 +155,65 @@ async function liveUrl($: EngineInterface, pointer: string): Promise<string | un
 }
 
 /**
+ * Reads the persistent Dismiss state. Missing, unreadable or malformed reads
+ * as nothing dismissed: the worst case is a row that shows up again.
+ */
+async function readDismissed($: EngineInterface, file: string): Promise<Dismissed> {
+  try {
+    const parsed: unknown = JSON.parse(await $.fs.read(file))
+    const raw = (parsed as { dismissed?: unknown } | null)?.dismissed
+    if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) return {}
+    const out: Dismissed = {}
+    for (const [name, mtimeMs] of Object.entries(raw as Record<string, unknown>)) {
+      if (ARTIFACT_NAME.test(name) && typeof mtimeMs === 'number' && Number.isFinite(mtimeMs)) out[name] = mtimeMs
+    }
+    return out
+  } catch {
+    return {}
+  }
+}
+
+/**
+ * `$.fs` has no rename, so this is a plain whole-file write: two sessions of
+ * one repo writing at the same moment can lose one's entry (that row shows up
+ * again), and a write torn by a crash reads back as nothing dismissed. Callers
+ * read the file just before writing to keep that window small.
+ */
+async function writeDismissed($: EngineInterface, file: string, dismissed: Dismissed): Promise<void> {
+  await $.fs.write(file, `${JSON.stringify({ version: 1, dismissed }, null, 2)}\n`)
+}
+
+function sameDismissed(a: Dismissed, b: Dismissed): boolean {
+  const keys = Object.keys(a)
+  return keys.length === Object.keys(b).length && keys.every(k => a[k] === b[k])
+}
+
+/** Adds `entries` to the persistent Dismiss state (read, merge, write) and to this session's copy. */
+async function dismiss($: EngineInterface, entries: readonly PendingArtifact[]): Promise<void> {
+  const added = Object.fromEntries(entries.map(p => [p.name, p.mtimeMs]))
+  await update($, dismissedAtom, d => ({ ...d, ...added }))
+  const { dismissedFile } = await artifactPaths($)
+  const merged = { ...(await readDismissed($, dismissedFile)), ...added }
+  await writeDismissed($, dismissedFile, merged)
+}
+
+type Scan = {
+  pending: PendingArtifact[]
+  /** Every artifact found, recent or not: name → mtimeMs. */
+  existing: Map<string, number>
+  /** False when an artifact folder that exists could not be listed: `existing` is partial. */
+  isComplete: boolean
+}
+
+/**
  * Artifacts whose mtime is newer than every review that names them, and
  * recent: within the window, or modified since this session started.
  */
 export async function scanPending($: EngineInterface): Promise<PendingArtifact[]> {
+  return (await scan($)).pending
+}
+
+async function scan($: EngineInterface): Promise<Scan> {
   const paths = await artifactPaths($)
   const now = await $.clock.now()
   const sessionStart = await read($, sessionStartAtom)
@@ -139,14 +223,17 @@ export async function scanPending($: EngineInterface): Promise<PendingArtifact[]
   const reviews = reviewEntries.filter(e => e.kind === 'file' && REVIEW_FILE.test(e.name))
   const pointers = new Set(reviewEntries.filter(e => e.name.endsWith('.url')).map(e => e.name))
   const reviewedName = new Map<string, string>()
-  const seen = new Set<string>()
+  const existing = new Map<string, number>()
   const pending: PendingArtifact[] = []
 
+  let isComplete = true
   for (const dir of paths.artifactDirs) {
-    for (const entry of await list($, dir)) {
+    const { entries, ok } = await listChecked($, dir)
+    if (!ok) isComplete = false
+    for (const entry of entries) {
       const { name } = entry
-      if (entry.kind !== 'file' || !ARTIFACT_NAME.test(name) || HISTORY_COPY.test(name) || seen.has(name)) continue
-      seen.add(name)
+      if (entry.kind !== 'file' || !ARTIFACT_NAME.test(name) || HISTORY_COPY.test(name) || existing.has(name)) continue
+      existing.set(name, entry.mtimeMs)
       if (!isRecent(entry.mtimeMs)) continue
       let isReviewed = false
       for (const review of reviews) {
@@ -164,37 +251,66 @@ export async function scanPending($: EngineInterface): Promise<PendingArtifact[]
       }
       if (isReviewed) continue
       const absolute = `${dir}/${name}`
-      const text = await $.fs.read(absolute).catch(() => '')
-      const pointer = `.${slugOf(name, frontmatter(text))}.url`
+      // Read only for an artifact that would otherwise be shown; frontmatter()
+      // parses the first FRONTMATTER_LIMIT characters ($.fs.read has no range).
+      const front = frontmatter(await $.fs.read(absolute).catch(() => ''))
+      // /feature-dev:review's approve verdict writes this; an approved spec needs no review prompt.
+      if (front.status === 'approved') continue
+      const pointer = `.${slugOf(name, front)}.url`
       const url = pointers.has(pointer) ? await liveUrl($, `${paths.reviewsDir}/${pointer}`) : undefined
       const path = absolute.startsWith(`${paths.root}/`) ? absolute.slice(paths.root.length + 1) : absolute
       pending.push({ name, path, mtimeMs: entry.mtimeMs, ...(url ? { url } : {}) })
     }
   }
-  return pending
+  return { pending, existing, isComplete }
 }
 
 async function refresh($: EngineInterface): Promise<void> {
   try {
-    const pending = await scanPending($)
+    const { pending, existing, isComplete } = await scan($)
+    const { dismissedFile } = await artifactPaths($)
+    const stored = await readDismissed($, dismissedFile)
+    // Prune what can never match again: an artifact that is gone, or one
+    // whose mtime moved on since it was dismissed. Only after every artifact
+    // folder listed: a folder that failed to list says nothing about its files.
+    const isLive = ([name, mtimeMs]: [string, number]) => !isComplete || existing.get(name) === mtimeMs
+    const kept = Object.fromEntries(Object.entries(stored).filter(isLive))
+    if (!sameDismissed(stored, kept)) await writeDismissed($, dismissedFile, kept).catch(() => undefined)
+    // A Dismiss of this session whose write failed still holds here.
+    await update($, dismissedAtom, session => ({ ...Object.fromEntries(Object.entries(session).filter(isLive)), ...kept }))
     await update($, pendingAtom, () => pending)
   } catch {
     // A scan that fails leaves the last band in place rather than flashing it away.
   }
 }
 
-async function openReview($: EngineInterface, path: string): Promise<void> {
+/** Runs one of this plugin's commands as if the person typed it. */
+async function runCommand($: EngineInterface, full: string, args: string): Promise<void> {
+  const short = full.split(':').pop()
   const commands = await $.command.list()
   const command =
-    commands.find(c => c.name === REVIEW_COMMAND)?.name ??
-    commands.find(c => c.plugin === 'feature-dev' && c.name.split(':').pop() === 'review')?.name
+    commands.find(c => c.name === full)?.name ??
+    commands.find(c => c.plugin === 'feature-dev' && c.name.split(':').pop() === short)?.name
   if (command === undefined) {
-    $.ui.toast(`/${REVIEW_COMMAND} is not available in this session`)
+    $.ui.toast(`/${full} is not available in this session`)
     return
   }
-  // As if the person typed `/feature-dev:review <path>`: a typed command is
-  // not blocked by disable-model-invocation, and its verdict gets applied.
-  await $.command.run({ command, args: path })
+  // As if the person typed `/<command> <args>`: a typed command is not
+  // blocked by disable-model-invocation, and what it decides gets applied.
+  await $.command.run({ command, args })
+}
+
+function openReview($: EngineInterface, path: string): Promise<void> {
+  return runCommand($, REVIEW_COMMAND, path)
+}
+
+/**
+ * /feature-dev:cleanup takes no arguments: it lists the candidates itself,
+ * asks before deleting, and deletes through `review_server.py purge`. The
+ * band never deletes anything.
+ */
+function openCleanup($: EngineInterface): Promise<void> {
+  return runCommand($, CLEANUP_COMMAND, '')
 }
 
 export const register: Register = (on, options) => {
@@ -238,18 +354,28 @@ export const register: Register = (on, options) => {
           onPress={() => openReview($, p.path).catch(err => $.ui.toast(`Could not open the review: ${String(err)}`))}
         />
       )
-    const row = (p: PendingArtifact) => (
+    /** Hands off to /feature-dev:cleanup, which asks before deleting anything. One per band. */
+    const cleanupButton = (
+      <Button
+        key="cleanup"
+        label="Clean up"
+        onPress={() => openCleanup($).catch(err => $.ui.toast(`Could not start the cleanup: ${String(err)}`))}
+      />
+    )
+    const row = (p: PendingArtifact, withCleanup = false) => (
       <Box key={`row:${p.name}`} flexDirection="row" gap={1}>
         <Text wrap="truncate-middle">{p.name} · not reviewed since last change</Text>
         {openOrLink(p, p.name, 'Open review', 'Review page')}
         <Button
           key={`dismiss:${p.name}`}
           label="Dismiss"
-          onPress={() => update($, dismissedAtom, d => ({ ...d, [p.name]: p.mtimeMs }))}
+          onPress={() => dismiss($, [p]).catch(err => $.ui.toast(`Dismiss lasts this session only: ${String(err)}`))}
         />
+        {withCleanup ? cleanupButton : null}
       </Box>
     )
-    if (rows.length === 1) return <Box flexDirection="column">{rows.map(row)}</Box>
+    const only = rows.length === 1 ? rows[0] : undefined
+    if (only !== undefined) return <Box flexDirection="column">{row(only, true)}</Box>
 
     const expanded = await read($, expandedAtom)
     if (expanded) {
@@ -258,8 +384,9 @@ export const register: Register = (on, options) => {
           <Box key="summary" flexDirection="row" gap={1}>
             <Text>{rows.length} not reviewed</Text>
             <Button key="collapse" label="Collapse" onPress={() => update($, expandedAtom, () => false)} />
+            {cleanupButton}
           </Box>
-          {rows.map(row)}
+          {rows.map(p => row(p))}
         </Box>
       )
     }
@@ -275,9 +402,10 @@ export const register: Register = (on, options) => {
             key="dismiss-all"
             label="Dismiss all"
             onPress={() =>
-              update($, dismissedAtom, d => ({ ...d, ...Object.fromEntries(rows.map(p => [p.name, p.mtimeMs])) }))
+              dismiss($, rows).catch(err => $.ui.toast(`Dismiss lasts this session only: ${String(err)}`))
             }
           />
+          {cleanupButton}
         </Box>
       </Box>
     )
