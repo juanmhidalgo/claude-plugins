@@ -67,7 +67,7 @@
       "name": "onboard",
       "source": "./onboard",
       "description": "Codebase exploration and onboarding tools for new developers",
-      "version": "1.2.1",
+      "version": "1.3.0",
       "author": {
         "name": "Juan M. Hidalgo"
       },
