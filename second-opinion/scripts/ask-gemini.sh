@@ -11,7 +11,7 @@
 #   echo "<prompt largo>" | ask-gemini.sh -           # Prompt desde stdin
 #
 # Requiere:
-#   - Gemini CLI instalado (npm i -g @anthropic-ai/gemini o similar)
+#   - Gemini CLI instalado (npm i -g @google/gemini-cli)
 #   - GEMINI_API_KEY o autenticación previa
 
 set -euo pipefail

@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.1] - 2026-10-02
+
+### Fixed
+- `ask-gemini.sh` and `ask-copilot.sh` header comments named non-existent `@anthropic-ai/*` packages; they now say `@google/gemini-cli` and `@github/copilot`.
+
 ## [1.3.0] - 2026-10-02
 
 ### Added

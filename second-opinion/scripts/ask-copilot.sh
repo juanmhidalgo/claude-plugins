@@ -9,7 +9,7 @@
 #   echo "<prompt largo>" | ask-copilot.sh -           # Prompt desde stdin
 #
 # Requiere:
-#   - GitHub Copilot CLI instalado (npm i -g @anthropic-ai/copilot o similar)
+#   - GitHub Copilot CLI instalado (npm i -g @github/copilot)
 #   - Autenticación con GitHub (gh auth login o GITHUB_TOKEN)
 
 set -euo pipefail
