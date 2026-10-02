@@ -57,12 +57,10 @@ done
 [[ "${PROMPT_CHARS}" =~ ^[0-9]+$ ]] || die "--prompt-chars expects a number"
 
 # ── Locate the logs ───────────────────────────────────────────────────────────
-# Claude Code encodes the project cwd by replacing '/', '.' and '_' with '-'.
-# Verified against every local project directory; replacing only '/' (a common
-# mistake) breaks on any path containing a dot, e.g. ~/.claude.
-encode_project_dir() {
-    printf '%s' "$1" | sed 's/[\/._]/-/g'
-}
+# encode_project_dir (the cwd -> ~/.claude/projects/<name> rule) is shared
+# with memory-check.sh.
+# shellcheck source=project-dir.sh
+. "$(dirname "$0")/project-dir.sh"
 
 PROJECT_DIR="$(cd "${PROJECT_DIR}" 2>/dev/null && pwd || printf '%s' "${PROJECT_DIR}")"
 LOGS_DIR="${HOME}/.claude/projects/$(encode_project_dir "${PROJECT_DIR}")"

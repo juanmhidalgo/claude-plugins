@@ -6,7 +6,8 @@ A retrospective finding is worthless until it names a file. This is the routing 
 |---|---|---|
 | Same correction given 2+ times, applies to every project | `~/.claude/CLAUDE.md` | One imperative line under the right heading. Not a paragraph. |
 | Same correction, but only true for this repo | the repo's `CLAUDE.md` | A rule inside the existing `<critical_rules>` structure, with `priority`. |
-| A fact about the project that was re-derived from scratch | memory file in `~/.claude/projects/<encoded-cwd>/memory/` | One file, one fact, plus the `MEMORY.md` pointer line. |
+| A fact about the project that was re-derived from scratch | memory file in `~/.claude/projects/<encoded-cwd>/memory/` | One file, one fact, plus the `MEMORY.md` pointer line. If the fact can go stale, add a `verify:` command (see the plugin README). |
+| A recalled memory was wrong (`memory-check.sh` says `STALE` / `MISSING-REF`, or the session acted on it and had to back out) | that memory file | Update its text and `MEMORY.md` line, or delete both. Add `verify:` so the next drift is caught at session start. |
 | `permission-rule` denials on commands that are plainly safe | `.claude/settings.json` → `permissions.allow` | The narrowest matching rule, e.g. `Bash(git diff *)`, never a blanket `Bash(*)`. The native `/fewer-permission-prompts` skill can mine the transcripts for candidates. |
 | `user-rejected` denials | usually not a settings change | The model proposed the wrong thing — this is a CLAUDE.md rule or a skill fix, not a permission to grant. Never "fix" a rejection by widening permissions. |
 | `automode-blocked` denials | nothing, usually | The classifier blocked a genuinely unusual action. Only worth acting on if it blocked something routine and repeated. |

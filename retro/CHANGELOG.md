@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.3.0] - 2026-10-02
+
+### Added
+
+- `scripts/memory-check.sh`: flags auto-memory files that may be stale. `STALE` when a memory's optional `verify:` frontmatter command exits non-zero or times out (5 s, whole process group killed); `MISSING-REF` for backticked repo paths that do not exist, commit hashes `git cat-file -e` cannot find, and `MEMORY.md` links to missing files; `UNVERIFIED-OLD` for `type: project` memories with no `verify:` older than `--days` (default 30); `OPEN-CLAIM` for "not yet fixed" / "pending" / "flagged" / "TODO" with no `verify:`. Flags: `--json`, `--quiet-unless-stale`, `--max-predicates`, `--no-predicates`, `--memory-dir`, `--project-root`, `--timeout`. Always exits 0 unless usage error. GNU and BSD userlands; `timeout`, `gtimeout` or a `perl` fallback.
+- Predicates run only from regular files directly inside the project's own memory dir; symlinked files are reported as `SKIPPED-VERIFY` and never executed.
+- `SessionStart` hook (`hooks/hooks.json`, `scripts/memory-check-hook.sh`): runs the check with `--quiet-unless-stale --max-predicates 20` and, only when there are findings, adds `additionalContext` telling Claude to verify, update or delete those memories before relying on them. Silent otherwise. Disable with `RETRO_MEMORY_CHECK=off`.
+- `/memory-check` command from a hooks module (`hooks/register.ts`): runs the script and shows the result as command output, no Claude turn. Tested in `tests/memory-check.test.ts`.
+- `scripts/test_memory_check.sh`: every finding kind, a predicate that flips after a commit, a predicate that hangs (both timeout implementations), output modes, the symlink and cap guards, worktree memory-dir derivation, and the hook.
+- `/retro:session` runs memory-check in Phase 1 and routes `STALE` / `MISSING-REF` to "update or delete memory file X" actions; README documents the `verify:` convention.
+
+### Changed
+
+- The cwd → `~/.claude/projects/<name>` encoding moved to `scripts/project-dir.sh`, sourced by both `session-digest.sh` and `memory-check.sh`.
+
+### Why
+
+A memory said this repo's two hooks had a bug "not yet fixed". The hook files kept their names but a later commit fixed their content, and the stale memory was recalled and acted on. Only a check of the claim itself catches that.
+
 ## [0.2.0] - 2026-10-02
 
 ### Added

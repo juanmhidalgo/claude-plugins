@@ -28,6 +28,7 @@ triggers:
 allowed-tools:
   - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/session-digest.sh *)
   - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/plugin-runs.sh *)
+  - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/memory-check.sh *)
   - Read
   - Edit
   - Write
@@ -103,6 +104,16 @@ blocks are not visible from inside the conversation. Expect **no cost figure** �
 is flushed at session end — so rank by wall clock and denials, and say cost was unavailable
 rather than estimating it.
 
+Then check the project's auto-memory, which every future session recalls:
+
+```bash
+${CLAUDE_PLUGIN_ROOT}/scripts/memory-check.sh            # prints nothing when clean
+```
+
+Each line is `<KIND> <file> — <detail>`. `STALE` (its `verify:` command failed) and
+`MISSING-REF` (a path or commit it cites is gone) are findings for Phase 3. `UNVERIFIED-OLD`
+and `OPEN-CLAIM` are weaker: report them as one grouped line, not one finding each.
+
 ## Phase 2 — Find friction
 
 Rank by cost, in this order:
@@ -126,6 +137,17 @@ Each finding must name **where the fix lives**. A finding with no destination is
 observation, and observations do not change the next session. Mapping table and the repo
 rules that apply when the destination is a plugin:
 [action-mapping.md](references/action-mapping.md).
+
+**memory-check findings route to the memory file itself.** For each `STALE` or `MISSING-REF`
+line, read the memory file and the code it describes, then propose exactly one of:
+
+- **Update memory file `<file>`** — the fact changed; quote the corrected text, the matching
+  `MEMORY.md` line, and a `verify:` command that would have caught it.
+- **Delete memory file `<file>`** — the fact no longer holds or no longer matters; also drop
+  its `MEMORY.md` line.
+
+Never apply either from the checker's line alone: a failing `verify:` can be a predicate
+that was written wrong. The evidence is what you read in the current code.
 
 ## Phase 4 — Report, then apply
 
