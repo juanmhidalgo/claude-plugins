@@ -68,7 +68,7 @@ When the background task completes:
 ## Phase 3: Apply the verdict
 
 **`approve`**
-- SPEC → set `status: approved` with Edit. This is the only verdict that sets it.
+- SPEC → set `status: approved` with Edit. This is the only verdict that sets it. Then run `${CLAUDE_PLUGIN_ROOT}/scripts/review_server.py settle <artifact path>`, so the review band above the prompt does not report your own status edit as a change nobody reviewed.
 - PLAN → plans carry no approval field; nothing to edit.
 
 **`approve-with-notes`**: the notes are context, not change requests.

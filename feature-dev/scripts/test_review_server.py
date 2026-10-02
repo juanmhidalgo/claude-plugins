@@ -312,6 +312,22 @@ class ReviewServerTest(unittest.TestCase):
         plan.write_text(PLAN, encoding="utf-8")
         self.assertEqual(self.run_cli("latest", str(plan)).returncode, 1)
 
+    def test_settle_makes_the_latest_review_newer_than_the_artifact(self):
+        self.assertEqual(self.run_cli("settle", str(self.spec)).returncode, 1)
+        server = self.start(self.spec)
+        status, body = server.post({"verdict": "approve"}, server.token())
+        self.assertEqual(status, 200)
+        server.finish()
+        review = Path(body["path"])
+        past = time.time() - 100
+        os.utime(review, (past, past))
+        self.spec.write_text(SPEC.replace("status: draft", "status: approved"), encoding="utf-8")
+        self.assertLess(review.stat().st_mtime, self.spec.stat().st_mtime)
+        settled = self.run_cli("settle", str(self.spec))
+        self.assertEqual(settled.returncode, 0)
+        self.assertEqual(self.abs(settled.stdout), review.resolve())
+        self.assertGreaterEqual(review.stat().st_mtime, self.spec.stat().st_mtime)
+
     def test_slug_is_sanitized_everywhere(self):
         self.assertEqual(review_server.artifact_slug(Path("SPEC-x.md"), {"slug": "../../evil dir/x"}), "evil-dir-x")
         self.assertEqual(review_server.artifact_slug(Path("SPEC-a b.md"), {}), "a-b")

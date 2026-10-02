@@ -18,6 +18,7 @@ Usage:
     review_server.py sha <artifact>
     review_server.py latest <artifact> [--root DIR] [--since EPOCH]
     review_server.py url <artifact> [--root DIR]
+    review_server.py settle <artifact> [--root DIR]
     review_server.py purge [--root DIR] [--artifact NAME]... [--slug SLUG]... [--pointer SLUG]... [--dry-run]
 
 ``snapshot`` copies the artifact to ``.feature-dev/history/<slug>/<name>.<n>.md``
@@ -28,6 +29,11 @@ most recent snapshot whose content differs from the artifact.
 or after ``--since``, in epoch seconds) and exits 1 when there is none. ``url``
 prints the running server's URL and exits 1 when no server is running. Both
 derive the slug exactly as ``serve`` does, so callers never re-derive it.
+
+``settle`` marks the artifact's latest review as current again (bumps its
+mtime to now) after /feature-dev:review's own ``status: approved`` edit, so the
+review band does not report that edit as an unreviewed change. Exit 1 when the
+artifact has no review.
 
 ``purge`` is the only deletion path for /feature-dev:cleanup. ``--artifact``
 removes a root ``SPEC-*.md``/``PLAN-*.md``; ``--slug`` removes that slug's
@@ -696,6 +702,9 @@ def main(argv: list[str] | None = None) -> int:
     url_p = sub.add_parser("url", help="print the running review server's URL")
     url_p.add_argument("artifact")
     url_p.add_argument("--root", default=".", help="project root (default: cwd)")
+    settle_p = sub.add_parser("settle", help="mark the latest review current after the approve edit")
+    settle_p.add_argument("artifact")
+    settle_p.add_argument("--root", default=".", help="project root (default: cwd)")
     purge_p = sub.add_parser("purge", help="delete cleanup candidates: artifacts, a slug's review data, pointers")
     purge_p.add_argument("--root", default=".", help="project root (default: cwd)")
     purge_p.add_argument("--artifact", action="append", default=[], help="SPEC-*.md or PLAN-*.md at the root")
@@ -726,6 +735,14 @@ def main(argv: list[str] | None = None) -> int:
         if not path.is_file():
             return 1
         print(path.read_text(encoding="utf-8").strip())
+        return 0
+    if args.command == "settle":
+        found = latest_review(artifact, root)
+        if found is None:
+            return 1
+        now = max(time.time(), artifact.stat().st_mtime)
+        os.utime(found, (now, now))
+        print(found)
         return 0
     if args.command == "snapshot":
         print(snapshot(artifact, root))

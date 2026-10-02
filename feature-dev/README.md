@@ -73,6 +73,17 @@ At any approval gate, **`/feature-dev:review <path>`** is the alternative to ans
 
 Both `.feature-dev/` and the artifacts are added to `.gitignore`.
 
+### Review band
+
+In the interactive terminal, a band above the prompt lists each `SPEC-*.md` / `PLAN-*.md` that changed after its latest browser review: `<name> · not reviewed since last change`, with two buttons:
+
+- **Open review** runs `/feature-dev:review <path>`, the same as typing it, so the verdict is applied as usual. While a review server for that artifact is running, a link to its page replaces the button.
+- **Dismiss** hides that artifact until it changes again, for the rest of this session.
+
+The band is rescanned at the end of every turn of the main conversation (not of subagents) and at session start. A review counts only if its `artifact:` names that exact file, so a SPEC review never clears the PLAN of the same slug. The `status: approved` edit that `/feature-dev:review` makes itself does not count as a change.
+
+It is a hooks module (`hooks/register.tsx`), so it needs a Claude Code build that loads plugin hooks modules. **It does not appear** under `claude -p`, `--safe-mode` or `disableAllHooks`, nor in the VS Code extension. Without it, the "Or review it in the browser: …" line that `spec` and `explore-plan` print is still the way in. **To turn it off**, set the plugin option `review_band` to `false` in `/config` (or `/plugin configure feature-dev@juanmhidalgo-plugins`).
+
 Each command can also be used independently.
 
 **Acceptance criteria are traced end to end.** Spec criteria carry ids (`AC-1`…). When the spec numbers them, every behavior step in the plan says which ones it makes true (`Covers:`). The plan review flags an AC that no step covers and a `Covers:` that cites an id the spec does not define, and reports `AC coverage: covered/total`. `/tdd`'s final report lists the ACs covered by met steps and names the uncovered or halted ones. Runners put the id in the test's name or docstring where the project's style allows.

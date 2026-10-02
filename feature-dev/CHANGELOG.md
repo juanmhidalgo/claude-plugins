@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.31.0 (2026-10-02)
+
+### Added
+- **Review band** (`hooks/register.tsx`, the plugin's first hooks module). Above the prompt, one row per `SPEC-*.md` / `PLAN-*.md` whose mtime is newer than its latest review in `.feature-dev/reviews/`: `<name> · not reviewed since last change`, with **Open review** and **Dismiss** buttons. **Open review** calls `$.command.run` for `/feature-dev:review <path>`, which runs the command as if typed, so `disable-model-invocation` does not block it and the verdict is applied as before. While a review server for the artifact answers `GET /alive`, a link to its page replaces the button. **Dismiss** hides the row until the file changes again, for the session only. The scan runs at session start and after each turn of the main conversation (subagent turns are skipped). Reviews match on the full artifact name from their `artifact:` frontmatter, not the slug, so a SPEC review never clears the PLAN of the same slug. History copies (`SPEC-x.<n>.md`) are ignored. **Why:** `spec` and `explore-plan` only suggested `/feature-dev:review` in text, and specs and plans were approved from chat summaries without anyone opening them.
+- **`review_band` option** (`userConfig`, boolean, default `true`) to turn the band off from `/config`.
+- **`review_server.py settle <artifact>`** bumps the latest review's mtime after `/feature-dev:review` sets `status: approved` itself, so the band does not report that edit as an unreviewed change. `review.md` runs it after an `approve`. Covered by a new test in `test_review_server.py`.
+- `hooks/review-band.test.ts` for `claude plugin test`, and `types/index.d.ts` declaring the band's `$.state`.
+
+### Unchanged
+- The text suggestions in `spec` and `explore-plan` stay as they are. They are the way in wherever the band is not drawn: `claude -p`, VS Code, `--safe-mode`, `disableAllHooks`.
+
+
 ## 1.30.1 (2026-09-28)
 
 ### Changed
