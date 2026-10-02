@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.5.0] - 2026-10-02
+
+### Added
+- `plan` output gains a **Call Sites** table: every reference to a renamed, moved, or deleted symbol, with the search patterns used, so the user can check nothing was missed. A new blocking rule makes "update all callers" without the list a plan defect.
+- `plan` gains an **Execution Mode** section that offers handing a mechanical, many-file migration to the built-in `/batch` command.
+- `extract` offers `/batch` for the consumer updates when they span many files.
+
+### Changed
+- README gains a **Needs** section listing prerequisites (`gh`, MCP servers, browser, external CLIs), replacing the old Requirements list.
+
 ## [1.4.1] - 2026-09-22
 
 ### Fixed

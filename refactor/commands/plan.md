@@ -85,6 +85,24 @@ From the conflict scout. State its verdict verbatim; if it could not reach `gh`,
 
 (If nothing is in flight, write exactly: "No open PRs, branches, or local edits touch these files.")
 
+## Call Sites
+
+Every reference to a symbol being renamed, moved, or deleted, found with Grep (not sampled). The user checks this list to confirm nothing was missed.
+
+| Symbol | Call site | Step that updates it |
+|--------|-----------|----------------------|
+| `old_name` | `path/to/file.py:42` | 2.2 |
+| `old_name` | `templates/x.html:7` (string reference) | 2.2 |
+
+**Total**: [N] call sites in [M] files. Searched: [the exact patterns used, including string/dynamic forms such as `getattr`, templates, config]
+
+(If the refactor renames, moves, or deletes nothing, write exactly: "No symbols change name or location.")
+
+## Execution Mode
+
+- **Step by step** (default): follow the phases below
+- **Hand off to `/batch`**: when the migration is mechanical and touches many files (roughly 10+ files, or call sites that can each be updated independently), offer the built-in `/batch <instruction>`; it splits the work into independent units, each in its own worktree. Pass it this plan's Goal, the Call Sites table, and the checkpoints. Not for steps that must land in order
+
 ## Pre-Refactoring Checklist
 - [ ] Tests pass before starting
 - [ ] Branch rebased on the latest base — a refactor started behind conflicts twice
@@ -189,6 +207,10 @@ Every contested target from the conflict scout appears in the plan with an expli
 
 <rule priority="blocking">
 If the conflict scout could not reach `gh`, the plan says so under Concurrent Work. Never write a clean scan you did not get.
+</rule>
+
+<rule priority="blocking">
+List every call site of a symbol the plan renames, moves, or deletes — with the search patterns used — so the user can verify coverage. "Update all callers" without the list is a defect in the plan.
 </rule>
 
 <rule priority="recommended">
