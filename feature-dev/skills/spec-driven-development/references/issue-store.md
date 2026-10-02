@@ -151,14 +151,17 @@ the user chooses to import the issue's version instead of overwriting it.
    write no local file, stop, name the issue and point at
    `/feature-dev:spec --publish` as the way to create a section.
 5. **Find a local spec** whose frontmatter has this exact `issue:
-   <owner>/<repo>#<N>`.
+   <owner>/<repo>#<N>`, among the specs `review_server.py artifacts --dir
+   "<artifacts folder>" --kind spec` lists (see
+   [artifact-locations.md](artifact-locations.md)).
    - **None found** — extract the slug with `issue_spec.py extract --slug
-     --fallback-title "<issue title>" -`. The target is `SPEC-<slug>.md` in the
-     repo root (never anywhere else — a slug containing `/`, `..` or a leading
-     dot never reaches a path component unsanitized). **If that file already
-     exists**, it belongs to another spec (its `issue:` is absent or different —
+     --fallback-title "<issue title>" -`. The target is the path `review_server.py
+     artifacts --dir "<artifacts folder>" --new SPEC-<slug>.md` prints (never
+     anywhere else — a slug containing `/`, `..` or a leading dot never reaches
+     a path component unsanitized). **If a spec of that name already exists**
+     (in the folder, or as a legacy file at the root), it belongs to another spec (its `issue:` is absent or different —
      otherwise it would have been found above): never write over it silently.
-     Ask — write to `SPEC-<slug>-<N>.md` instead (the default), snapshot it
+     Ask — write to `SPEC-<slug>-<N>.md` in the same folder instead (the default), snapshot it
      (`${CLAUDE_PLUGIN_ROOT}/scripts/review_server.py snapshot <SPEC>`) and
      overwrite, or cancel. Specs are uncommitted, so an unasked overwrite is
      unrecoverable. Write the file with frontmatter rebuilt: `feature:` from the
@@ -189,7 +192,7 @@ the user chooses to import the issue's version instead of overwriting it.
      - `issue != recorded` and `local != recorded` (both sides changed) → stop,
        show both diffs (issue vs. recorded, local vs. recorded), and ask which to
        keep.
-6. **Continue** as if the resulting `SPEC-<slug>.md` path had been given directly.
+6. **Continue** as if the resulting spec path had been given directly.
 
 ## Decision comment format (AC-13)
 

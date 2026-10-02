@@ -17,6 +17,7 @@ allowed-tools:
   - Bash(gh issue comment *)
   - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/issue_spec.py *)
   - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/review_server.py snapshot *)
+  - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/review_server.py artifacts *)
   - Read
   - Write
   - Edit
@@ -49,6 +50,7 @@ triggers:
 - **Current branch**: !`git branch --show-current`
 - **Working tree clean**: !`git status --short`
 - **Feature spec**: $ARGUMENTS
+- **Artifacts folder**: `${user_config.artifacts_dir}` (a literal `${user_config...}` here means `.feature-dev`). Where specs and plans are found: [artifact-locations.md](../skills/spec-driven-development/references/artifact-locations.md).
 
 ## Phase 0: Resolve Spec and Validate
 
@@ -59,9 +61,9 @@ triggers:
    - **If `$ARGUMENTS` is the path of an existing `SPEC-*.md`** → read its frontmatter, use `feature:` as the spec, and record the path as `source_spec`. There is no plan: skip the plan search in Phase 1 and take the no-plan path. This is the small-feature fallback `/feature-dev:spec` mentions; the spec's ACs (or its Tasks) are the reviewed anchor, the decisions go to its Decisions Log, and Phase 6 closes it. If its `status:` is `implemented`, say so and ask before continuing.
    - **If `$ARGUMENTS` is `#N`, `owner/repo#N`, or an issue URL** → resolve it per [issue-store.md's Argument parsing](../skills/spec-driven-development/references/issue-store.md#argument-parsing), then run [issue-store.md's Import algorithm](../skills/spec-driven-development/references/issue-store.md#import-ac-8-ac-9-ac-10-ac-11-ac-12) against it, start to finish. Do not restate Import's steps here — follow the reference; its own step 3 is where a closed issue asks before continuing, the same shape as this command's `status: implemented` check above. A failed `gh` preflight, or a failed `gh issue view` call, stops here and names the issue that could not be read. On success, continue as if `$ARGUMENTS` had been the resulting `SPEC-<slug>.md` path (the `SPEC-*.md` bullet above applies).
    - **If `$ARGUMENTS` is anything else** → use it as the feature spec. Continue to step 2.
-   - **If `$ARGUMENTS` is empty** → auto-discover plan files. Use Glob with pattern `PLAN-*.md` in the repo root:
+   - **If `$ARGUMENTS` is empty** → auto-discover plan files. List them with `${CLAUDE_PLUGIN_ROOT}/scripts/review_server.py artifacts --dir "<artifacts folder>" --kind plan` (the folder first, then legacy plans at the root):
      - **0 plans found** → **STOP** and ask the user for a feature description.
-     - **1 plan found** → read it, extract the `feature:` value from its frontmatter, and use that as the spec. Record the plan path as the **pre-selected plan** for Phase 1. Inform the user: "Auto-selected plan: `PLAN-<slug>.md` (feature: <name>)".
+     - **1 plan found** → read it, extract the `feature:` value from its frontmatter, and use that as the spec. Record the plan path as the **pre-selected plan** for Phase 1. Inform the user: "Auto-selected plan: `<plan path>` (feature: <name>)".
      - **2+ plans found** → read each plan's frontmatter to extract the `feature:` value. Use AskUserQuestion to let the user pick one (label = feature name, description = filename). The chosen plan's `feature:` becomes the spec and its path is the **pre-selected plan** for Phase 1.
 2. **Check the working tree.** Use the `Working tree clean` field from the Context section above — it was captured before Phase 0 ran, so an issue import in step 1 (which writes a new, untracked `SPEC-<slug>.md` when no local copy exists) never trips this check on its own output.
    - **Clean** → proceed normally.
@@ -76,7 +78,7 @@ triggers:
 
 - **If a pre-selected plan was set in Phase 0** → use it directly; skip the search below.
 - **If `source_spec` was set from a `SPEC-*.md` argument** → no plan; go to "If no plan file exists" below. Also load that spec's `## Decisions Log`, if it has one, as binding prior decisions (see "Load prior decisions").
-- **Otherwise** (spec came from `$ARGUMENTS` as text), look for `PLAN-*.md` files in the repo root (created by `/feature-dev:explore-plan`). If multiple exist, pick the one whose `feature:` frontmatter best matches the spec; if none clearly matches, ask the user which to use.
+- **Otherwise** (spec came from `$ARGUMENTS` as text), look for plans with the same `artifacts --kind plan` listing (plans are created by `/feature-dev:explore-plan`). If multiple exist, pick the one whose `feature:` frontmatter best matches the spec; if none clearly matches, ask the user which to use.
 
 **If a plan file is in use:**
 - Read it and use it as the source of truth for files to modify/create, implementation order, and key decisions
@@ -114,7 +116,7 @@ The plan's `completed_steps:` records what a prior run finished. Do not trust it
 2. **Report the resume point** to the user before dispatching anything:
 
    ```
-   Resuming PLAN-<slug>.md — halted at step <N> (<halt reason from frontmatter>)
+   Resuming <plan path> — halted at step <N> (<halt reason from frontmatter>)
      Steps 1-<N-1>: re-verified green, skipping
      Step <M>: re-verify FAILED, will re-run
      Resuming at step <N>
@@ -258,7 +260,7 @@ Its brief is an input to the user's decision, not a substitute for it. Do not ac
    **Checkpoint line.** At each `#### Milestone` boundary, once the finished milestone's last step is recorded, print one line. In a plan without milestones, print it every ~8 completed steps:
 
    ```
-   Progress recorded in PLAN-<slug>.md (steps 1–<N> done). To free context: /clear, then /feature-dev:tdd PLAN-<slug>.md; resume re-verifies the completed steps.
+   Progress recorded in <plan path> (steps 1–<N> done). To free context: /clear, then /feature-dev:tdd <plan path>; resume re-verifies the completed steps.
    ```
 
    Then continue with the next step in the same turn. Do not ask, and do not pause for an answer. The line exists because this orchestrator's context only grows: one run went from 98k to 389k tokens. Resume already re-verifies every recorded step (Phase 1b), so clearing between milestones costs one re-verification pass, not the run.
@@ -378,7 +380,7 @@ If every criterion was met and the suite is green (apart from failures listed in
 
 If any criterion halted, do **none** of the above. Leave the plan and spec on disk with `run_status: halted`, and tell the user verbatim:
 
-> Halted at step `<N>`. Fix the blocker, then run `/feature-dev:tdd PLAN-<slug>.md` — it will re-verify steps 1-`<N-1>` and resume from `<N>`. The dirty working tree is expected; do not stash it.
+> Halted at step `<N>`. Fix the blocker, then run `/feature-dev:tdd <plan path>` — it will re-verify steps 1-`<N-1>` and resume from `<N>`. The dirty working tree is expected; do not stash it.
 
 with the path of the plan this run used. A spec-only run has no plan to resume from; tell the user instead that the steps landed so far are uncommitted in the tree, and that the next step is `/feature-dev:explore-plan <spec path>` against that tree or finishing by hand — re-running `/feature-dev:tdd` on the spec would stop on the dirty tree.
 

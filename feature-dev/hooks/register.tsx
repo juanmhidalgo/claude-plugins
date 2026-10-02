@@ -31,12 +31,29 @@ type Paths = {
   reviewsDir: string
 }
 
-/** The one place artifact and review locations are resolved. */
+const DEFAULT_ARTIFACTS_DIR = '.feature-dev'
+/** The `artifacts_dir` option, set by register(); same rules as artifacts_dir() in review_server.py. */
+let artifactsDir = DEFAULT_ARTIFACTS_DIR
+
+function cleanArtifactsDir(raw: unknown): string {
+  const value = typeof raw === 'string' ? raw.trim() : ''
+  const parts = value.split('/').filter(p => p !== '' && p !== '.')
+  if (value.includes('${') || value.startsWith('/') || parts.includes('..') || parts.length === 0) {
+    return DEFAULT_ARTIFACTS_DIR
+  }
+  return parts.join('/')
+}
+
+/**
+ * The one place artifact and review locations are resolved: specs in
+ * `<artifacts_dir>/specs`, plans in `<artifacts_dir>/plans`, then legacy
+ * files at the project root (a name in both is taken from the folder).
+ */
 export async function artifactPaths($: EngineInterface): Promise<Paths> {
   const root = (await $.session.root()).replace(/\/+$/, '')
   return {
     root,
-    artifactDirs: [root],
+    artifactDirs: [`${root}/${artifactsDir}/specs`, `${root}/${artifactsDir}/plans`, root],
     reviewsDir: `${root}/.feature-dev/reviews`,
   }
 }
@@ -151,6 +168,7 @@ async function openReview($: EngineInterface, path: string): Promise<void> {
 
 export const register: Register = (on, options) => {
   if (options.review_band === false) return
+  artifactsDir = cleanArtifactsDir(options.artifacts_dir)
 
   on('session.start', async ($, e, next) => {
     const result = await next(e)

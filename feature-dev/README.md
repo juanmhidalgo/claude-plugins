@@ -73,6 +73,20 @@ At any approval gate, **`/feature-dev:review <path>`** is the alternative to ans
 
 Both `.feature-dev/` and the artifacts are added to `.gitignore`.
 
+### Where the files go
+
+```
+.feature-dev/
+├── specs/SPEC-<slug>.md     # /feature-dev:spec, issue imports
+├── plans/PLAN-<slug>.md     # /feature-dev:explore-plan
+├── reviews/                 # /feature-dev:review verdicts, .<slug>.url pointers
+└── history/<slug>/          # snapshots the review page diffs against
+```
+
+The plugin option **`artifacts_dir`** (default `.feature-dev`) moves `specs/` and `plans/` to another folder inside the project. `reviews/` and `history/` stay in `.feature-dev/`. Set it in `/config` or with `/plugin configure feature-dev@juanmhidalgo-plugins`.
+
+Specs and plans written at the project root before 1.32.0 are still found: every command lists the folder first, then the root, through `review_server.py artifacts`. A name present in both places is taken from the folder. Nothing is moved; new files are only written to the folder. The full rules are in [artifact-locations.md](skills/spec-driven-development/references/artifact-locations.md).
+
 ### Review band
 
 In the interactive terminal, a band above the prompt lists each `SPEC-*.md` / `PLAN-*.md` that changed after its latest browser review: `<name> · not reviewed since last change`, with two buttons:
@@ -167,7 +181,7 @@ reconciling it with an existing one via a three-way fingerprint compare), and
 continues as if that path had been given directly. A closed issue asks for
 confirmation first.
 
-**Opting in**: set `spec_store: issue` in `.claude/feature-dev.local.md`:
+**Opting in**: set the plugin option `spec_store` to `issue` (in `/config`) for every project, or set `spec_store: issue` in a project's `.claude/feature-dev.local.md`, which wins over the option:
 
 ```markdown
 spec_store: issue

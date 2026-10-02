@@ -19,7 +19,8 @@ Usage:
     review_server.py latest <artifact> [--root DIR] [--since EPOCH]
     review_server.py url <artifact> [--root DIR]
     review_server.py settle <artifact> [--root DIR]
-    review_server.py purge [--root DIR] [--artifact NAME]... [--slug SLUG]... [--pointer SLUG]... [--dry-run]
+    review_server.py artifacts [--root DIR] [--dir ARTIFACTS_DIR] [--kind spec|plan] [--new NAME]
+    review_server.py purge [--root DIR] [--dir ARTIFACTS_DIR] [--artifact PATH]... [--slug SLUG]... [--pointer SLUG]... [--dry-run]
 
 ``snapshot`` copies the artifact to ``.feature-dev/history/<slug>/<name>.<n>.md``
 (n increments) and prints the copy's path. The review page diffs against the
@@ -35,8 +36,16 @@ mtime to now) after /feature-dev:review's own ``status: approved`` edit, so the
 review band does not report that edit as an unreviewed change. Exit 1 when the
 artifact has no review.
 
+``artifacts`` lists every SPEC/PLAN the commands can use, one path per line
+relative to the root: ``<dir>/specs/SPEC-*.md`` and ``<dir>/plans/PLAN-*.md``
+first, then legacy ``SPEC-*.md``/``PLAN-*.md`` at the root. A name found in
+both places is listed once, from ``<dir>``. ``<dir>`` is ``--dir`` (the plugin's
+``artifacts_dir`` option), ``.feature-dev`` when it is empty or still an
+unsubstituted ``${...}`` placeholder. With ``--new NAME`` it prints where a new
+artifact of that name is written instead, and lists nothing.
+
 ``purge`` is the only deletion path for /feature-dev:cleanup. ``--artifact``
-removes a root ``SPEC-*.md``/``PLAN-*.md``; ``--slug`` removes that slug's
+removes a ``SPEC-*.md``/``PLAN-*.md`` at the root or in its ``--dir`` folder; ``--slug`` removes that slug's
 history folder and its review files (exact slug, never a prefix); ``--pointer``
 removes that slug's server pointer. Every argument is validated before anything
 is deleted: one invalid argument deletes nothing and exits 2. Git-tracked files
@@ -75,6 +84,8 @@ EXIT_SUBMITTED = 0
 EXIT_USAGE = 2
 EXIT_NO_REVIEW = 3
 ARTIFACT_NAME = re.compile(r"^(SPEC|PLAN)-[A-Za-z0-9._-]+\.md$")
+DEFAULT_ARTIFACTS_DIR = ".feature-dev"
+KIND_DIRS = {"SPEC": "specs", "PLAN": "plans"}
 SAFE_SLUG = re.compile(r"^[A-Za-z0-9._-]+$")
 REVIEW_SUFFIX = r"-\d{8}T\d{6}Z(?:-\d+)?\.md"
 
@@ -212,6 +223,55 @@ def line_diff(old: str, new: str) -> list[list[str]]:
         rows.extend(["-", line] for line in old_lines[i1:i2])
         rows.extend(["+", line] for line in new_lines[j1:j2])
     return rows
+
+
+# --------------------------------------------------------------------------
+# Artifact locations
+# --------------------------------------------------------------------------
+
+def artifacts_dir(raw: str | None) -> str:
+    """The configured artifacts folder, relative to the root.
+
+    Empty, or a ``${user_config...}`` placeholder the host left unsubstituted
+    because the option was never saved, means the default. An absolute path or
+    one with ``..`` is refused: artifacts stay inside the project.
+    """
+    value = (raw or "").strip()
+    if not value or "${" in value:
+        return DEFAULT_ARTIFACTS_DIR
+    path = Path(value)
+    if path.is_absolute() or ".." in path.parts:
+        raise ValueError(f"artifacts dir {value!r} must be a relative path inside the project")
+    return str(Path(*path.parts)) if path.parts else DEFAULT_ARTIFACTS_DIR
+
+
+def kind_dir(root: Path, folder: str, name: str) -> Path:
+    """Where an artifact named ``name`` is written: ``<folder>/specs`` or ``<folder>/plans``."""
+    match = ARTIFACT_NAME.fullmatch(name)
+    if not match:
+        raise ValueError(f"{name!r} is not SPEC-<name>.md or PLAN-<name>.md")
+    return root / folder / KIND_DIRS[match.group(1)]
+
+
+def find_artifacts(root: Path, folder: str, kind: str | None = None) -> list[Path]:
+    """Every artifact, the configured folder first, then legacy ones at the root.
+
+    A name present in both is returned once, from the configured folder.
+    """
+    prefixes = [kind.upper()] if kind else list(KIND_DIRS)
+    places = [(root / folder / KIND_DIRS[p], p) for p in prefixes] + [(root, p) for p in prefixes]
+    seen: set[str] = set()
+    found: list[Path] = []
+    for place, prefix in places:
+        if not place.is_dir():
+            continue
+        for entry in sorted(place.iterdir()):
+            if entry.name in seen or not entry.name.startswith(prefix + "-"):
+                continue
+            if ARTIFACT_NAME.fullmatch(entry.name) and entry.is_file() and not entry.is_symlink():
+                seen.add(entry.name)
+                found.append(entry)
+    return found
 
 
 # --------------------------------------------------------------------------
@@ -568,22 +628,29 @@ def _inside(path: Path, base: Path) -> bool:
 
 
 def plan_purge(
-    root: Path, artifacts: list[str], slugs: list[str], pointers: list[str]
+    root: Path, artifacts: list[str], slugs: list[str], pointers: list[str], folder: str = DEFAULT_ARTIFACTS_DIR
 ) -> tuple[list[Path], list[tuple[Path, str]]]:
     """Validate every argument and return ``(delete, skip)``.
 
     ``delete`` is ordered so a directory follows its contents. Raises
     PurgeError on the first invalid argument, before anything is touched.
+    An ``--artifact`` is a path relative to the root whose file name is
+    SPEC-/PLAN-*.md, sitting at the root (legacy) or in its kind's folder
+    under ``folder``; nothing else is accepted.
     """
     delete: list[Path] = []
     skip: list[tuple[Path, str]] = []
-    for name in artifacts:
-        if not ARTIFACT_NAME.fullmatch(name):
-            raise PurgeError(f"--artifact {name!r}: must be SPEC-<name>.md or PLAN-<name>.md at the root")
-        path = root / name
+    for given in artifacts:
+        name = Path(given).name
+        if not ARTIFACT_NAME.fullmatch(name) or Path(given).is_absolute() or ".." in Path(given).parts:
+            raise PurgeError(f"--artifact {given!r}: must be SPEC-<name>.md or PLAN-<name>.md, relative to the root")
+        path = root / given
         if path.is_symlink() or not path.is_file():
-            raise PurgeError(f"--artifact {name!r}: not a regular file in {root}")
-        if is_tracked(root, name):
+            raise PurgeError(f"--artifact {given!r}: not a regular file under {root}")
+        allowed = (root.resolve(), kind_dir(root, folder, name).resolve())
+        if path.parent.resolve() not in allowed:
+            raise PurgeError(f"--artifact {given!r}: neither at the root nor in {kind_dir(root, folder, name).relative_to(root)}/")
+        if is_tracked(root, str(path.relative_to(root))):
             skip.append((path, "tracked by git"))
         else:
             delete.append(path)
@@ -641,9 +708,12 @@ def plan_purge(
     return delete, skip
 
 
-def purge(root: Path, artifacts: list[str], slugs: list[str], pointers: list[str], dry_run: bool) -> int:
+def purge(
+    root: Path, artifacts: list[str], slugs: list[str], pointers: list[str], dry_run: bool,
+    folder: str = DEFAULT_ARTIFACTS_DIR,
+) -> int:
     try:
-        delete, skip = plan_purge(root, artifacts, slugs, pointers)
+        delete, skip = plan_purge(root, artifacts, slugs, pointers, folder)
     except PurgeError as exc:
         print(f"error: {exc}; nothing was deleted", file=sys.stderr)
         return EXIT_USAGE
@@ -702,19 +772,42 @@ def main(argv: list[str] | None = None) -> int:
     url_p = sub.add_parser("url", help="print the running review server's URL")
     url_p.add_argument("artifact")
     url_p.add_argument("--root", default=".", help="project root (default: cwd)")
+    art_p = sub.add_parser("artifacts", help="list SPEC/PLAN artifacts, or where a new one goes")
+    art_p.add_argument("--root", default=".", help="project root (default: cwd)")
+    art_p.add_argument("--dir", default="", help="the artifacts_dir option (default .feature-dev)")
+    art_p.add_argument("--kind", choices=("spec", "plan"), help="only specs or only plans")
+    art_p.add_argument("--new", metavar="NAME", help="print where a new artifact NAME is written")
     settle_p = sub.add_parser("settle", help="mark the latest review current after the approve edit")
     settle_p.add_argument("artifact")
     settle_p.add_argument("--root", default=".", help="project root (default: cwd)")
     purge_p = sub.add_parser("purge", help="delete cleanup candidates: artifacts, a slug's review data, pointers")
     purge_p.add_argument("--root", default=".", help="project root (default: cwd)")
-    purge_p.add_argument("--artifact", action="append", default=[], help="SPEC-*.md or PLAN-*.md at the root")
+    purge_p.add_argument("--artifact", action="append", default=[], help="a SPEC/PLAN path relative to the root")
+    purge_p.add_argument("--dir", default="", help="the artifacts_dir option (default .feature-dev)")
     purge_p.add_argument("--slug", action="append", default=[], help="delete the slug's history and review files")
     purge_p.add_argument("--pointer", action="append", default=[], help="delete the slug's .<slug>.url pointer")
     purge_p.add_argument("--dry-run", action="store_true", help="print what would be deleted, delete nothing")
     args = parser.parse_args(argv)
 
-    if args.command == "purge":
-        return purge(Path(args.root), args.artifact, args.slug, args.pointer, args.dry_run)
+    if args.command in ("purge", "artifacts"):
+        try:
+            folder = artifacts_dir(args.dir)
+        except ValueError as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return EXIT_USAGE
+        if args.command == "purge":
+            return purge(Path(args.root), args.artifact, args.slug, args.pointer, args.dry_run, folder)
+        root = Path(args.root)
+        if args.new is not None:
+            try:
+                print((kind_dir(root, folder, args.new) / args.new).relative_to(root))
+            except ValueError as exc:
+                print(f"error: {exc}", file=sys.stderr)
+                return EXIT_USAGE
+            return 0
+        for path in find_artifacts(root, folder, args.kind):
+            print(path.relative_to(root))
+        return 0
 
     artifact = Path(args.artifact)
     root = Path(getattr(args, "root", "."))

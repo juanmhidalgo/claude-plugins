@@ -156,6 +156,39 @@ describe('review band', () => {
     expect(w.runs).toEqual([{ command: 'feature-dev:review', args: 'PLAN-billing.md' }])
   })
 
+  test('finds artifacts in .feature-dev/specs and /plans, and a name in both places once', async ($, on) => {
+    const w: World = {
+      runs: [],
+      files: {
+        [`${ROOT}/.feature-dev/specs/SPEC-billing.md`]: { text: spec(), mtimeMs: 1000 },
+        [`${ROOT}/.feature-dev/plans/PLAN-billing.md`]: { text: spec(), mtimeMs: 1000 },
+        [`${ROOT}/SPEC-billing.md`]: { text: spec(), mtimeMs: 5000 },
+      },
+    }
+    world(on, w)
+    await endTurn($)
+    const ui = await $.ui.mount(BAND)
+    expect(await ui.findAll({ type: 'Button', text: 'Open review' })).toHaveLength(2)
+    await ui.press({ key: 'open:SPEC-billing.md' })
+    await ui.press({ key: 'open:PLAN-billing.md' })
+    expect(w.runs.map(r => r.args)).toEqual(['.feature-dev/specs/SPEC-billing.md', '.feature-dev/plans/PLAN-billing.md'])
+  })
+
+  test('artifacts_dir moves the folder the band reads', { options: { artifacts_dir: 'docs/fd' } }, async ($, on) => {
+    const w: World = {
+      runs: [],
+      files: {
+        [`${ROOT}/docs/fd/specs/SPEC-billing.md`]: { text: spec(), mtimeMs: 1000 },
+        [`${ROOT}/.feature-dev/specs/SPEC-other.md`]: { text: spec(), mtimeMs: 1000 },
+      },
+    }
+    world(on, w)
+    await endTurn($)
+    const ui = await $.ui.mount(BAND)
+    expect(await ui.find({ key: 'open:SPEC-billing.md' })).toBeDefined()
+    expect(await ui.find({ key: 'open:SPEC-other.md' })).toBeUndefined()
+  })
+
   test('a live review server turns Open into a link to its page', async ($, on) => {
     const w: World = {
       runs: [],

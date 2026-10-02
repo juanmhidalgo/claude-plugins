@@ -1,7 +1,7 @@
 {
   "name": "feature-dev",
   "description": "Feature development workflows: spec-driven development, test-driven development with coverage gates, and parallel codebase exploration",
-  "version": "1.31.0",
+  "version": "1.32.0",
   "types": "./types/index.d.ts",
   "userConfig": {
     "review_band": {
@@ -9,6 +9,19 @@
       "title": "Review band",
       "description": "Show the band above the prompt that lists specs and plans changed since their last browser review",
       "default": true
+    },
+    "artifacts_dir": {
+      "type": "string",
+      "title": "Artifacts folder",
+      "description": "Folder, relative to the project root, where specs (<folder>/specs/) and plans (<folder>/plans/) are written",
+      "default": ".feature-dev"
+    },
+    "spec_store": {
+      "type": "string",
+      "title": "Spec store",
+      "description": "Where approved specs live by default: the local file only, or also a GitHub issue. spec_store in .claude/feature-dev.local.md overrides it per project",
+      "options": ["file", "issue"],
+      "default": "file"
     }
   },
   "author": {

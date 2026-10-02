@@ -184,7 +184,7 @@ Operational tests, not definitions. Apply them in real time when writing a spec 
 
 By default the spec stays a local, uncommitted file. A project can opt into a
 GitHub-issue store instead: `spec_store: issue` in `.claude/feature-dev.local.md`
-makes `/feature-dev:spec --publish` write the spec into an issue, and
+(or the plugin option `spec_store`, which the project file overrides) makes `/feature-dev:spec --publish` write the spec into an issue, and
 `/feature-dev:explore-plan`, `/feature-dev:tdd`, `/feature-dev:spec-review` and
 `/feature-dev:review` all accept an issue argument (`#N`, `owner/repo#N`, or an
 issue URL) to read it back. The local file stays the working copy; the issue
@@ -247,6 +247,6 @@ Before proceeding to implementation:
 - [ ] Boundaries (Always / Ask First / Never) are defined with one-line rationale per Never-do item
 - [ ] P0 list passes the cut-test (≤5 items, each truly required to solve the core problem)
 - [ ] Open questions are genuinely open, owner-tagged, and marked blocking vs non-blocking
-- [ ] Spec is saved as a local working artifact (`SPEC-<slug>.md`, not committed)
+- [ ] Spec is saved as a local working artifact (`<artifacts folder>/specs/SPEC-<slug>.md`, not committed; see [artifact-locations.md](references/artifact-locations.md))
 - [ ] **Multi-repo only**: `repos:` frontmatter and Cross-Repo Contracts section are present and confirmed by user (plus `Repo:` task tags when the optional Tasks phase ran)
 - [ ] **Multi-repo only**: a `## Decisions Log` section exists (may be empty at spec time — it is filled during implementation)
