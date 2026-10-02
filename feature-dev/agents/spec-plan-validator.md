@@ -53,7 +53,7 @@ Check each item below. Flag the severity if missing or malformed.
 | Body has explicit **Acceptance Criteria** that are observable from a user perspective | Blocking |
 | Each acceptance criterion carries a stable id (`**AC-1**`, `**AC-2**`, …) | Nice to Have (specs written before ids existed lack them; plans and `/feature-dev:tdd` cite criteria by id) |
 | Acceptance criteria include at least one failure-path / error-state criterion | Should Address |
-| Body has a **QA Checklist** covering happy path + edge cases + error states | Should Address |
+| Body has a **QA Checklist** covering happy path + edge cases + empty states + error states | Should Address |
 | Body has a `## Non-Goals` section | Nice to Have (older specs lack it; the review brief's Out of scope group is read from it) |
 | **If frontmatter `repos:` has 2+ entries**: body has a `## Cross-Repo Contracts` section with endpoint(s), request/response shape, error codes, and breaking-change flag | Blocking |
 | **If tasks are present and frontmatter `repos:` has 2+ entries**: every task is tagged with `Repo:` | Should Address |

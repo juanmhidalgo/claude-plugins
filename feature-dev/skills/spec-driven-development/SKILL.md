@@ -70,7 +70,7 @@ Write a spec covering nine areas:
 5. **Project Structure** — Where source, tests, and docs live
 6. **Code Style** — One real snippet showing conventions
 7. **Testing Strategy** — Framework, location, coverage, test levels (the engineering view)
-8. **QA Checklist** — A separate, QA-facing `## QA Checklist` with `### Happy path`, `### Edge cases` and `### Error states` groups of `- [ ]` items, ticked (`- [x]`) by the user as they verify each one — `/feature-dev:cleanup` rescues the unticked ones. Distinct from the engineering-oriented Testing Strategy. Every error-state acceptance criterion gets a matching item under Error states.
+8. **QA Checklist** — A separate, QA-facing `## QA Checklist` with `### Happy path`, `### Edge cases`, `### Empty states` and `### Error states` groups of `- [ ]` items, ticked (`- [x]`) by the user as they verify each one — `/feature-dev:cleanup` rescues the unticked ones. Distinct from the engineering-oriented Testing Strategy. Every error-state acceptance criterion gets a matching item under Error states, and every view or response that can have nothing to show gets one under Empty states.
 9. **Boundaries** — Always do / Ask first / Never do
 
 Reframe vague requirements as testable success criteria. Ban these words from acceptance criteria unless you immediately define them concretely: **fast**, **slow**, **easy**, **simple**, **user-friendly**, **intuitive**, **seamless**, **better**, **improved**.
@@ -242,7 +242,7 @@ Before proceeding to implementation:
 - [ ] Spec covers all nine core areas, with scope settled by its own question before assumptions
 - [ ] User has reviewed and approved the spec
 - [ ] Success criteria live in a dedicated **Acceptance Criteria** section (not buried in Objective), each with a stable `AC-n` id, and include at least one failure/error-state criterion
-- [ ] A **QA Checklist** (`### Happy path` / `### Edge cases` / `### Error states`, each a list of `- [ ]` items) exists, distinct from the engineering Testing Strategy
+- [ ] A **QA Checklist** (`### Happy path` / `### Edge cases` / `### Empty states` / `### Error states`, each a list of `- [ ]` items) exists, distinct from the engineering Testing Strategy
 - [ ] Success criteria are specific and testable (no banned vague words without concrete definitions)
 - [ ] Boundaries (Always / Ask First / Never) are defined with one-line rationale per Never-do item
 - [ ] P0 list passes the cut-test (≤5 items, each truly required to solve the core problem)

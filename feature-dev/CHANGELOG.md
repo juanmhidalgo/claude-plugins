@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.32.1 (2026-10-02)
+
+### Changed
+- **`/feature-dev:spec` asks for empty states.** The QA Checklist gains an `### Empty states` group between Edge cases and Error states: no records yet, a filter that matches nothing, a first-time user, an absent optional relation. An empty state whose copy or response shape is decided in the spec also gets an AC. `spec-plan-validator`, the skill's checklist and `cleanup`'s QA rescue know the new group. **Why:** error states had their own group and AC rule, but "nothing to show" was left to the implementer, and it is the screen users see first.
+- **`/feature-dev:tdd` offers `/goal` for an unmet numeric target** (coverage percentage, latency or size budget, benchmark) once one more runner per gap has not closed it. The offer comes with the condition and the command that measures it. Only the user can start a goal, so the command offers it and never claims it is running.
+
+### Added
+- README **Needs** section: python3, a browser, `gh` (issue store only), and Claude Code 2.1.287 or later for the review band.
+- `feature-dev/.gitignore` also ignores the `tsconfig.json` Claude Code writes beside a hooks module loaded with `--plugin-dir`.
+
+
 ## 1.32.0 (2026-10-02)
 
 ### Changed

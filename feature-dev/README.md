@@ -224,6 +224,13 @@ Add the ones you want to your own `.claude/settings.json` (or
 "Bash(gh issue comment *)"
 ```
 
+## Needs
+
+- **python3** (standard library only) for `scripts/review_server.py` and `scripts/issue_spec.py`: the review page, artifact listing and cleanup.
+- **A browser** on the same machine for `/feature-dev:review`. Over SSH, `review_server.py url <artifact>` prints the URL to open with a port forward.
+- **`gh`**, authenticated, only for the GitHub Issue Store and for `cleanup`'s rescue to a PR comment.
+- **Claude Code 2.1.287 or later** for the review band. Everything else works without it.
+
 ## Installation
 
 ```bash

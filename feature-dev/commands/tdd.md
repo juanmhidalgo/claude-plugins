@@ -314,6 +314,7 @@ Each runner gates coverage on the lines it added, within its Verify scope. This 
 2. Compare against project thresholds (from config) or 80% minimum. If the project enforces a global threshold, run the Baseline's coverage command too: a drop versus its row is this run's; with no usable row (`not-run: slow`), a global threshold below its configured minimum is unattributable and handled as in Phase 3
 3. If below threshold: identify the uncovered paths and dispatch one more `tdd-runner` per meaningful gap, treating each as a new criterion. Do not write the tests inline
 4. If no coverage tool is configured, skip with a note
+5. **Numeric target → offer `/goal`.** When the spec or plan sets a numeric target this run did not meet (a coverage percentage above the project's threshold, a latency or size budget, a benchmark number), and one more `tdd-runner` per gap did not close it, do not loop on it here. In the Phase 6 report, offer the built-in `/goal` with the condition and the command that measures it, for example `/goal coverage of src/billing/ ≥ 90% as reported by pytest --cov=src/billing`. Claude Code then keeps working across turns until the condition holds. Only the user can start a goal, so offer it; never claim it is running.
 
 ## Phase 5: Lint and Format
 
