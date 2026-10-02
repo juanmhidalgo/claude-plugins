@@ -1,0 +1,18 @@
+{
+  "description": "retro: flag auto-memory files that may be stale at session start; /memory-check command",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash",
+            "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/memory-check-hook.sh"],
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  },
+  "modules": ["./register.ts"]
+}
