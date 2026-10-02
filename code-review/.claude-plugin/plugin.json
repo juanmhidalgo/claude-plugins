@@ -1,8 +1,22 @@
 {
   "name": "code-review",
   "description": "Comprehensive code review workflow: branch reviews, PR triage, false positive dismissal, and fix tracking",
-  "version": "3.4.0",
+  "version": "3.5.0",
   "author": {
     "name": "Juan M. Hidalgo"
+  },
+  "userConfig": {
+    "coverage_threshold": {
+      "type": "number",
+      "title": "Coverage threshold (%)",
+      "description": "Target used by /code-review:coverage-gate when CI configures no threshold for a category. Leave empty to keep the built-in defaults (55% all, 80% new, 65% modified) and to stop when CI has no coverage config at all.",
+      "min": 0,
+      "max": 100
+    },
+    "base_branch": {
+      "type": "string",
+      "title": "Default base branch",
+      "description": "Base branch for /code-review:coverage-gate when none is passed as an argument. Leave empty to detect it from origin/HEAD."
+    }
   }
 }

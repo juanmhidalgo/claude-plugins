@@ -34,9 +34,11 @@ Search `.github/workflows/*.yml` for coverage actions and extract thresholds.
 4. Extract threshold values from `with:` block
 5. Normalize all thresholds to percentages (0-100 scale)
 
-**If no coverage config found**: Skip the coverage gate entirely with a note.
+**Configured threshold**: `${user_config.coverage_threshold}` counts only if non-empty and numeric (an unset option may still read as a placeholder). CI-configured values always win over it.
 
-**Default thresholds** (when action exists but thresholds are partially configured):
+**If no coverage config found**: use the configured threshold for every category if set; otherwise skip the coverage gate entirely with a note.
+
+**Default thresholds** (when action exists but thresholds are partially configured, and no configured threshold is set):
 - `thresholdAll`: 55%
 - `thresholdNew`: 80%
 - `thresholdModified`: 65%
@@ -81,7 +83,7 @@ Also check `Makefile` / `package.json` scripts for existing coverage targets.
 2. Write tests targeting meaningful uncovered paths — skip trivial getters/setters, `__str__`, `__repr__`
 3. Re-run coverage to verify improvement
 4. Maximum **2 additional coverage cycles**
-5. If still below after 2 cycles: report remaining gaps, let user (or pipeline) decide
+5. If still below after 2 cycles: report remaining gaps, let user (or pipeline) decide. In an interactive session, offer the built-in `/goal` with the numeric target as its condition, so the user can opt into iterating until it is met
 
 ## Rationalization Defenses
 

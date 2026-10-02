@@ -49,6 +49,10 @@ hooks:
 - **Current branch**: !`git branch --show-current`
 - **Base branch argument**: $ARGUMENTS
 - **Working tree**: !`git status --short`
+- **Configured base branch**: `${user_config.base_branch}`
+- **Configured coverage threshold**: `${user_config.coverage_threshold}`
+
+A configured value counts only if it is non-empty and does not still read as a `user_config` placeholder; otherwise treat it as unset.
 
 ## Phase 1: Detect CI Coverage Configuration
 
@@ -58,7 +62,11 @@ hooks:
 4. Normalize thresholds to 0-100 percentage scale
 5. If `codecov/codecov-action` found, also check for `codecov.yml` at repo root
 
-**If NO coverage config found**: Report "No CI coverage configuration detected" and **STOP**.
+**If NO coverage config found**:
+- Configured coverage threshold set: use it for all three categories, report `Source: plugin userConfig (coverage_threshold)`, and continue
+- Unset: report "No CI coverage configuration detected" and **STOP**
+
+**If CI config leaves a category without a threshold**: use the configured coverage threshold when set, else the skill's default for that category. A CI-configured threshold always wins over the configured one.
 
 Report detected thresholds:
 
@@ -75,6 +83,7 @@ Source: [workflow file] ([action name])
 
 1. Determine base branch:
    - Use `$ARGUMENTS` if provided
+   - Else the configured base branch, if set
    - Otherwise detect: `git symbolic-ref refs/remotes/origin/HEAD --short` (strips `origin/` prefix)
 2. Categorize changed source files (exclude test files, `__init__.py`, configs, docs, migrations):
    - **New files**: `git diff --name-only --diff-filter=A <base>...HEAD`
@@ -132,7 +141,7 @@ If any files are below threshold:
 4. Maximum **2 additional coverage cycles**
 5. After each cycle, re-report the updated coverage table
 
-If still below threshold after 2 cycles: report remaining gaps and what would be needed to reach the threshold.
+If still below threshold after 2 cycles: report remaining gaps and what would be needed to reach the threshold. Then, because there is a numeric target, offer the built-in `/goal` to keep iterating past the 2-cycle cap until it is met, with the condition spelled out, e.g. `/goal coverage of path/to/file.py is at least 80% and the full test suite passes`. Offer it; do not set it yourself.
 
 ```
 ## Final Coverage Status
