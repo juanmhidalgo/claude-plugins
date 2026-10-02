@@ -182,6 +182,10 @@ Metrics:
 Backup: CLAUDE.md.backup-20260107-133412
 ```
 
+## Needs
+
+- Nothing beyond Claude Code: no `gh`, MCP servers, browser, or external CLIs
+
 ## Installation
 
 ### From Marketplace

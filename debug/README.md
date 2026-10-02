@@ -32,7 +32,8 @@ When anything unexpected happens:
 5. **GUARD** — Write a regression test
 6. **RESUME** — Only after all verification passes
 
-## Requirements
+## Needs
 
-- Git repository (for bisect and history analysis)
-- Test runner (npm test, pytest, etc.)
+- A git repository (for bisect and history analysis)
+- The project's test runner (npm test, pytest, etc.)
+- No `gh`, MCP servers, or browser

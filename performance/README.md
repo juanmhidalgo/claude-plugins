@@ -31,7 +31,8 @@ Performance optimization workflow with measure-first profiling, bottleneck ident
 4. **Verify** — Measure again, confirm improvement
 5. **Guard** — Add monitoring to prevent regression
 
-## Requirements
+## Needs
 
-- Git repository (for change analysis)
-- Build tools (npm, pip, etc.)
+- A git repository (for change analysis)
+- The project's build and profiling tools (npm, pip, etc.)
+- No `gh`, MCP servers, or browser

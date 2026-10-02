@@ -54,8 +54,10 @@ probes they propose can be run afterwards from the main session. `work` starts f
 
 Epics, spikes, and new features are out of scope — use `/feature-dev:spec`.
 
-## Requirements
+## Needs
 
-- `gh` CLI installed and authenticated
-- GitHub token with repo scope
+- `gh`, installed and authenticated with repo scope
+- `jq`
 - For `verify`, a local checkout of the repo the issues belong to; sibling repos checked out next to it are used as consumer evidence
+- Optional: a ClickUp MCP server named `clickup-local`, used by `work` to link the PR to a task
+- No browser

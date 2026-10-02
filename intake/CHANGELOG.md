@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.3] - 2026-10-02
+
+### Changed
+- README gains a **Needs** section listing prerequisites (`gh`, MCP servers, browser, external CLIs).
+
 ## [0.9.2] - 2026-09-22
 
 ### Fixed

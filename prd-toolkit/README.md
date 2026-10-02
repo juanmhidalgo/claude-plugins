@@ -105,10 +105,11 @@ PRDs focus on **observable behavior**, not implementation details:
 | Session stays active for 24 hours | Store JWT in Redis with 24h TTL |
 | Error shows retry option | Use exponential backoff retry |
 
-## Requirements
+## Needs
 
-- `gh` CLI installed and authenticated (for GitHub features)
-- ClickUp API token (for ClickUp publishing, optional)
+- `gh`, installed and authenticated (for GitHub features)
+- Optional, for ClickUp publishing: `CLICKUP_API_TOKEN` (used with `curl`), or a ClickUp MCP server (see below)
+- No browser
 
 ## Optional: ClickUp MCP integration
 

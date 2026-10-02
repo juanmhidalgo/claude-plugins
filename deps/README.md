@@ -41,11 +41,12 @@ Dependency and runtime upgrade risk assessment for Python projects. Answers "wha
 - **No recalled release notes.** Versions, CVE ids and changelog entries come from a fetched
   page or a command's output in that run, or they are reported as UNKNOWN.
 
-## Requirements
+## Needs
 
 - A Python project (uv, poetry, pip-tools, pipenv, or plain pip)
 - Network access for PyPI metadata and changelogs
 - Optional: `pip-audit` for the CVE section, a coverage artifact for the coverage section
+- No `gh`, MCP servers, or browser
 
 ## Related
 
