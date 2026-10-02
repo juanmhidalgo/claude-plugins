@@ -5,6 +5,7 @@ paths:
   - "**/agents/*.md"
   - "**/skills/**/SKILL.md"
   - "**/.claude-plugin/plugin.json"
+  - "**/hooks/hooks.json"
   - ".claude-plugin/marketplace.json"
 ---
 
@@ -327,71 +328,24 @@ Use the Agent tool with `subagent_type: "Explore"` to understand:
 
 ## Evaluating an External Plugin Before Replicating It
 
-<external_plugin_evaluation>
-
-**Read its scripts. Never run them.** Auto mode blocks executing code fetched from
-a third-party repo (`[Code from External]`) and it is right to — you are evaluating
-an approach, not adopting a binary. Reproduce what the script does with your own
-commands instead; that is the same work, minus the trust.
-
-**Verify its assumptions against local ground truth before inheriting them.** The
-prose in an external plugin describes what the author believed, not what is true
-now. Check each load-bearing assumption against real data on this machine before
-any of it reaches your version — a plugin that reads Claude Code session logs, for
-example, encodes a path, classifies entry types, and counts turns, and every one of
-those is checkable in seconds against `~/.claude/projects/`.
-
-**The value is the domain knowledge, not the file.** What is worth taking is the
-schema facts, the flags, the edge cases the author hit. What is not worth taking is
-the templates, the depth tiers, and the README — those are the parts that will drift
-and that you would then own. Prefer a small script plus a lean skill over a port.
-
-**Installing it is not the same as forking it.** A published marketplace plugin can
-be installed and trialled directly. Copy it into this repo only when you intend to
-diverge from it, and say in the CHANGELOG what you changed and why.
-
-</external_plugin_evaluation>
+Before copying or porting a third-party plugin, read `.claude/docs/evaluating-external-plugins.md`.
 
 ## Local Testing
 
-<local_testing>
+To load plugins from the working tree with `--plugin-dir`, read `.claude/docs/plugin-local-testing.md` first (pointing it at the repo root is a silent no-op).
 
-Load plugins straight from the working tree with `--plugin-dir`, instead of
-installing from the marketplace. Requires Claude Code 2.1.265+.
+## Mods
 
-**Never point `--plugin-dir` at the repo root.** A folder fans out into one
-plugin per child *only when the folder itself has no `.claude-plugin/`*. This
-repo's root has `.claude-plugin/marketplace.json`, so `--plugin-dir .` loads the
-whole repo as a **single** plugin with 0 commands, 0 skills, 0 agents — and
-still reports `Status: loaded`. The no-op is silent.
+<mods>
 
-Load the plugins under test by relative path:
+A mod is a hooks module: `hooks/hooks.json` lists it under `"modules"` (e.g. `"modules": ["./register.js"]`). Docs: https://code.claude.com/docs/en/plugins/mods/overview
 
-```bash
-claude --plugin-dir code-review --plugin-dir discuss
-```
+- **In-process and unsandboxed.** The module runs inside Claude Code with the user's permissions: files, processes, network, secrets, every prompt and tool call. Write it as if it were installed on a stranger's machine, because this repo is public.
+- **`$.store` is shared by every session on the machine, across all projects.** Store metadata only (counts, timestamps, ids, flags). Never prompt text, file contents, or full paths.
+- **Before publishing:** `claude plugin validate --strict <plugin>` (warnings fail) and `claude plugin test <plugin>` (runs `*.test.ts`).
+- **Requires Claude Code ≥ 2.1.287.** Hooks run everywhere, but panes and bands don't draw in the VS Code extension or `claude -p`. Anything a mod shows needs a text fallback (a transcript line or a command's text reply).
 
-Or every plugin in the repo (zsh and bash):
-
-```bash
-flags=(); for d in */.claude-plugin/plugin.json; do flags+=(--plugin-dir "${d%%/*}"); done
-claude "${flags[@]}"
-```
-
-Confirm what actually loaded before trusting a test run — session-only plugins
-appear under `Session-only plugins` as `<name>@inline`:
-
-```bash
-claude "${flags[@]}" plugin list
-claude --plugin-dir code-review plugin details code-review   # inventory + token cost
-```
-
-The installed copy of the same plugin stays enabled alongside the inline one, so
-a name can be live two or three times over (user scope, project scope, inline).
-When a command's behaviour is ambiguous, `plugin disable <name>@<marketplace>`
-the installed copy for the duration of the test.
-
-</local_testing>
+</mods>
 
 ## Pre-Commit Checklist
 
