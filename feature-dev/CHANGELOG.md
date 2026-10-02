@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.34.0 (2026-10-02)
+
+### Changed
+- **Dismiss on the review band persists across sessions.** Dismissed artifacts are written as name → mtime to `.feature-dev/band-dismissed.json` in the repository (gitignored with the rest of `.feature-dev/`), not to `$.store`, which every project on the machine shares. An artifact stays hidden in every session until its mtime changes. **Dismiss all** persists every listed artifact. Each rescan prunes entries whose artifact is gone or has changed. **Why:** Dismiss lived only in the session, so every new session offered the same SPEC/PLAN files again.
+- **Specs with `status: approved` are not listed.** That is what the `approve` verdict of `/feature-dev:review` writes. Only the frontmatter is parsed (first 4 KiB), and only for an artifact the band would otherwise show.
+- **`review_server.py purge` forgets the Dismiss entries of the artifacts it deletes**, and removes the file when no entry is left. An entry stays while another file of the same name remains. A symlinked, git-tracked or unreadable Dismiss file is left alone and reported. The file is replaced atomically (temp file, then rename). Argument validation is unchanged: one invalid argument still deletes nothing. `--dry-run` prints `would update` / `would delete` for it. `cleanup.md` documents the new output line.
+
+### Added
+- **Clean up button** on the band's collapsed row and in the expanded view. It runs `/feature-dev:cleanup` with no arguments, the same way **Open review** runs `/feature-dev:review`. Cleanup is interactive: it lists its own candidates and asks before deleting. The band itself never deletes a file.
+- Band tests: Dismiss writes the file, a fresh session hides what an earlier one dismissed, a changed mtime brings it back and prunes the entry, pruning of a missing artifact, a malformed file, a merge with another session's write, Dismiss all persisting, Clean up from both views, approved specs hidden. Purge tests for the Dismiss file: update, removal when empty, dry run, a same-name copy kept, unreadable and symlinked files left alone.
+
+### Known limits
+- The mods file API has no rename, so the band writes the Dismiss file read-merge-write. Two sessions of one repository dismissing at the same moment can lose one entry, and that row comes back. A torn write reads as nothing dismissed.
+
 ## 1.33.0 (2026-10-02)
 
 ### Changed

@@ -15,7 +15,10 @@ declare module 'claude-code' {
     'feature-dev': {
       /** Artifacts not reviewed since their last change. */
       pending: PendingArtifact[]
-      /** name → mtimeMs at dismissal; hidden until the mtime changes. */
+      /**
+       * name → mtimeMs at dismissal; hidden until the mtime changes. This
+       * session's copy of `.feature-dev/band-dismissed.json`, which persists it.
+       */
       dismissed: Record<string, number>
       /** `$.clock.now()` at the first session.start of this session; 0 until then. */
       sessionStart: number

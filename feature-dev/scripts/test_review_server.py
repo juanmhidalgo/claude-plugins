@@ -654,6 +654,62 @@ class PurgeTest(unittest.TestCase):
         self.assertFalse((self.root / "PLAN-foo.md").exists())
         self.assertFalse((self.reviews / f"foo-{self.TS}-2.md").exists())
 
+    def write_dismissed(self, dismissed: dict) -> Path:
+        path = self.root / ".feature-dev" / "band-dismissed.json"
+        path.write_text(json.dumps({"version": 1, "dismissed": dismissed}), encoding="utf-8")
+        return path
+
+    def test_purged_artifact_leaves_the_band_dismiss_file(self):
+        path = self.write_dismissed({"SPEC-foo.md": 1000, "PLAN-foo.md": 2000})
+        result = self.purge("--artifact", "SPEC-foo.md")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("updated .feature-dev/band-dismissed.json (forgot 1 dismissed)", result.stdout)
+        self.assertEqual(json.loads(path.read_text(encoding="utf-8"))["dismissed"], {"PLAN-foo.md": 2000})
+        self.assertEqual([p.name for p in path.parent.iterdir() if p.name.endswith(".tmp")], [])
+
+    def test_band_dismiss_file_goes_when_every_entry_is_purged(self):
+        path = self.write_dismissed({"SPEC-foo.md": 1000, "PLAN-foo.md": 2000})
+        dry = self.purge("--artifact", "SPEC-foo.md", "--artifact", "PLAN-foo.md", "--dry-run")
+        self.assertIn("would delete .feature-dev/band-dismissed.json (forget 2 dismissed)", dry.stdout)
+        self.assertTrue(path.exists())
+        result = self.purge("--artifact", "SPEC-foo.md", "--artifact", "PLAN-foo.md")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("deleted .feature-dev/band-dismissed.json", result.stdout)
+        self.assertFalse(path.exists())
+
+    def test_band_dismiss_entry_stays_while_a_copy_of_the_name_remains(self):
+        specs = self.root / ".feature-dev" / "specs"
+        specs.mkdir(parents=True)
+        (specs / "SPEC-foo.md").write_text(SPEC, encoding="utf-8")
+        path = self.write_dismissed({"SPEC-foo.md": 1000})
+        result = self.purge("--artifact", "SPEC-foo.md")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn("band-dismissed", result.stdout)
+        self.assertEqual(json.loads(path.read_text(encoding="utf-8"))["dismissed"], {"SPEC-foo.md": 1000})
+
+    def test_band_dismiss_file_untouched_without_artifacts_or_when_unreadable(self):
+        path = self.write_dismissed({"SPEC-foo.md": 1000})
+        before = path.read_text(encoding="utf-8")
+        result = self.purge("--slug", "foo")
+        self.assertNotIn("band-dismissed", result.stdout)
+        self.assertEqual(path.read_text(encoding="utf-8"), before)
+        path.write_text("{not json", encoding="utf-8")
+        result = self.purge("--artifact", "SPEC-foo.md")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("skipped .feature-dev/band-dismissed.json: unreadable", result.stdout)
+        self.assertEqual(path.read_text(encoding="utf-8"), "{not json")
+
+    def test_symlinked_band_dismiss_file_is_left_alone(self):
+        outside = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, outside)
+        target = outside / "keep.json"
+        target.write_text(json.dumps({"version": 1, "dismissed": {"SPEC-foo.md": 1}}), encoding="utf-8")
+        (self.root / ".feature-dev" / "band-dismissed.json").symlink_to(target)
+        result = self.purge("--artifact", "SPEC-foo.md")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("skipped .feature-dev/band-dismissed.json: is a symlink", result.stdout)
+        self.assertIn("SPEC-foo.md", target.read_text(encoding="utf-8"))
+
     def test_missing_slug_data_is_reported_not_an_error(self):
         result = self.purge("--slug", "nothing-here", "--pointer", "nothing-here")
         self.assertEqual(result.returncode, 0, result.stderr)

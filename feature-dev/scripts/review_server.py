@@ -50,6 +50,10 @@ history folder and its review files (exact slug, never a prefix); ``--pointer``
 removes that slug's server pointer. Every argument is validated before anything
 is deleted: one invalid argument deletes nothing and exits 2. Git-tracked files
 are skipped and reported. ``--dry-run`` prints the plan without deleting.
+Once an artifact is deleted, its entry in the review band's Dismiss file
+(``.feature-dev/band-dismissed.json``) goes too, and the file itself when no
+entry is left; a symlinked, tracked or unreadable Dismiss file is left alone
+and reported.
 
 A running server answers a token-free ``GET /alive`` with 204 without resetting
 its idle timer, so a liveness probe never keeps a review open.
@@ -87,6 +91,7 @@ ARTIFACT_NAME = re.compile(r"^(SPEC|PLAN)-[A-Za-z0-9._-]+\.md$")
 DEFAULT_ARTIFACTS_DIR = ".feature-dev"
 KIND_DIRS = {"SPEC": "specs", "PLAN": "plans"}
 SAFE_SLUG = re.compile(r"^[A-Za-z0-9._-]+$")
+BAND_DISMISSED = "band-dismissed.json"
 REVIEW_SUFFIX = r"-\d{8}T\d{6}Z(?:-\d+)?\.md"
 
 
@@ -728,11 +733,15 @@ def purge(
         return rel + "/" if path.is_dir() and not path.is_symlink() else rel
 
     failed = False
+    named = {root / given for given in artifacts}
+    gone: set[Path] = set()
     for path in delete:
         label = show(path)
         is_dir = path.is_dir() and not path.is_symlink()
         if dry_run:
             print(f"would delete {label}")
+            if path in named:
+                gone.add(path)
             continue
         try:
             if is_dir:
@@ -747,9 +756,73 @@ def purge(
             failed = True
             continue
         print(f"deleted {label}")
+        if path in named:
+            gone.add(path)
     for path, reason in skip:
         print(f"skipped {show(path)}: {reason}")
+    line = forget_dismissed(root, folder, gone, dry_run)
+    if line is not None:
+        print(line)
+        failed = failed or line.startswith("failed ")
     return 1 if failed else 0
+
+
+def band_dismissed_file(root: Path) -> Path:
+    """The review band's persistent Dismiss state: ``{"version": 1, "dismissed": {name: mtimeMs}}``."""
+    return root / ".feature-dev" / BAND_DISMISSED
+
+
+def forget_dismissed(root: Path, folder: str, deleted: set[Path], dry_run: bool) -> str | None:
+    """Drop the band's Dismiss entries of the artifacts ``purge`` deleted.
+
+    An entry stays while another artifact of the same name remains (a legacy
+    copy at the root, say). The file is removed once no entry is left, and
+    replaced atomically (temp file, then rename) otherwise. Returns the line
+    to print, or None when there is nothing to do. Never raises: the
+    deletions already happened.
+    """
+    if not deleted:
+        return None
+    path = band_dismissed_file(root)
+    label = str(path.relative_to(root))
+    if path.is_symlink():
+        return f"skipped {label}: is a symlink"
+    if not path.is_file():
+        return None
+    if not _inside(path, root / ".feature-dev"):
+        return f"skipped {label}: resolves outside .feature-dev"
+    if is_tracked(root, label):
+        return f"skipped {label}: tracked by git"
+    try:
+        dismissed = json.loads(path.read_text(encoding="utf-8"))["dismissed"]
+        if not isinstance(dismissed, dict):
+            raise TypeError("'dismissed' is not an object")
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        return f"skipped {label}: unreadable ({exc})"
+    places = [root / folder / d for d in KIND_DIRS.values()] + [root]
+    remaining = {
+        entry.name
+        for place in places if place.is_dir()
+        for entry in place.iterdir()
+        if ARTIFACT_NAME.fullmatch(entry.name) and entry.is_file() and entry not in deleted
+    }
+    names = {p.name for p in deleted}
+    drop = sorted(n for n in dismissed if n in names and n not in remaining)
+    if not drop:
+        return None
+    kept = {n: v for n, v in dismissed.items() if n not in drop}
+    if dry_run:
+        return f"would {'update' if kept else 'delete'} {label} (forget {len(drop)} dismissed)"
+    try:
+        if not kept:
+            path.unlink()
+            return f"deleted {label}"
+        temp = path.with_name(f".{BAND_DISMISSED}.{os.getpid()}.tmp")
+        temp.write_text(json.dumps({"version": 1, "dismissed": kept}, indent=2) + "\n", encoding="utf-8")
+        os.replace(temp, path)
+    except OSError as exc:
+        return f"failed {label}: {exc}"
+    return f"updated {label} (forgot {len(drop)} dismissed)"
 
 
 def main(argv: list[str] | None = None) -> int:

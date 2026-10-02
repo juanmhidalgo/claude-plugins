@@ -92,11 +92,13 @@ Specs and plans written at the project root before 1.32.0 are still found: every
 In the interactive terminal, a band above the prompt lists each `SPEC-*.md` / `PLAN-*.md` that changed after its latest browser review: `<name> · not reviewed since last change`, with two buttons:
 
 - **Open review** runs `/feature-dev:review <path>`, the same as typing it, so the verdict is applied as usual. While a review server for that artifact is running, a link to its page replaces the button.
-- **Dismiss** hides that artifact until it changes again, for the rest of this session.
+- **Dismiss** hides that artifact until it changes again, in this session and the next ones. Dismissals are kept per repository in `.feature-dev/band-dismissed.json` (artifact name and mtime; gitignored with the rest of `.feature-dev/`). An entry is dropped once its artifact is gone or has changed, and `/feature-dev:cleanup` drops the entries of the artifacts it deletes.
 
-Only recent changes are listed: an artifact modified within the last **`review_band_window_hours`** (plugin option, default `24`, minimum `1`), or at any point since this session started. An older file that was never reviewed in the browser stays out of the band. It comes back the next time it is edited.
+Only recent changes are listed: an artifact modified within the last **`review_band_window_hours`** (plugin option, default `24`, minimum `1`), or at any point since this session started. An older file that was never reviewed in the browser stays out of the band. It comes back the next time it is edited. A SPEC whose frontmatter says `status: approved` (what the `approve` verdict of `/feature-dev:review` writes) is not listed either.
 
-With two or more pending artifacts the band shows a single row: `<N> not reviewed`, with **Open `<name>`** for the most recently modified one, **Show all** and **Dismiss all**. **Show all** lists one row per artifact, as above, with a **Collapse** button. The expanded view lasts for the session. **Dismiss all** works like **Dismiss** on every listed artifact.
+With two or more pending artifacts the band shows a single row: `<N> not reviewed`, with **Open `<name>`** for the most recently modified one, **Show all**, **Dismiss all** and **Clean up**. **Show all** lists one row per artifact, as above, with **Collapse** and **Clean up** buttons. The expanded view lasts for the session. **Dismiss all** works like **Dismiss** on every listed artifact. **Clean up** runs `/feature-dev:cleanup`, which lists its own candidates and asks before deleting anything; the band itself never deletes a file.
+
+Dismissals are a plain file write (the mods API has no rename): two sessions of the same repository dismissing at the same moment can lose one entry, and that row shows up again. A file left unreadable reads as nothing dismissed.
 
 The band is rescanned at the end of every turn of the main conversation (not of subagents) and at session start. A review counts only if its `artifact:` names that exact file, so a SPEC review never clears the PLAN of the same slug. The `status: approved` edit that `/feature-dev:review` makes itself does not count as a change.
 
