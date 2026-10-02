@@ -13,6 +13,8 @@ type World = {
   runs: { command: string; args: string }[]
   /** Where the mocked clock starts; 0 keeps every test mtime inside the window. */
   now?: number
+  /** Folders that exist but fail to list (unreadable, I/O error). */
+  listFails?: Set<string>
 }
 
 const BAND = {
@@ -54,11 +56,17 @@ function world(on: On, w: World): MockClock {
   on('session.root', () => ({ value: ROOT }))
   on('session.start', ($, e) => ({ cwd: e.cwd }))
   on('turn.complete', () => ({ text: '' }))
-  on('fs.list', ($, e) => ({
-    value: Object.entries(w.files)
-      .filter(([p]) => dirOf(p) === e.path)
-      .map(([p, f]) => ({ name: p.slice(p.lastIndexOf('/') + 1), kind: 'file' as const, size: f.text.length, mtimeMs: f.mtimeMs, isLink: false })),
+  on('fs.exists', ($, e) => ({
+    value: w.listFails?.has(e.path) === true || Object.keys(w.files).some(p => p === e.path || p.startsWith(`${e.path}/`)),
   }))
+  on('fs.list', ($, e) => {
+    if (w.listFails?.has(e.path)) return { deny: `EACCES ${e.path}` }
+    return {
+      value: Object.entries(w.files)
+        .filter(([p]) => dirOf(p) === e.path)
+        .map(([p, f]) => ({ name: p.slice(p.lastIndexOf('/') + 1), kind: 'file' as const, size: f.text.length, mtimeMs: f.mtimeMs, isLink: false })),
+    }
+  })
   on('fs.write', ($, e) => {
     w.files[e.path] = { text: e.text, mtimeMs: 0 }
     return { value: undefined }
@@ -104,6 +112,9 @@ describe('review band', () => {
     expect((await ui.find({ type: 'Text', text: 'not reviewed since last change' }))?.text).toContain('SPEC-billing.md')
     expect(await ui.find({ key: 'open:SPEC-billing.md' })).toBeDefined()
     expect(await ui.find({ key: 'dismiss:SPEC-billing.md' })).toBeDefined()
+    // A single pending artifact still offers the cleanup.
+    await ui.press({ key: 'cleanup' })
+    expect(w.runs).toEqual([{ command: 'feature-dev:cleanup', args: '' }])
   })
 
   test('draws nothing when the latest review is newer than the artifact', async ($, on) => {
@@ -413,6 +424,29 @@ describe('review band', () => {
     expect(dismissedOnDisk(w)).toEqual(PERSISTED)
     const ui = await $.ui.mount(BAND)
     expect(await ui.find({ type: 'Button' })).toBeUndefined()
+  })
+
+  test('keeps dismissals when an artifact folder fails to list', async ($, on) => {
+    const specs = `${ROOT}/.feature-dev/specs`
+    const stored = { version: 1, dismissed: { 'SPEC-billing.md': 1000, 'SPEC-gone.md': 500 } }
+    const w: World = {
+      runs: [],
+      listFails: new Set([specs]),
+      files: {
+        [`${specs}/SPEC-billing.md`]: { text: spec(), mtimeMs: 1000 },
+        [DISMISSED]: { text: JSON.stringify(stored), mtimeMs: 0 },
+      },
+    }
+    world(on, w)
+    await endTurn($)
+    // The folder's contents are unknown, so nothing is pruned, not even SPEC-gone.md.
+    expect(dismissedOnDisk(w)).toEqual(stored)
+    // Once it lists again, the missing artifact's entry goes and the present one stays hidden.
+    w.listFails = new Set()
+    await endTurn($)
+    expect(dismissedOnDisk(w)).toEqual(PERSISTED)
+    const ui = await $.ui.mount(BAND)
+    expect(await ui.find({ key: 'open:SPEC-billing.md' })).toBeUndefined()
   })
 
   test('a malformed dismiss file reads as nothing dismissed', async ($, on) => {

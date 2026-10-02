@@ -666,9 +666,9 @@ def plan_purge(
     base = root / ".feature-dev"
     if (slugs or pointers) and base.is_symlink():
         raise PurgeError(f"{base} is a symlink")
-    for folder in (base / "history", base / "reviews"):
-        if (slugs or pointers) and folder.is_symlink():
-            raise PurgeError(f"{folder} is a symlink")
+    for data_dir in (base / "history", base / "reviews"):
+        if (slugs or pointers) and data_dir.is_symlink():
+            raise PurgeError(f"{data_dir} is a symlink")
 
     def claim(path: Path) -> None:
         if path.is_symlink():
@@ -682,13 +682,13 @@ def plan_purge(
             delete.append(path)
 
     for slug in slugs:
-        folder = history_dir(root, slug)
+        history = history_dir(root, slug)
         found = False
-        if folder.is_symlink():
-            raise PurgeError(f"{folder} is a symlink")
-        if folder.is_dir():
+        if history.is_symlink():
+            raise PurgeError(f"{history} is a symlink")
+        if history.is_dir():
             found = True
-            for current, dirs, files in os.walk(folder, topdown=False, followlinks=False):
+            for current, dirs, files in os.walk(history, topdown=False, followlinks=False):
                 here = Path(current)
                 for entry in sorted(files) + sorted(d for d in dirs if (here / d).is_symlink()):
                     claim(here / entry)
@@ -703,7 +703,7 @@ def plan_purge(
                     found = True
                     claim(entry)
         if not found:
-            skip.append((folder, f"no review data for slug {slug}"))
+            skip.append((history, f"no review data for slug {slug}"))
     for slug in pointers:
         path = url_file(root, slug)
         if path.is_symlink() or path.exists():

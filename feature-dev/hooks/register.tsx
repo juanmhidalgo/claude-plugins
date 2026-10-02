@@ -121,10 +121,23 @@ function baseName(path: string): string {
 }
 
 async function list($: EngineInterface, dir: string): Promise<readonly FsEntry[]> {
+  return (await listChecked($, dir)).entries
+}
+
+/**
+ * Lists `dir`; `ok` is false when the listing failed for a folder that is
+ * there (unreadable, an I/O error), so its contents are unknown. A folder
+ * that does not exist lists as empty and ok: nothing is in it.
+ */
+async function listChecked($: EngineInterface, dir: string): Promise<{ entries: readonly FsEntry[]; ok: boolean }> {
   try {
-    return await $.fs.list(dir)
+    return { entries: await $.fs.list(dir), ok: true }
   } catch {
-    return []
+    const isMissing = await $.fs.exists(dir).then(
+      exists => !exists,
+      () => false,
+    )
+    return { entries: [], ok: isMissing }
   }
 }
 
@@ -188,6 +201,8 @@ type Scan = {
   pending: PendingArtifact[]
   /** Every artifact found, recent or not: name → mtimeMs. */
   existing: Map<string, number>
+  /** False when an artifact folder that exists could not be listed: `existing` is partial. */
+  isComplete: boolean
 }
 
 /**
@@ -211,8 +226,11 @@ async function scan($: EngineInterface): Promise<Scan> {
   const existing = new Map<string, number>()
   const pending: PendingArtifact[] = []
 
+  let isComplete = true
   for (const dir of paths.artifactDirs) {
-    for (const entry of await list($, dir)) {
+    const { entries, ok } = await listChecked($, dir)
+    if (!ok) isComplete = false
+    for (const entry of entries) {
       const { name } = entry
       if (entry.kind !== 'file' || !ARTIFACT_NAME.test(name) || HISTORY_COPY.test(name) || existing.has(name)) continue
       existing.set(name, entry.mtimeMs)
@@ -244,23 +262,22 @@ async function scan($: EngineInterface): Promise<Scan> {
       pending.push({ name, path, mtimeMs: entry.mtimeMs, ...(url ? { url } : {}) })
     }
   }
-  return { pending, existing }
+  return { pending, existing, isComplete }
 }
 
 async function refresh($: EngineInterface): Promise<void> {
   try {
-    const { pending, existing } = await scan($)
+    const { pending, existing, isComplete } = await scan($)
     const { dismissedFile } = await artifactPaths($)
     const stored = await readDismissed($, dismissedFile)
     // Prune what can never match again: an artifact that is gone, or one
-    // whose mtime moved on since it was dismissed.
-    const kept = Object.fromEntries(Object.entries(stored).filter(([name, mtimeMs]) => existing.get(name) === mtimeMs))
+    // whose mtime moved on since it was dismissed. Only after every artifact
+    // folder listed: a folder that failed to list says nothing about its files.
+    const isLive = ([name, mtimeMs]: [string, number]) => !isComplete || existing.get(name) === mtimeMs
+    const kept = Object.fromEntries(Object.entries(stored).filter(isLive))
     if (!sameDismissed(stored, kept)) await writeDismissed($, dismissedFile, kept).catch(() => undefined)
     // A Dismiss of this session whose write failed still holds here.
-    await update($, dismissedAtom, session => ({
-      ...Object.fromEntries(Object.entries(session).filter(([name, mtimeMs]) => existing.get(name) === mtimeMs)),
-      ...kept,
-    }))
+    await update($, dismissedAtom, session => ({ ...Object.fromEntries(Object.entries(session).filter(isLive)), ...kept }))
     await update($, pendingAtom, () => pending)
   } catch {
     // A scan that fails leaves the last band in place rather than flashing it away.
@@ -337,7 +354,15 @@ export const register: Register = (on, options) => {
           onPress={() => openReview($, p.path).catch(err => $.ui.toast(`Could not open the review: ${String(err)}`))}
         />
       )
-    const row = (p: PendingArtifact) => (
+    /** Hands off to /feature-dev:cleanup, which asks before deleting anything. One per band. */
+    const cleanupButton = (
+      <Button
+        key="cleanup"
+        label="Clean up"
+        onPress={() => openCleanup($).catch(err => $.ui.toast(`Could not start the cleanup: ${String(err)}`))}
+      />
+    )
+    const row = (p: PendingArtifact, withCleanup = false) => (
       <Box key={`row:${p.name}`} flexDirection="row" gap={1}>
         <Text wrap="truncate-middle">{p.name} · not reviewed since last change</Text>
         {openOrLink(p, p.name, 'Open review', 'Review page')}
@@ -346,18 +371,11 @@ export const register: Register = (on, options) => {
           label="Dismiss"
           onPress={() => dismiss($, [p]).catch(err => $.ui.toast(`Dismiss lasts this session only: ${String(err)}`))}
         />
+        {withCleanup ? cleanupButton : null}
       </Box>
     )
-    if (rows.length === 1) return <Box flexDirection="column">{rows.map(row)}</Box>
-
-    /** Hands off to /feature-dev:cleanup, which asks before deleting anything. */
-    const cleanupButton = (
-      <Button
-        key="cleanup"
-        label="Clean up"
-        onPress={() => openCleanup($).catch(err => $.ui.toast(`Could not start the cleanup: ${String(err)}`))}
-      />
-    )
+    const only = rows.length === 1 ? rows[0] : undefined
+    if (only !== undefined) return <Box flexDirection="column">{row(only, true)}</Box>
 
     const expanded = await read($, expandedAtom)
     if (expanded) {
@@ -368,7 +386,7 @@ export const register: Register = (on, options) => {
             <Button key="collapse" label="Collapse" onPress={() => update($, expandedAtom, () => false)} />
             {cleanupButton}
           </Box>
-          {rows.map(row)}
+          {rows.map(p => row(p))}
         </Box>
       )
     }
