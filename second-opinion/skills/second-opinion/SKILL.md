@@ -44,6 +44,17 @@ You are gathering context and asking an external AI for a second opinion.
 
 ## Step 0: Select backend
 
+Enabled backends (plugin `userConfig`; change them with `/plugin configure second-opinion`):
+
+| Backend | Enabled |
+|---------|---------|
+| codex | `${user_config.enable_codex}` |
+| gemini | `${user_config.enable_gemini}` |
+| copilot | `${user_config.enable_copilot}` |
+| claude | `${user_config.enable_claude}` |
+
+A backend is disabled only when its value reads `false`. Any other value, including an unsubstituted placeholder, means enabled.
+
 Parse `$ARGUMENTS` for `--backend <name>` or infer from context:
 
 | Flag / keyword | Script |
@@ -52,7 +63,9 @@ Parse `$ARGUMENTS` for `--backend <name>` or infer from context:
 | `--backend gemini` or mentions "gemini" or "google" | `${CLAUDE_PLUGIN_ROOT}/scripts/ask-gemini.sh` |
 | `--backend copilot` or mentions "copilot" or "github" | `${CLAUDE_PLUGIN_ROOT}/scripts/ask-copilot.sh` |
 | `--backend claude` or mentions "claude" or "anthropic" | `${CLAUDE_PLUGIN_ROOT}/scripts/ask-claude.sh` |
-| No preference specified | Default to `${CLAUDE_PLUGIN_ROOT}/scripts/ask-codex.sh` |
+| No preference specified | The first enabled backend in the order codex, gemini, copilot, claude |
+
+If the requested backend is disabled, do not run its script: say it is disabled in the plugin config and name the enabled ones. If none is enabled, stop and point to `/plugin configure second-opinion`.
 
 Remove the `--backend` flag from arguments before continuing to Step 1.
 

@@ -13,25 +13,21 @@ The `/second-opinion` command gathers relevant context from your codebase (diffs
 | **Copilot** | `copilot` | GitHub-aware reviews |
 | **Claude** | `claude` | Alternative Claude perspective (different session) |
 
-## Prerequisites
+## Needs
 
-Install at least one backend CLI:
+At least one backend CLI, installed and authenticated (API key or the CLI's own login):
 
 ```bash
-# OpenAI Codex
-npm i -g @openai/codex
-
-# Google Gemini CLI
-npm i -g @anthropic-ai/gemini
-
-# GitHub Copilot CLI
-npm i -g @anthropic-ai/copilot
-
-# Claude Code (you likely already have this)
-npm i -g @anthropic-ai/claude-code
+npm i -g @openai/codex              # Codex
+npm i -g @google/gemini-cli         # Gemini
+npm i -g @github/copilot            # Copilot (also needs `gh auth login` or GITHUB_TOKEN)
+npm i -g @anthropic-ai/claude-code  # Claude (you likely already have this)
 ```
 
-Each backend requires its own authentication (API keys or CLI login).
+- `jq`, for the hook that strips the scripts' progress logs (without it the logs stay, nothing breaks)
+- No MCP servers or browser
+
+Turn off backends you do not have with `/plugin configure second-opinion` (one toggle per CLI, all on by default). A disabled backend is never called, and with no `--backend` the first enabled one is used.
 
 ## Installation
 
