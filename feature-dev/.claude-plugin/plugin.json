@@ -1,7 +1,7 @@
 {
   "name": "feature-dev",
   "description": "Feature development workflows: spec-driven development, test-driven development with coverage gates, and parallel codebase exploration",
-  "version": "1.32.1",
+  "version": "1.33.0",
   "types": "./types/index.d.ts",
   "userConfig": {
     "review_band": {
@@ -9,6 +9,13 @@
       "title": "Review band",
       "description": "Show the band above the prompt that lists specs and plans changed since their last browser review",
       "default": true
+    },
+    "review_band_window_hours": {
+      "type": "number",
+      "title": "Review band window (hours)",
+      "description": "The review band lists only specs and plans modified within this many hours, or during the current session",
+      "default": 24,
+      "min": 1
     },
     "artifacts_dir": {
       "type": "string",

@@ -1,15 +1,18 @@
-import { describe, expect, test } from 'claude-code/testing'
-import type { Engine } from 'claude-code/testing'
+import { describe, expect, mock, test } from 'claude-code/testing'
+import type { Engine, MockClock } from 'claude-code/testing'
 import type { On } from 'claude-code'
 
 const ROOT = '/work/repo'
 const REVIEWS = `${ROOT}/.feature-dev/reviews`
+const HOUR = 60 * 60 * 1000
 
 type File = { text: string; mtimeMs: number }
 type World = {
   files: Record<string, File>
   alive?: Set<string>
   runs: { command: string; args: string }[]
+  /** Where the mocked clock starts; 0 keeps every test mtime inside the window. */
+  now?: number
 }
 
 const BAND = {
@@ -35,7 +38,8 @@ function spec(slug?: string): string {
 }
 
 /** The world beneath the plugin: a file system in memory, the network, commands. */
-function world(on: On, w: World): void {
+function world(on: On, w: World): MockClock {
+  const clock = mock.clock(on, { now: w.now ?? 0 })
   const dirOf = (p: string) => p.slice(0, p.lastIndexOf('/'))
   on('session.root', () => ({ value: ROOT }))
   on('session.start', ($, e) => ({ cwd: e.cwd }))
@@ -63,6 +67,7 @@ function world(on: On, w: World): void {
     return { text: '' }
   })
   on('ui.render', { component: 'AbovePrompt' }, () => ({ type: 'Box', props: { key: 'engine-band' } }) as never)
+  return clock
 }
 
 async function endTurn($: Engine, agentId?: string): Promise<void> {
@@ -168,6 +173,7 @@ describe('review band', () => {
     world(on, w)
     await endTurn($)
     const ui = await $.ui.mount(BAND)
+    await ui.press({ key: 'show-all' })
     expect(await ui.findAll({ type: 'Button', text: 'Open review' })).toHaveLength(2)
     await ui.press({ key: 'open:SPEC-billing.md' })
     await ui.press({ key: 'open:PLAN-billing.md' })
@@ -243,5 +249,108 @@ describe('review band', () => {
     await endTurn($)
     const ui = await $.ui.mount({ ...BAND, props: { ...BAND.props, hasSurvey: true } })
     expect(await ui.find({ type: 'Button' })).toBeUndefined()
+  })
+
+  test('hides an unreviewed artifact older than the window, shows a recent one', async ($, on) => {
+    const now = 100 * HOUR
+    const w: World = {
+      runs: [],
+      now,
+      files: {
+        [`${ROOT}/SPEC-old.md`]: { text: spec(), mtimeMs: now - 48 * HOUR },
+        [`${ROOT}/SPEC-new.md`]: { text: spec(), mtimeMs: now - 1 * HOUR },
+      },
+    }
+    world(on, w)
+    await endTurn($)
+    const ui = await $.ui.mount(BAND)
+    expect(await ui.find({ key: 'open:SPEC-new.md' })).toBeDefined()
+    expect(await ui.find({ key: 'open:SPEC-old.md' })).toBeUndefined()
+    expect(await ui.find({ key: 'show-all' })).toBeUndefined()
+  })
+
+  test('review_band_window_hours widens the window', { options: { review_band_window_hours: 72 } }, async ($, on) => {
+    const now = 100 * HOUR
+    const w: World = { runs: [], now, files: { [`${ROOT}/SPEC-old.md`]: { text: spec(), mtimeMs: now - 48 * HOUR } } }
+    world(on, w)
+    await endTurn($)
+    const ui = await $.ui.mount(BAND)
+    expect(await ui.find({ key: 'open:SPEC-old.md' })).toBeDefined()
+  })
+
+  test('shows an artifact modified this session even past the window', async ($, on) => {
+    const w: World = {
+      runs: [],
+      now: 10 * HOUR,
+      files: {
+        [`${ROOT}/SPEC-before.md`]: { text: spec(), mtimeMs: 5 * HOUR },
+        [`${ROOT}/SPEC-during.md`]: { text: spec(), mtimeMs: 20 * HOUR },
+      },
+    }
+    const clock = world(on, w)
+    await $.session.start({ cwd: ROOT, surface: 'terminal', isInteractive: true })
+    await clock.set(100 * HOUR)
+    await endTurn($)
+    const ui = await $.ui.mount(BAND)
+    expect(await ui.find({ key: 'open:SPEC-during.md' })).toBeDefined()
+    expect(await ui.find({ key: 'open:SPEC-before.md' })).toBeUndefined()
+  })
+
+  test('two or more pending collapse into one row that opens the latest', async ($, on) => {
+    const w: World = {
+      runs: [],
+      files: {
+        [`${ROOT}/SPEC-a.md`]: { text: spec(), mtimeMs: 1000 },
+        [`${ROOT}/.feature-dev/plans/PLAN-b.md`]: { text: spec(), mtimeMs: 3000 },
+        [`${ROOT}/SPEC-c.md`]: { text: spec(), mtimeMs: 2000 },
+      },
+    }
+    world(on, w)
+    await endTurn($)
+    const ui = await $.ui.mount(BAND)
+    expect((await ui.find({ type: 'Text', text: 'not reviewed' }))?.text).toContain('3 not reviewed')
+    expect((await ui.find({ key: 'open:latest' }))?.props.label).toBe('Open PLAN-b.md')
+    expect(await ui.find({ key: 'open:SPEC-a.md' })).toBeUndefined()
+    await ui.press({ key: 'open:latest' })
+    expect(w.runs).toEqual([{ command: 'feature-dev:review', args: '.feature-dev/plans/PLAN-b.md' }])
+  })
+
+  test('Show all expands to one row each, Collapse folds it back', async ($, on) => {
+    const w: World = {
+      runs: [],
+      files: {
+        [`${ROOT}/SPEC-a.md`]: { text: spec(), mtimeMs: 1000 },
+        [`${ROOT}/SPEC-b.md`]: { text: spec(), mtimeMs: 2000 },
+      },
+    }
+    world(on, w)
+    await endTurn($)
+    const ui = await $.ui.mount(BAND)
+    await ui.press({ key: 'show-all' })
+    expect(await ui.find({ key: 'open:SPEC-a.md' })).toBeDefined()
+    expect(await ui.find({ key: 'dismiss:SPEC-b.md' })).toBeDefined()
+    expect(await ui.find({ key: 'show-all' })).toBeUndefined()
+    await ui.press({ key: 'collapse' })
+    expect(await ui.find({ key: 'open:SPEC-a.md' })).toBeUndefined()
+    expect(await ui.find({ key: 'show-all' })).toBeDefined()
+  })
+
+  test('Dismiss all hides every pending artifact until one changes again', async ($, on) => {
+    const w: World = {
+      runs: [],
+      files: {
+        [`${ROOT}/SPEC-a.md`]: { text: spec(), mtimeMs: 1000 },
+        [`${ROOT}/SPEC-b.md`]: { text: spec(), mtimeMs: 2000 },
+      },
+    }
+    world(on, w)
+    await endTurn($)
+    const ui = await $.ui.mount(BAND)
+    await ui.press({ key: 'dismiss-all' })
+    expect(await ui.find({ type: 'Button' })).toBeUndefined()
+    w.files[`${ROOT}/SPEC-a.md`] = { text: spec(), mtimeMs: 4000 }
+    await endTurn($)
+    expect(await ui.find({ key: 'open:SPEC-a.md' })).toBeDefined()
+    expect(await ui.find({ key: 'open:SPEC-b.md' })).toBeUndefined()
   })
 })

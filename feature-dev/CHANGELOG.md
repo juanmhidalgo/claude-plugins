@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.33.0 (2026-10-02)
+
+### Changed
+- **The review band lists only recent changes.** An artifact shows up only if its mtime is within the last `review_band_window_hours`, or after this session started (recorded at the first `session.start`; a hot reload keeps it). Older unreviewed files are skipped before any review is read. Dismiss works as before: hidden until the mtime changes. **Why:** on reload the band listed old legacy SPEC/PLAN files that were never reviewed in the browser as "not reviewed since last change", in every session.
+- **Two or more pending artifacts collapse into one row**: `<N> not reviewed` with **Open `<latest>`** (the most recently modified artifact; a link to its page while its review server runs), **Show all** and **Dismiss all**. **Show all** expands to one row per artifact with a **Collapse** button; the expanded state is session-only. A single pending artifact keeps its own row as before.
+
+### Added
+- **`review_band_window_hours` option** (`userConfig`, number, default `24`, min `1`). A value that is not a number of at least 1, including an unsaved `${user_config.…}` literal, falls back to 24.
+- Band tests: old artifact hidden, recent one shown, the window option, a change made this session shown past the window, collapse and expand, Dismiss all.
+
 ## 1.32.1 (2026-10-02)
 
 ### Changed
