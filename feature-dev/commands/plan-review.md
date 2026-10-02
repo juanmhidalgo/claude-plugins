@@ -3,6 +3,7 @@ allowed-tools:
   - Agent
   - Read
   - Glob
+  - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/review_server.py artifacts *)
 argument-hint: "[plan-file-path — optional; auto-discovers PLAN-*.md if omitted]"
 description: |
   Use to re-validate a PLAN-*.md edited by hand, or one written before explore-plan reviewed its own plans. Outputs Blocking / Should Address / Nice to Have findings.
@@ -27,13 +28,14 @@ If you were dispatched as a subagent to execute a specific task, skip this comma
 - **Repository**: !`git remote get-url origin`
 - **Current branch**: !`git branch --show-current`
 - **Plan argument**: $ARGUMENTS
+- **Artifacts folder**: `${user_config.artifacts_dir}` (a literal `${user_config...}` here means `.feature-dev`). Where specs and plans are found: [artifact-locations.md](../skills/spec-driven-development/references/artifact-locations.md).
 
 ## Phase 0: Resolve the Plan File
 
 1. **If `$ARGUMENTS` is provided** → use it as the path to the plan file. If the file does not exist, STOP and report.
-2. **If `$ARGUMENTS` is empty** → auto-discover plan files. Use Glob with pattern `PLAN-*.md` in the repo root. From the candidates:
+2. **If `$ARGUMENTS` is empty** → auto-discover plan files. List them with `${CLAUDE_PLUGIN_ROOT}/scripts/review_server.py artifacts --dir "<artifacts folder>" --kind plan` (the folder first, then legacy plans at the root). From the candidates:
    - **0 plans** → STOP and ask the user to provide a path or run `/feature-dev:explore-plan` first.
-   - **1 plan** → use it. Inform the user: "Auto-selected plan: `PLAN-<slug>.md` (feature: <name>)".
+   - **1 plan** → use it. Inform the user: "Auto-selected plan: `<plan path>` (feature: <name>)".
    - **2+ plans** → use AskUserQuestion to let the user pick (label = `feature:` value, description = `<filename>`).
 
 ## Phase 1: Validate

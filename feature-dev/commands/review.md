@@ -31,6 +31,7 @@ triggers:
 
 ## Context
 - **Artifact argument**: $ARGUMENTS
+- **Artifacts folder**: `${user_config.artifacts_dir}` (a literal `${user_config...}` here means `.feature-dev`). Where specs and plans are found: [artifact-locations.md](../skills/spec-driven-development/references/artifact-locations.md).
 
 The review happens in a local page instead of the chat. Specs and plans of 332–1073 lines were approved 37–72 s after being written, from chat summaries, and nobody opened the files; the page puts the document, its decisions and its changes since the last version in front of the reviewer, and turns what they mark into a file this command applies.
 
@@ -38,11 +39,11 @@ The page is served by `review_server.py` on `127.0.0.1`, on a random free port. 
 
 ## Phase 0: Resolve the artifact
 
-1. **If `$ARGUMENTS` is `#N`, `owner/repo#N`, or an issue URL** → resolve it per [issue-store.md's Argument parsing](../skills/spec-driven-development/references/issue-store.md#argument-parsing), then run [issue-store.md's Import algorithm](../skills/spec-driven-development/references/issue-store.md#import-ac-8-ac-9-ac-10-ac-11-ac-12) against it, start to finish. Do not restate Import's steps here — follow the reference. A failed `gh` preflight, or a failed `gh issue view` call, stops here and names the issue that could not be read. On success, continue as if `$ARGUMENTS` had been the resulting `SPEC-<slug>.md` path (the reference's own step 6). An issue argument only ever produces a SPEC — there is no PLAN equivalent.
+1. **If `$ARGUMENTS` is `#N`, `owner/repo#N`, or an issue URL** → resolve it per [issue-store.md's Argument parsing](../skills/spec-driven-development/references/issue-store.md#argument-parsing), then run [issue-store.md's Import algorithm](../skills/spec-driven-development/references/issue-store.md#import-ac-8-ac-9-ac-10-ac-11-ac-12) against it, start to finish. Do not restate Import's steps here — follow the reference. A failed `gh` preflight, or a failed `gh issue view` call, stops here and names the issue that could not be read. On success, continue as if `$ARGUMENTS` had been the resulting spec path (the reference's own step 6). An issue argument only ever produces a SPEC — there is no PLAN equivalent.
 2. **If `$ARGUMENTS` names an existing file** → use it. If it does not exist, STOP and report.
-3. **If `$ARGUMENTS` is empty** → Glob `SPEC-*.md` and `PLAN-*.md` in the repo root. 0 → STOP and point to `/feature-dev:spec`. 1 → use it. 2+ → AskUserQuestion (label = file name, description = its `feature:` and `status:`).
+3. **If `$ARGUMENTS` is empty** → list them with `${CLAUDE_PLUGIN_ROOT}/scripts/review_server.py artifacts --dir "<artifacts folder>"` (specs and plans in the folder, then legacy ones at the root). 0 → STOP and point to `/feature-dev:spec`. 1 → use it. 2+ → AskUserQuestion (label = file name, description = its `feature:` and `status:`).
 4. Read its frontmatter. The kind is SPEC or PLAN, from `type:` or the file name prefix. Do not derive the slug yourself: the script sanitizes it, and every file path below comes from the script.
-5. If the project's `.gitignore` does not include `.feature-dev/`, add it. It holds review files and version history, which are local working artifacts, as the SPEC and PLAN files are.
+5. If the project's `.gitignore` does not include `.feature-dev/`, add it. It holds review files, version history and, by default, the specs and plans: all local working artifacts.
 
 ## Phase 1: Serve and wait
 
@@ -68,7 +69,7 @@ When the background task completes:
 ## Phase 3: Apply the verdict
 
 **`approve`**
-- SPEC → set `status: approved` with Edit. This is the only verdict that sets it.
+- SPEC → set `status: approved` with Edit. This is the only verdict that sets it. Then run `${CLAUDE_PLUGIN_ROOT}/scripts/review_server.py settle <artifact path>`, so the review band above the prompt does not report your own status edit as a change nobody reviewed.
 - PLAN → plans carry no approval field; nothing to edit.
 
 **`approve-with-notes`**: the notes are context, not change requests.

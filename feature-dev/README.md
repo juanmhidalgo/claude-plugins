@@ -73,6 +73,31 @@ At any approval gate, **`/feature-dev:review <path>`** is the alternative to ans
 
 Both `.feature-dev/` and the artifacts are added to `.gitignore`.
 
+### Where the files go
+
+```
+.feature-dev/
+├── specs/SPEC-<slug>.md     # /feature-dev:spec, issue imports
+├── plans/PLAN-<slug>.md     # /feature-dev:explore-plan
+├── reviews/                 # /feature-dev:review verdicts, .<slug>.url pointers
+└── history/<slug>/          # snapshots the review page diffs against
+```
+
+The plugin option **`artifacts_dir`** (default `.feature-dev`) moves `specs/` and `plans/` to another folder inside the project. `reviews/` and `history/` stay in `.feature-dev/`. Set it in `/config` or with `/plugin configure feature-dev@juanmhidalgo-plugins`.
+
+Specs and plans written at the project root before 1.32.0 are still found: every command lists the folder first, then the root, through `review_server.py artifacts`. A name present in both places is taken from the folder. Nothing is moved; new files are only written to the folder. The full rules are in [artifact-locations.md](skills/spec-driven-development/references/artifact-locations.md).
+
+### Review band
+
+In the interactive terminal, a band above the prompt lists each `SPEC-*.md` / `PLAN-*.md` that changed after its latest browser review: `<name> · not reviewed since last change`, with two buttons:
+
+- **Open review** runs `/feature-dev:review <path>`, the same as typing it, so the verdict is applied as usual. While a review server for that artifact is running, a link to its page replaces the button.
+- **Dismiss** hides that artifact until it changes again, for the rest of this session.
+
+The band is rescanned at the end of every turn of the main conversation (not of subagents) and at session start. A review counts only if its `artifact:` names that exact file, so a SPEC review never clears the PLAN of the same slug. The `status: approved` edit that `/feature-dev:review` makes itself does not count as a change.
+
+It is a hooks module (`hooks/register.tsx`), so it needs a Claude Code build that loads plugin hooks modules. **It does not appear** under `claude -p`, `--safe-mode` or `disableAllHooks`, nor in the VS Code extension. Without it, the "Or review it in the browser: …" line that `spec` and `explore-plan` print is still the way in. **To turn it off**, set the plugin option `review_band` to `false` in `/config` (or `/plugin configure feature-dev@juanmhidalgo-plugins`).
+
 Each command can also be used independently.
 
 **Acceptance criteria are traced end to end.** Spec criteria carry ids (`AC-1`…). When the spec numbers them, every behavior step in the plan says which ones it makes true (`Covers:`). The plan review flags an AC that no step covers and a `Covers:` that cites an id the spec does not define, and reports `AC coverage: covered/total`. `/tdd`'s final report lists the ACs covered by met steps and names the uncovered or halted ones. Runners put the id in the test's name or docstring where the project's style allows.
@@ -156,7 +181,7 @@ reconciling it with an existing one via a three-way fingerprint compare), and
 continues as if that path had been given directly. A closed issue asks for
 confirmation first.
 
-**Opting in**: set `spec_store: issue` in `.claude/feature-dev.local.md`:
+**Opting in**: set the plugin option `spec_store` to `issue` (in `/config`) for every project, or set `spec_store: issue` in a project's `.claude/feature-dev.local.md`, which wins over the option:
 
 ```markdown
 spec_store: issue
@@ -198,6 +223,13 @@ Add the ones you want to your own `.claude/settings.json` (or
 "Bash(gh issue edit *)",
 "Bash(gh issue comment *)"
 ```
+
+## Needs
+
+- **python3** (standard library only) for `scripts/review_server.py` and `scripts/issue_spec.py`: the review page, artifact listing and cleanup.
+- **A browser** on the same machine for `/feature-dev:review`. Over SSH, `review_server.py url <artifact>` prints the URL to open with a port forward.
+- **`gh`**, authenticated, only for the GitHub Issue Store and for `cleanup`'s rescue to a PR comment.
+- **Claude Code 2.1.287 or later** for the review band. Everything else works without it.
 
 ## Installation
 

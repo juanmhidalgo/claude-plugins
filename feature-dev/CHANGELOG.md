@@ -1,5 +1,47 @@
 # Changelog
 
+## 1.32.1 (2026-10-02)
+
+### Changed
+- **`/feature-dev:spec` asks for empty states.** The QA Checklist gains an `### Empty states` group between Edge cases and Error states: no records yet, a filter that matches nothing, a first-time user, an absent optional relation. An empty state whose copy or response shape is decided in the spec also gets an AC. `spec-plan-validator`, the skill's checklist and `cleanup`'s QA rescue know the new group. **Why:** error states had their own group and AC rule, but "nothing to show" was left to the implementer, and it is the screen users see first.
+- **`/feature-dev:tdd` offers `/goal` for an unmet numeric target** (coverage percentage, latency or size budget, benchmark) once one more runner per gap has not closed it. The offer comes with the condition and the command that measures it. Only the user can start a goal, so the command offers it and never claims it is running.
+
+### Added
+- README **Needs** section: python3, a browser, `gh` (issue store only), and Claude Code 2.1.287 or later for the review band.
+- `feature-dev/.gitignore` also ignores the `tsconfig.json` Claude Code writes beside a hooks module loaded with `--plugin-dir`.
+
+
+## 1.32.0 (2026-10-02)
+
+### Changed
+- **Specs and plans are written under `.feature-dev/`**: `.feature-dev/specs/SPEC-<slug>.md` and `.feature-dev/plans/PLAN-<slug>.md`, next to the existing `reviews/` and `history/`. **Why:** generated working files were scattered at the repo root, where they mixed with real project files and each needed its own `.gitignore` line.
+- **Backward compatibility: read both locations, write only the new one.** Every reader (`spec`, `explore-plan`, `tdd`, `spec-review`, `plan-review`, `review`, `cleanup`, the issue import, the review band) lists the configured folder first, then legacy `SPEC-*.md`/`PLAN-*.md` at the project root. A name present in both is taken from the folder. Nothing is moved: a legacy root file keeps being found, reviewed, planned from, edited in place and cleaned up, and only brand-new files go to the folder. `purge --artifact` accepts a root file or one in its kind's folder, and refuses any other path.
+- Discovery goes through `review_server.py artifacts` instead of Glob in the repo root. Glob can skip the gitignored `.feature-dev/`, and one script call keeps the two-location rule in one place. `artifacts --new NAME` prints where a new artifact is written.
+- `Next:` lines and review suggestions print the artifact's path instead of a bare file name, so the suggested command opens the right file.
+- The explore-plan eval now expects the plan at `.feature-dev/plans/PLAN-task-due-dates.md`.
+
+### Added
+- **`artifacts_dir` option** (`userConfig`, default `.feature-dev`): moves `specs/` and `plans/` to another folder inside the project. `reviews/` and `history/` stay in `.feature-dev/`. Commands read it as `${user_config.artifacts_dir}`. That text is substituted only once the option is saved, so an unsaved option reaches a command, and `review_server.py`, as a literal placeholder that means the default. Absolute paths and paths with `..` are refused.
+- **`spec_store` option** (`userConfig`, `file` | `issue`, default `file`): a user-wide default for the existing GitHub-issue store opt-in. `spec_store` in a project's `.claude/feature-dev.local.md` still wins.
+- `skills/spec-driven-development/references/artifact-locations.md`: the one definition of the layout and the read/write rules, linked from every command.
+- Tests: `ArtifactsTest` and a purge test for the folder in `test_review_server.py`; two band tests for the folder and the option.
+
+### Not done
+- **No `monitors/monitors.json` for review submission.** A monitor command gets no arguments and no `${user_config.*}`, so it would not know which artifact or start time to watch. Once started, it runs until the session ends. And `review.md` does not poll: the harness already re-invokes the command when the background server exits, and `latest --since` is a single call after that. A monitor would add a process without removing a step.
+
+
+## 1.31.0 (2026-10-02)
+
+### Added
+- **Review band** (`hooks/register.tsx`, the plugin's first hooks module). Above the prompt, one row per `SPEC-*.md` / `PLAN-*.md` whose mtime is newer than its latest review in `.feature-dev/reviews/`: `<name> · not reviewed since last change`, with **Open review** and **Dismiss** buttons. **Open review** calls `$.command.run` for `/feature-dev:review <path>`, which runs the command as if typed, so `disable-model-invocation` does not block it and the verdict is applied as before. While a review server for the artifact answers `GET /alive`, a link to its page replaces the button. **Dismiss** hides the row until the file changes again, for the session only. The scan runs at session start and after each turn of the main conversation (subagent turns are skipped). Reviews match on the full artifact name from their `artifact:` frontmatter, not the slug, so a SPEC review never clears the PLAN of the same slug. History copies (`SPEC-x.<n>.md`) are ignored. **Why:** `spec` and `explore-plan` only suggested `/feature-dev:review` in text, and specs and plans were approved from chat summaries without anyone opening them.
+- **`review_band` option** (`userConfig`, boolean, default `true`) to turn the band off from `/config`.
+- **`review_server.py settle <artifact>`** bumps the latest review's mtime after `/feature-dev:review` sets `status: approved` itself, so the band does not report that edit as an unreviewed change. `review.md` runs it after an `approve`. Covered by a new test in `test_review_server.py`.
+- `hooks/review-band.test.ts` for `claude plugin test`, and `types/index.d.ts` declaring the band's `$.state`.
+
+### Unchanged
+- The text suggestions in `spec` and `explore-plan` stay as they are. They are the way in wherever the band is not drawn: `claude -p`, VS Code, `--safe-mode`, `disableAllHooks`.
+
+
 ## 1.30.1 (2026-09-28)
 
 ### Changed

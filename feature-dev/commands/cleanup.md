@@ -7,6 +7,7 @@ allowed-tools:
   - Write
   - Edit
   - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/review_server.py purge *)
+  - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/review_server.py artifacts *)
   - Bash(gh pr view *)
   - Bash(gh pr comment *)
   - Bash(gh auth status)
@@ -34,17 +35,18 @@ triggers:
 ## Context
 - **Repository**: !`git remote get-url origin`
 - **Current branch**: !`git branch --show-current`
+- **Artifacts folder**: `${user_config.artifacts_dir}` (a literal `${user_config...}` here means `.feature-dev`). Where specs and plans are found: [artifact-locations.md](../skills/spec-driven-development/references/artifact-locations.md).
 
 ## Phase 0: Discover Artifacts
 
-1. Use Glob with pattern `SPEC-*.md` in the repo root.
-2. Use Glob with pattern `PLAN-*.md` in the repo root.
+1. List the specs with `${CLAUDE_PLUGIN_ROOT}/scripts/review_server.py artifacts --dir "<artifacts folder>" --kind spec`: `<folder>/specs/` first, then legacy specs at the project root.
+2. List the plans the same way with `--kind plan`.
 3. For each SPEC, Read its YAML frontmatter and capture `feature`, `slug`, `date`, `branch`, `status`.
 4. For each PLAN, Read its YAML frontmatter and capture `feature`, `slug`, `date`, `source_spec`, `run_status`, `completed_steps`. If `source_spec` is set to a path, Read that file's frontmatter and capture its `status`.
 
 5. List the review data with `ls -1A .feature-dev/history` and `ls -1A .feature-dev/reviews` — not Glob, which can skip the gitignored `.feature-dev/`. A "No such file or directory" error means there is none of that kind. For each history directory, `ls -1A .feature-dev/history/<dir>` gives its snapshot count.
 
-If both Globs return zero files and step 5 found nothing, STOP and tell the user: "No SPEC, PLAN or review data found. Nothing to clean up." Do not proceed.
+If both listings are empty and step 5 found nothing, STOP and tell the user: "No SPEC, PLAN or review data found. Nothing to clean up." Do not proceed.
 
 ## Phase 1: Categorize
 
@@ -72,8 +74,8 @@ Build three lists.
 2. **Map each SPEC/PLAN to its on-disk slug** the way `review_server.py` derives it: frontmatter `slug:` (else the file name minus `SPEC-`/`PLAN-` and `.md`), every run of characters outside `A-Za-z0-9._-` replaced by `-`, leading and trailing `-`/`.` stripped, `artifact` if nothing is left. A SPEC and its PLAN share the slug.
 3. **Classify each slug's data:**
    - **Goes with the deletion**: the slug's SPEC/PLAN files are all in the safe-to-delete list, so none survives this run. SPECs later marked rescue-failed survive, so their slug drops out of this group.
-   - **Orphaned**: no SPEC or PLAN at the root maps to the slug, the slug has at least one review file, **and** every one of its review files names an `artifact:` (frontmatter) that no longer exists. Read each review file's frontmatter and Read that path, relative to the project root; a "does not exist" error means it is gone. An artifact can live outside the root, or have been renamed while its review stayed, so the missing root SPEC/PLAN alone does not prove the data is unused.
-   - **Ambiguous review data**: no SPEC or PLAN at the root maps to the slug, but it has only history and no review file, or a review whose `artifact:` still exists. Listed with that reason, never deleted.
+   - **Orphaned**: no listed SPEC or PLAN maps to the slug, the slug has at least one review file, **and** every one of its review files names an `artifact:` (frontmatter) that no longer exists. Read each review file's frontmatter and Read that path, relative to the project root; a "does not exist" error means it is gone. An artifact can live outside the root, or have been renamed while its review stayed, so a missing listed SPEC/PLAN alone does not prove the data is unused.
+   - **Ambiguous review data**: no listed SPEC or PLAN maps to the slug, but it has only history and no review file, or a review whose `artifact:` still exists. Listed with that reason, never deleted.
    - **Kept**: any other slug — something with that slug remains (active, ambiguous, or not offered). This covers every slug whose PLAN is `in-progress`/`halted`, which the same override as in Phase 1 protects: a resumed run and its review round still read that history.
 4. **Check pointers.** For every `.url` file — whatever its slug's group, except a kept slug protected by an `in-progress`/`halted` PLAN — Read it and probe `<url>alive` (the pointer ends in `/`): `curl -s -o /dev/null --max-time 2 <url>alive`. `/alive` answers without a token and without resetting the server's idle timer, so the probe never keeps a forgotten review open. Exit 7 (connection refused) means no server — the pointer is stale. Any other exit means something answers — a **review in progress**:
    - take the whole slug out of both review-data groups (the server still reads its history and will write a review there);
@@ -89,7 +91,7 @@ Specs are gitignored, so anything that exists only in one is gone once it is del
 1. **Published and current.** If the SPEC's frontmatter has `issue: <owner>/<repo>#<N>`, run the [gh preflight](../skills/spec-driven-development/references/issue-store.md#gh-preflight) — on failure, treat the SPEC as **not current** (per its "cleanup's 'published and current' check" rule) and continue to step 2. On success, compute the three [Fingerprints](../skills/spec-driven-development/references/issue-store.md#fingerprints): local (`issue_spec.py section <SPEC> | issue_spec.py fingerprint -`), recorded (the frontmatter's `issue_fingerprint:`), and issue (`gh issue view <N> --repo <owner>/<repo> --json body -q .body | issue_spec.py fingerprint -`). All three equal → the SPEC is **published and current**: skip step 2 for it, it is not rescuable, and it goes straight to Phase 2 without the rescue question — it still follows the existing status rules for deletion. Any mismatch → the SPEC is **not current**: note its `#<N>`, and continue to step 2, where a SPEC with `issue:` is rescuable regardless of what step 2 finds — the mismatch itself (an unpublished local edit, or an issue that moved since the last publish) is the thing that would otherwise be lost silently. A SPEC with no `issue:` at all also continues to step 2, under the decision/QA gate below — nothing in this step changes for it.
 2. Read the body and record:
    - **Decisions** — the entries under `## Decisions Log` (written by `/feature-dev:tdd`), up to the next `## ` heading or end of file. Non-empty means at least one entry, not just the heading.
-   - **Pending QA** — every unticked `- [ ]` line under `## QA Checklist`, up to the next `## ` heading. Keep the `###` group heading (`Happy path` / `Edge cases` / `Error states`) each item sits under; ticked `- [x]` items were verified by the user and are not rescued. An unticked item may have been checked and never ticked, so it is reported as unticked, not as unrun.
+   - **Pending QA** — every unticked `- [ ]` line under `## QA Checklist`, up to the next `## ` heading. Keep the `###` group heading (`Happy path` / `Edge cases` / `Empty states` / `Error states`) each item sits under; ticked `- [x]` items were verified by the user and are not rescued. An unticked item may have been checked and never ticked, so it is reported as unticked, not as unrun.
 
 A published-and-current SPEC is not rescuable and goes straight to Phase 2. A SPEC with `issue:` that is not current is always rescuable, even with neither a decision nor pending QA — its difference from issue `#<N>` is itself worth a rescue question, via `Republish to #<N>` in Phase 2a (below). A SPEC with no `issue:` is rescuable only when it has a decision or pending QA; otherwise it goes straight to Phase 2.
 
@@ -189,9 +191,9 @@ If the user chose `Yes, delete all`:
 
 1. Run one command that names exactly what the confirmation counted — never `rm`:
    ```
-   ${CLAUDE_PLUGIN_ROOT}/scripts/review_server.py purge --artifact <SPEC-/PLAN- file> … --slug <slug> … --pointer <slug> …
+   ${CLAUDE_PLUGIN_ROOT}/scripts/review_server.py purge --dir "<artifacts folder>" --artifact <SPEC-/PLAN- path> … --slug <slug> … --pointer <slug> …
    ```
-   - `--artifact` once per file in the "Safe to delete" list (the bare file name, e.g. `SPEC-<slug>.md`).
+   - `--artifact` once per file in the "Safe to delete" list, as `artifacts` printed it (e.g. `.feature-dev/specs/SPEC-<slug>.md`, or `SPEC-<slug>.md` for a legacy one at the root).
    - `--slug` once per slug going with the deletion or orphaned. It removes `.feature-dev/history/<slug>/` and only the review files named exactly `<slug>-<timestamp>[-<n>].md` — never a longer slug's.
    - `--pointer` once per stale pointer's slug.
 
@@ -215,8 +217,8 @@ If the user chose `Yes, delete all`:
 - **Never write to a PR without the user picking that option for that spec, and never edit its body.** A PR is read by others; the choice to publish a working artifact's contents there is the user's, and a comment adds to the PR without touching what anyone else wrote.
 - **Never delete without the explicit confirmation in Phase 2.** Even if the user invoked this command intentionally, the destructive step requires an in-command Y/N gate.
 - **Never delete files that are tracked by git** — SPEC/PLAN files and `.feature-dev/` entries alike. The local-artifact convention says both should be `.gitignore`d; if one somehow ended up tracked, surface it as a warning and skip — the user must decide whether to commit or untrack first. `purge` enforces this and reports each skip.
-- **Never recurse into subdirectories.** Both Glob patterns must run only at the repo root. SPEC/PLAN files belong at the root by convention; files elsewhere are out of scope. `.feature-dev/` is the one exception, and only the entries Phase 1a listed.
+- **Only what `artifacts` lists.** SPEC/PLAN files live in `<folder>/specs/` and `<folder>/plans/`, or at the project root from before 1.32.0; files anywhere else are out of scope, and `purge` refuses them. Review data is only the `.feature-dev/` entries Phase 1a listed.
 - **Review data follows its slug, not its file.** A SPEC and a PLAN share a slug, so deleting one while the other stays must keep the history the survivor's next review diffs against.
-- **Delete only through `review_server.py purge`, never `rm`.** A pre-approved `rm` pattern ends in a wildcard that also matches extra paths (`rm SPEC-a.md ~/x`, `rm -r .feature-dev/history/../..`); `purge` accepts names, not paths, and refuses anything else. A `--slug` is one `ls` printed or one derived per Phase 1a step 2 — a slug read raw from frontmatter can differ from the sanitized one on disk.
+- **Delete only through `review_server.py purge`, never `rm`.** A pre-approved `rm` pattern ends in a wildcard that also matches extra paths (`rm SPEC-a.md ~/x`, `rm -r .feature-dev/history/../..`); `purge` accepts only SPEC/PLAN files at the root or in their kind's folder, and refuses anything else. A `--slug` is one `ls` printed or one derived per Phase 1a step 2 — a slug read raw from frontmatter can differ from the sanitized one on disk.
 - **Liveness is `curl` on `/alive`, not `review_server.py url`.** `url` only reports that the pointer file exists; a server killed without cleanup leaves it behind and `url` still exits 0. Probe `/alive`, not the page: the page resets the server's idle timer and renders the whole document.
 - **No partial-list selection.** This is an intentional UX choice: surgical deletion is the user's job (`rm <specific-file>`); this command exists for bulk cleanup of unambiguous candidates only.

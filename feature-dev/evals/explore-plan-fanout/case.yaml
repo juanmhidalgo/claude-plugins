@@ -67,21 +67,21 @@ graders:
   # --- The plan itself.
   - name: plan-written
     type: file_exists
-    path: PLAN-task-due-dates.md
+    path: .feature-dev/plans/PLAN-task-due-dates.md
   - name: plan-not-degraded
     type: regex
-    target: { source: file, path: PLAN-task-due-dates.md }
+    target: { source: file, path: .feature-dev/plans/PLAN-task-due-dates.md }
     match: not_contains
     pattern: 'Degraded exploration'
   - name: plan-has-baseline
     type: regex
-    target: { source: file, path: PLAN-task-due-dates.md }
+    target: { source: file, path: .feature-dev/plans/PLAN-task-due-dates.md }
     flags: m
     pattern: '^### Baseline\s*$'
   # Secondary signal, readable without the trace: one findings subsection per
   # always-on explorer.
   - name: plan-has-explorer-sections
     type: regex
-    target: { source: file, path: PLAN-task-due-dates.md }
+    target: { source: file, path: .feature-dev/plans/PLAN-task-due-dates.md }
     flags: m
     pattern: '^(?=[\s\S]*^#### Backend)(?=[\s\S]*^#### Frontend)(?=[\s\S]*^#### Tests)(?=[\s\S]*^#### History)'

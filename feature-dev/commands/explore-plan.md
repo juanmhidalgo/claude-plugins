@@ -12,6 +12,7 @@ allowed-tools:
   - Bash(git branch --show-current)
   - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/issue_spec.py *)
   - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/review_server.py snapshot *)
+  - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/review_server.py artifacts *)
 argument-hint: "[SPEC-*.md path or feature description — optional; auto-discovers SPEC-*.md if omitted]"
 description: |
   Use when starting a feature that touches multiple parts of the codebase and you need a
@@ -35,6 +36,7 @@ triggers:
 - **Repository**: !`git remote get-url origin`
 - **Current branch**: !`git branch --show-current`
 - **Feature**: $ARGUMENTS
+- **Artifacts folder**: `${user_config.artifacts_dir}` (a literal `${user_config...}` here means `.feature-dev`). Where specs are found and plans written: [artifact-locations.md](../skills/spec-driven-development/references/artifact-locations.md).
 
 ## Phase 0: Resolve Feature and Validate
 
@@ -42,12 +44,12 @@ triggers:
    - **If `$ARGUMENTS` is the path of an existing `SPEC-*.md`** → use that spec as if it had been auto-selected below (the closing lines of `/feature-dev:spec` and `/feature-dev:spec-review` print this form).
    - **If `$ARGUMENTS` is `#N`, `owner/repo#N`, or an issue URL** → resolve it per [issue-store.md's Argument parsing](../skills/spec-driven-development/references/issue-store.md#argument-parsing), then run [issue-store.md's Import algorithm](../skills/spec-driven-development/references/issue-store.md#import-ac-8-ac-9-ac-10-ac-11-ac-12) against it, start to finish. Do not restate Import's steps here — follow the reference. A failed `gh` preflight, or a failed `gh issue view` call, stops here and names the issue that could not be read. On success, continue as if `$ARGUMENTS` had been the resulting `SPEC-<slug>.md` path (the reference's own step 6).
    - **If `$ARGUMENTS` is any other text** → use it as the feature description. Record `source_spec: null`.
-   - **If `$ARGUMENTS` is empty** → auto-discover spec files. Use Glob with pattern `SPEC-*.md` in the repo root, then read each file's frontmatter and **filter out any spec with `status: implemented`** (those features are already shipped). From the remaining candidates:
+   - **If `$ARGUMENTS` is empty** → auto-discover spec files. List them with `${CLAUDE_PLUGIN_ROOT}/scripts/review_server.py artifacts --dir "<artifacts folder>" --kind spec` (the folder first, then legacy specs at the root), then read each file's frontmatter and **filter out any spec with `status: implemented`** (those features are already shipped). From the remaining candidates:
      - **0 specs** → **STOP** and ask the user for a feature description.
-     - **1 spec** → use it. Read its frontmatter, use `feature:` as the feature description, record the spec path as `source_spec`. Inform the user: "Auto-selected spec: `SPEC-<slug>.md` (feature: <name>, status: <status>)". If `status: draft`, also warn: "This spec is still in draft — the user may not have approved it yet. Proceed anyway?" and wait for confirmation.
+     - **1 spec** → use it. Read its frontmatter, use `feature:` as the feature description, record the spec path as `source_spec`. Inform the user: "Auto-selected spec: `<spec path>` (feature: <name>, status: <status>)". If `status: draft`, also warn: "This spec is still in draft — the user may not have approved it yet. Proceed anyway?" and wait for confirmation.
      - **2+ specs** → use AskUserQuestion to let the user pick (label = `feature:` value, description = `<filename> — status: <status>`). Use the chosen spec's `feature:` as the feature description and record its path as `source_spec`.
 2. Parse the feature into a one-line summary for agent prompts.
-3. Generate a plan filename: `PLAN-<slug>.md` (slug = lowercase, hyphenated, max 4 words from the feature name. E.g., `PLAN-scheduled-notifications.md`). If `source_spec` is set, reuse its `slug:` value for consistency.
+3. Generate a plan filename: `PLAN-<slug>.md` (slug = lowercase, hyphenated, max 4 words from the feature name. E.g., `PLAN-scheduled-notifications.md`). If `source_spec` is set, reuse its `slug:` value for consistency. The **plan path** is where that name lives: if `artifacts --kind plan` already lists it, that path (a legacy plan at the root is rewritten in place); otherwise what `${CLAUDE_PLUGIN_ROOT}/scripts/review_server.py artifacts --dir "<artifacts folder>" --new PLAN-<slug>.md` prints (`<folder>/plans/PLAN-<slug>.md`). Every `PLAN-<slug>.md` below means this path.
 4. **Select the explorers.** Four always run: `backend-explorer`, `frontend-explorer`, `test-explorer`, `history-explorer`. Add any of the four below whose signal is present in the feature description or, if `source_spec` is set, in the spec body (read it — the frontmatter alone is not enough signal).
 
    | Explorer | Add when the feature… |
@@ -76,7 +78,7 @@ You are generating an implementation plan for: [feature summary]
 
 Repository: [repo URL]
 Branch: [current branch]
-Plan file: [PLAN-<slug>.md filename from Phase 0]
+Plan file: [plan path from Phase 0]
 Source spec: [source_spec path from Phase 0, or "none"]
 
 ## Step 1: Parallel Exploration
@@ -119,7 +121,7 @@ Do NOT launch an explorer the caller did not select, and do NOT skip one it did.
 
 ## Step 2: Synthesize and Write Plan
 
-After all agents complete, synthesize the findings and draft the Implementation Order against the Step 2b rules. Run the Step 2c baseline on the draft's commands, then write the plan to [PLAN-<slug>.md] using the Write tool. If that file already exists, first run `${CLAUDE_PLUGIN_ROOT}/scripts/review_server.py snapshot PLAN-<slug>.md`, which copies it to `.feature-dev/history/<slug>/PLAN-<slug>.<n>.md` with the next n and the slug sanitized the way `/feature-dev:review` and `/feature-dev:cleanup` read it. If Bash is unavailable, make the copy by hand under the sanitized slug: every run of characters outside `A-Za-z0-9._-` replaced by `-`, leading and trailing `-`/`.` stripped (`artifact` if nothing is left), n one more than the highest already there (1 if none). `/feature-dev:review` diffs against the newest copy; without it nobody can see what changed between plan versions.
+After all agents complete, synthesize the findings and draft the Implementation Order against the Step 2b rules. Run the Step 2c baseline on the draft's commands, then write the plan to [plan path] using the Write tool. If that file already exists, first run `${CLAUDE_PLUGIN_ROOT}/scripts/review_server.py snapshot <plan path>`, which copies it to `.feature-dev/history/<slug>/PLAN-<slug>.<n>.md` with the next n and the slug sanitized the way `/feature-dev:review` and `/feature-dev:cleanup` read it. If Bash is unavailable, make the copy by hand under the sanitized slug: every run of characters outside `A-Za-z0-9._-` replaced by `-`, leading and trailing `-`/`.` stripped (`artifact` if nothing is left), n one more than the highest already there (1 if none). `/feature-dev:review` diffs against the newest copy; without it nobody can see what changed between plan versions.
 
 The plan MUST follow this template:
 
@@ -260,7 +262,7 @@ The downstream agents halt on a step that violates these. A plan that fails them
 
 ## Step 3: Update .gitignore
 
-If PLAN-*.md is not in the project's .gitignore, add it. Add `.feature-dev/` the same way (review files and version history).
+If `.feature-dev/` is not in the project's .gitignore, add it (review files, version history, and the default plans folder). If the artifacts folder is not under `.feature-dev/`, add that folder too.
 ```
 
 ## Phase 2: Plan Review (automatic)
@@ -295,7 +297,7 @@ Read `PLAN-<slug>.md` from disk and end with a review brief instead of re-printi
 **Out of scope**
 - <what the plan deliberately leaves out>
 Reply with the numbers you want changed, or "approved".
-Or review it in the browser: /feature-dev:review PLAN-<slug>.md
+Or review it in the browser: /feature-dev:review <plan path>
 ```
 
 The **Plan review** group leads because a remaining Blocking finding is the one thing that stalls /tdd. Blocking findings come first, then Should Address. A finding that restates a Baseline row already listed under Unverified is not repeated. When the validator found nothing, the group is one line: `**Plan review** — clean`. `AC coverage` is copied from the validator's summary; leave it out when the source spec has no numbered ACs. An uncovered AC is one of the Should Address findings in the group.
@@ -305,6 +307,6 @@ Every Baseline row that gates a step — `hollow`, or `not-run` for `missing` �
 3. End with the next commands, using the plan path from Phase 0, then stop:
 
    ```
-   Next: answer the brief, then /clear and /feature-dev:tdd PLAN-<slug>.md   (a fresh context leaves /tdd's budget to the steps)
-   /feature-dev:plan-review PLAN-<slug>.md only if you edit the plan by hand
+   Next: answer the brief, then /clear and /feature-dev:tdd <plan path>   (a fresh context leaves /tdd's budget to the steps)
+   /feature-dev:plan-review <plan path> only if you edit the plan by hand
    ```

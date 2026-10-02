@@ -312,6 +312,22 @@ class ReviewServerTest(unittest.TestCase):
         plan.write_text(PLAN, encoding="utf-8")
         self.assertEqual(self.run_cli("latest", str(plan)).returncode, 1)
 
+    def test_settle_makes_the_latest_review_newer_than_the_artifact(self):
+        self.assertEqual(self.run_cli("settle", str(self.spec)).returncode, 1)
+        server = self.start(self.spec)
+        status, body = server.post({"verdict": "approve"}, server.token())
+        self.assertEqual(status, 200)
+        server.finish()
+        review = Path(body["path"])
+        past = time.time() - 100
+        os.utime(review, (past, past))
+        self.spec.write_text(SPEC.replace("status: draft", "status: approved"), encoding="utf-8")
+        self.assertLess(review.stat().st_mtime, self.spec.stat().st_mtime)
+        settled = self.run_cli("settle", str(self.spec))
+        self.assertEqual(settled.returncode, 0)
+        self.assertEqual(self.abs(settled.stdout), review.resolve())
+        self.assertGreaterEqual(review.stat().st_mtime, self.spec.stat().st_mtime)
+
     def test_slug_is_sanitized_everywhere(self):
         self.assertEqual(review_server.artifact_slug(Path("SPEC-x.md"), {"slug": "../../evil dir/x"}), "evil-dir-x")
         self.assertEqual(review_server.artifact_slug(Path("SPEC-a b.md"), {}), "a-b")
@@ -458,6 +474,58 @@ class ReviewServerTest(unittest.TestCase):
         self.assertEqual(result.returncode, review_server.EXIT_USAGE)
 
 
+class ArtifactsTest(unittest.TestCase):
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self._tmp.name)
+        for rel in (
+            ".feature-dev/specs/SPEC-new.md",
+            ".feature-dev/specs/SPEC-both.md",
+            ".feature-dev/plans/PLAN-new.md",
+            ".feature-dev/specs/PLAN-misfiled.md",
+            "SPEC-both.md",
+            "SPEC-legacy.md",
+            "PLAN-legacy.md",
+            "README.md",
+        ):
+            (self.root / rel).parent.mkdir(parents=True, exist_ok=True)
+            (self.root / rel).write_text(SPEC, encoding="utf-8")
+
+    def tearDown(self):
+        self._tmp.cleanup()
+
+    def run_cli(self, *args: str) -> subprocess.CompletedProcess:
+        return subprocess.run(
+            [sys.executable, "-B", str(SCRIPT), "artifacts", "--root", str(self.root), *args],
+            capture_output=True, text=True,
+        )
+
+    def test_lists_the_folder_first_then_legacy_root_files_once(self):
+        result = self.run_cli()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.split(), [
+            ".feature-dev/specs/SPEC-both.md",
+            ".feature-dev/specs/SPEC-new.md",
+            ".feature-dev/plans/PLAN-new.md",
+            "SPEC-legacy.md",
+            "PLAN-legacy.md",
+        ])
+        self.assertEqual(self.run_cli("--kind", "plan").stdout.split(), [".feature-dev/plans/PLAN-new.md", "PLAN-legacy.md"])
+
+    def test_unset_option_placeholder_means_the_default(self):
+        placeholder = "${user_config.artifacts_dir}"
+        self.assertEqual(self.run_cli("--dir", placeholder).stdout, self.run_cli().stdout)
+        self.assertEqual(self.run_cli("--dir", "", "--new", "SPEC-x.md").stdout.strip(), ".feature-dev/specs/SPEC-x.md")
+
+    def test_new_names_the_kind_folder_under_a_custom_dir(self):
+        self.assertEqual(self.run_cli("--dir", "docs/fd/", "--new", "PLAN-x.md").stdout.strip(), "docs/fd/plans/PLAN-x.md")
+        self.assertEqual(self.run_cli("--new", "README.md").returncode, review_server.EXIT_USAGE)
+
+    def test_dir_outside_the_project_is_refused(self):
+        for bad in ("../elsewhere", "/tmp/x", "a/../../b"):
+            self.assertEqual(self.run_cli("--dir", bad).returncode, review_server.EXIT_USAGE, bad)
+
+
 class PurgeTest(unittest.TestCase):
     TS = "20260101T000000Z"
 
@@ -528,6 +596,25 @@ class PurgeTest(unittest.TestCase):
             self.assertIn("nothing was deleted", result.stderr)
             self.assertEqual(result.stdout, "")
             self.assertEqual(self.listing(), before, args)
+
+    def test_artifact_in_the_configured_folder_is_purged(self):
+        specs = self.root / ".feature-dev" / "specs"
+        specs.mkdir(parents=True)
+        (specs / "SPEC-bar.md").write_text(SPEC, encoding="utf-8")
+        result = self.purge("--artifact", ".feature-dev/specs/SPEC-bar.md")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertFalse((specs / "SPEC-bar.md").exists())
+        # A custom folder is honored, and a SPEC in the plans folder is refused.
+        custom = self.root / "docs" / "fd" / "plans"
+        custom.mkdir(parents=True)
+        (custom / "PLAN-bar.md").write_text(PLAN, encoding="utf-8")
+        (custom / "SPEC-bar.md").write_text(SPEC, encoding="utf-8")
+        wrong = self.purge("--dir", "docs/fd", "--artifact", "docs/fd/plans/SPEC-bar.md")
+        self.assertEqual(wrong.returncode, review_server.EXIT_USAGE)
+        ok = self.purge("--dir", "docs/fd", "--artifact", "docs/fd/plans/PLAN-bar.md")
+        self.assertEqual(ok.returncode, 0, ok.stderr)
+        self.assertFalse((custom / "PLAN-bar.md").exists())
+        self.assertTrue((custom / "SPEC-bar.md").exists())
 
     def test_symlinks_are_refused(self):
         outside = Path(tempfile.mkdtemp())
