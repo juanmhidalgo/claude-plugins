@@ -1,8 +1,18 @@
 {
   "name": "retro",
   "description": "Session retrospectives from Claude Code logs: measured cost and friction (denials, hook blocks, slow turns, tool errors) routed into concrete config changes",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "author": {
     "name": "Juan M. Hidalgo"
+  },
+  "userConfig": {
+    "default_sessions": {
+      "type": "number",
+      "title": "Sessions to analyze by default",
+      "description": "How many of the most recent sessions /retro:session digests when no --last or --session is given",
+      "default": 1,
+      "min": 1,
+      "max": 20
+    }
   }
 }

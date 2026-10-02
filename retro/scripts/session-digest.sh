@@ -15,9 +15,12 @@
 #   session-digest.sh --project <dir>          # a different project (default: $PWD)
 #   session-digest.sh --prompts                # include the human prompt texts
 #   session-digest.sh --prompt-chars 400       # truncation width for --prompts
+#   session-digest.sh --plugin <name> [--days N]  # one plugin across projects (plugin-runs.sh)
 #
 # Scope: one project at a time, on purpose. There is no "all projects" mode —
 # ~/.claude/projects holds transcripts from every repo you have ever opened.
+# The one exception is --plugin, which never reads transcripts: it hands off to
+# plugin-runs.sh, which reads plugin-recorder's metadata-only files instead.
 #
 # Requires: jq
 
@@ -44,7 +47,8 @@ while [[ $# -gt 0 ]]; do
         --list)         LIST_ONLY=true; shift ;;
         --prompts)      SHOW_PROMPTS=true; shift ;;
         --prompt-chars) PROMPT_CHARS="${2:?--prompt-chars needs a number}"; shift 2 ;;
-        --help|-h)      sed -n '2,25p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+        --plugin)       exec "$(dirname "$0")/plugin-runs.sh" "${2:?--plugin needs a plugin name}" "${@:3}" ;;
+        --help|-h)      sed -n '2,28p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
         *)              die "unknown argument: $1 (try --help)" ;;
     esac
 done
