@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.12.2] - 2026-10-02
+
+### Changed
+- `feature`'s corner-case analysis lists empty states (first use, no data, everything filtered out) next to error states.
+- README gains a **Needs** section listing prerequisites (`gh`, MCP servers, browser, external CLIs), replacing the old Requirements list.
+
 ## [2.12.1] - 2026-09-22
 
 ### Changed

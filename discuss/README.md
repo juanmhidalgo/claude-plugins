@@ -114,10 +114,11 @@ problem.
 
 Each command suggests the next step via Stop hooks, including cross-plugin suggestions.
 
-## Requirements
+## Needs
 
-- Claude Code CLI
+- Nothing beyond Claude Code: no `gh`, MCP servers, browser, or external CLIs
 - A codebase to provide context (optional but recommended)
+- Web access, only when a discussion uses WebFetch/WebSearch
 
 ## License
 

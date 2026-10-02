@@ -90,6 +90,7 @@ Do NOT ask more than 2 questions before providing value.
 **Corner Cases**
 - Invalid or unexpected inputs
 - Error states and recovery
+- Empty states (first use, no data yet, everything filtered out) — what the user sees and can do
 - Concurrency, race conditions
 - Boundary cases (empty lists, nulls, timeouts)
 - Migration of existing data
