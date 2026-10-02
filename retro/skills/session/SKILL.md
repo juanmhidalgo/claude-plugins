@@ -6,9 +6,11 @@ description: |
   Reads the session logs for THIS project, reports measured cost/friction, and turns each
   friction point into a concrete config change (CLAUDE.md rule, memory file, permission rule,
   hook, or a fix to a plugin in this repo).
+  Also answers "how did plugin X behave (in other projects)?" from plugin-recorder's
+  metadata, and a light "what should go in CLAUDE.md/memory from this session" pass.
   Do NOT use to review the code that was written (use /code-review:*), to summarize git history,
-  or to analyze sessions from another project without being pointed at it explicitly.
-argument-hint: "[--last N] [--session <id>] [--project <dir>]"
+  or to read another project's transcripts without being pointed at it explicitly.
+argument-hint: "[--last N] [--session <id>] [--project <dir>] [--plugin <name>] [--light]"
 keywords:
   - retrospective
   - post-mortem
@@ -21,8 +23,11 @@ triggers:
   - "what could we improve about how we worked"
   - "analyze my last sessions"
   - "post-mortem of this session"
+  - "how did the feature-dev plugin behave"
+  - "what should I add to CLAUDE.md from this session"
 allowed-tools:
   - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/session-digest.sh *)
+  - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/plugin-runs.sh *)
   - Read
   - Edit
   - Write
@@ -41,11 +46,50 @@ One project at a time. `~/.claude/projects/` holds transcripts from every repo e
 opened here, including work ones — never widen to all projects, and never read another
 project's logs unless the user names it.
 
+**The one exception is plugin mode** (below): it reads plugin-recorder's files from every
+project, which hold names, counts, durations and statuses only — no prompts, no tool
+inputs, no paths beyond a project's basename. It never opens another project's transcript.
+
+## Pick the mode
+
+| The user asks | Mode |
+|---------------|------|
+| "how did that session go", "analyze the last N sessions" | **Full** — Phases 1–4 |
+| "how did `<plugin>` behave", "why was `/x:y` slow over there", or pastes a session ID from another project | **Plugin** — below, then Phases 2–4 on its output |
+| "what should go in CLAUDE.md / memory from this session", `--light` | **Light** — below; no log analysis |
+
+## Plugin mode
+
+Do not ask for session IDs. Run:
+
+```bash
+${CLAUDE_PLUGIN_ROOT}/scripts/plugin-runs.sh <plugin> [--days N] [--project <basename>]
+${CLAUDE_PLUGIN_ROOT}/scripts/plugin-runs.sh --list      # which plugins were recorded
+```
+
+It reports invocations by command and version, subagent calls and failures by
+`subagent_type`, turn durations, and a per-project breakdown. If it prints `No
+plugin-recorder data found`, say so, suggest installing the `plugin-recorder` plugin, and
+fall back to asking which project to read — the old path, one project at a time. Cite the
+script's lines as evidence; a failure row with no session in this project cannot be read
+deeper, so do not guess at its cause.
+
+## Light mode
+
+Only the current session, from the conversation already in context — no digest, no log
+reads. List what a fresh session would have needed to know: corrections the user gave,
+facts discovered the hard way, commands that turned out to be the right ones. For each,
+name the destination (project `CLAUDE.md`, a memory file, or nothing if it is one-off) and
+quote the exact text to add. Then ask which to apply. Skip Phases 1–3.
+
 ## Phase 1 — Measure
+
+With no `--last` or `--session` given, digest the **${user_config.default_sessions}** most
+recent session(s) (the `default_sessions` option; `/plugin configure retro` changes it).
 
 ```bash
 ${CLAUDE_PLUGIN_ROOT}/scripts/session-digest.sh --list                 # what's available
-${CLAUDE_PLUGIN_ROOT}/scripts/session-digest.sh --prompts              # most recent session
+${CLAUDE_PLUGIN_ROOT}/scripts/session-digest.sh --last ${user_config.default_sessions} --prompts
 ${CLAUDE_PLUGIN_ROOT}/scripts/session-digest.sh --last 3 --prompts     # a trend
 ```
 

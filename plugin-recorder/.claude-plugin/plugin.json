@@ -1,0 +1,9 @@
+{
+  "name": "plugin-recorder",
+  "description": "Mod that records metadata-only plugin runs (commands, skills, subagents, turn durations) per session, shows a progress band while subagents run, and flags failed subagent calls at once",
+  "version": "0.1.0",
+  "author": {
+    "name": "Juan M. Hidalgo"
+  },
+  "types": "./types/index.d.ts"
+}

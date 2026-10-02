@@ -177,7 +177,7 @@
       "name": "retro",
       "source": "./retro",
       "description": "Session retrospectives from Claude Code logs: measured cost and friction (denials, hook blocks, slow turns, tool errors) routed into concrete config changes",
-      "version": "0.1.2",
+      "version": "0.2.0",
       "author": {
         "name": "Juan M. Hidalgo"
       },
@@ -194,6 +194,17 @@
       },
       "keywords": ["dependencies", "upgrade", "python", "breaking-changes", "risk-assessment", "changelog", "cve"],
       "category": "development"
+    },
+    {
+      "name": "plugin-recorder",
+      "source": "./plugin-recorder",
+      "description": "Mod that records metadata-only plugin runs (commands, skills, subagents, turn durations) per session, shows a progress band while subagents run, and flags failed subagent calls at once",
+      "version": "0.1.0",
+      "author": {
+        "name": "Juan M. Hidalgo"
+      },
+      "keywords": ["mod", "telemetry", "subagents", "progress", "observability", "retrospective"],
+      "category": "productivity"
     }
   ]
 }

@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.2.0] - 2026-10-02
+
+### Added
+
+- Plugin mode: `scripts/plugin-runs.sh <plugin>` (also `session-digest.sh --plugin <plugin>`) reads the `plugin-recorder` mod's metadata-only files from every project and reports invocations by command and version, subagent calls and spawn failures by `subagent_type`, turn durations, and a per-project breakdown. `--days N`, `--project <basename>`, `--list`. Prints a notice and exits 0 when plugin-recorder has recorded nothing.
+- The skill routes "how did plugin X behave" and pasted session IDs from other projects to plugin mode instead of asking for IDs.
+- Light mode: CLAUDE.md / memory suggestions from the current session only, with no log analysis.
+- `userConfig.default_sessions` (default 1): how many recent sessions a run digests when none is named, referenced in the skill as `${user_config.default_sessions}`.
+- README "Needs" section.
+
+### Changed
+
+- Scope guard documents plugin mode as the one cross-project exception: it reads names, counts, durations and statuses, never another project's transcript.
+
+### Why
+
+A retro over 196 sessions found session IDs from other projects pasted seven times to reconstruct how a plugin behaved there.
+
 ## [0.1.2] - 2026-09-15
 
 ### Changed
