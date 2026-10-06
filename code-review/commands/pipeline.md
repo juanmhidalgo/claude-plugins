@@ -1,5 +1,4 @@
 ---
-disable-model-invocation: true
 allowed-tools:
   - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/*)
   - Bash(git *)
@@ -21,8 +20,11 @@ allowed-tools:
   - Grep
 argument-hint: PR#
 description: |
-  Use when you want to resolve all PR feedback autonomously in a single pass.
-  Do NOT use for draft PRs or when you need manual control over individual fixes.
+  Use only when the user explicitly asks for the autonomous PR pipeline (by name, or
+  "run the pipeline on PR N"), or when /ship hands off a PR that Copilot commented on.
+  It edits, commits and pushes without asking.
+  Do NOT use to look at or triage PR comments (use /code-review:triage), for draft PRs,
+  or when the user wants to approve fixes one by one.
 keywords:
   - autonomous-pipeline
   - review-fix-ship
@@ -31,10 +33,8 @@ keywords:
   - batch-review
 triggers:
   - "run the full review pipeline"
-  - "autonomous PR review"
-  - "fix all PR comments"
-  - "review fix and ship"
-  - "resolve all PR feedback"
+  - "run the pipeline on this PR"
+  - "use the code-review pipeline"
 skills:
   - receiving-code-review
   - coverage-gate
