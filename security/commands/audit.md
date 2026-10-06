@@ -2,7 +2,7 @@
 description: |
   Use when you need to audit the codebase or specific files for security vulnerabilities.
   Do NOT use for general code quality — use /code-review:branch for that.
-argument-hint: "[path or scope]"
+argument-hint: "[path or scope] [--pane|--no-pane]"
 keywords:
   - security
   - audit
@@ -23,6 +23,7 @@ allowed-tools:
   - Bash(git diff *)
   - Bash(curl -sI *)
   - Agent
+  - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/herdr-pane.sh *)
 hooks:
   - event: Stop
     once: true
@@ -43,9 +44,20 @@ hooks:
 @security/skills/security-hardening/SKILL.md
 </best_practices>
 
+## Herdr pane
+
+With `--pane`, run the audit in a Herdr pane in **collect** mode: follow
+`${CLAUDE_PLUGIN_ROOT}/references/herdr-pane.md`. It falls back to the normal run outside
+Herdr. Questions the run asks happen in the pane, and Herdr notifies the user.
+`--pane` / `--no-pane` are flags, not the scope: drop them first.
+
+- **Command string**: `/security:audit <scope, if any> --no-pane`
+- **Report**: `<scratchpad dir>/security-audit-<branch>.md`
+- **Present**: the findings by severity as the report has them.
+
 ## Security Audit Workflow
 
-Audit scope: **$ARGUMENTS** (if empty, audit the full codebase).
+Audit scope: **$ARGUMENTS** (if empty, audit the full codebase; `--pane` / `--no-pane` are not part of it).
 
 ### Phase 1: Scope & Detect Stack
 

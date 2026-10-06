@@ -6,6 +6,7 @@ allowed-tools:
   - Glob
   - Edit
   - AskUserQuestion
+  - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/herdr-pane.sh *)
   - Bash(gh auth status)
   - Bash(gh repo view --json nameWithOwner*)
   - Bash(gh issue view *)
@@ -13,7 +14,7 @@ allowed-tools:
   - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/issue_spec.py *)
   - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/review_server.py snapshot *)
   - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/review_server.py artifacts *)
-argument-hint: "[spec-file-path, #issue, owner/repo#issue, or issue URL — optional; auto-discovers SPEC-*.md if omitted]"
+argument-hint: "[spec-file-path, #issue, owner/repo#issue, or issue URL — optional; auto-discovers SPEC-*.md if omitted] [--pane|--no-pane]"
 description: |
   Use to validate a SPEC-*.md for gaps before planning or implementation. Outputs Blocking / Should Address / Nice to Have findings.
   Do NOT use to verify implementation (use /prd:validate).
@@ -41,12 +42,27 @@ If you were dispatched as a subagent to execute a specific task, skip this comma
 
 ## Phase 0: Resolve the Spec File
 
+`--pane` / `--no-pane` are flags: drop them before reading `$ARGUMENTS` below.
+
 1. **If `$ARGUMENTS` is `#N`, `owner/repo#N`, or an issue URL** → resolve it per [issue-store.md's Argument parsing](../skills/spec-driven-development/references/issue-store.md#argument-parsing), then run [issue-store.md's Import algorithm](../skills/spec-driven-development/references/issue-store.md#import-ac-8-ac-9-ac-10-ac-11-ac-12) against it, start to finish. Do not restate Import's steps here — follow the reference. A failed `gh` preflight, or a failed `gh issue view` call, stops here and names the issue that could not be read. On success, continue as if `$ARGUMENTS` had been the resulting `SPEC-<slug>.md` path (the reference's own step 6).
 2. **If `$ARGUMENTS` is provided and is not an issue reference** → use it as the path to the spec file. If the file does not exist, STOP and report.
 3. **If `$ARGUMENTS` is empty** → auto-discover spec files. List them with `${CLAUDE_PLUGIN_ROOT}/scripts/review_server.py artifacts --dir "<artifacts folder>" --kind spec` (the folder first, then legacy specs at the root), then read each file's frontmatter. Do **not** filter by `status:` — a spec with `status: implemented` is still legitimate to re-review (e.g., for retro learning). From the candidates:
    - **0 specs** → STOP and ask the user to provide a path or run `/feature-dev:spec` first.
    - **1 spec** → use it. Inform the user: "Auto-selected spec: `<spec path>` (feature: <name>, status: <status>)".
    - **2+ specs** → use AskUserQuestion to let the user pick (label = `feature:` value, description = `<filename> — status: <status>`).
+
+## Herdr pane
+
+With `--pane`, run Phases 1–2 in a Herdr pane in **collect** mode: follow
+`${CLAUDE_PLUGIN_ROOT}/references/herdr-pane.md`. It falls back to the normal run outside
+Herdr. Questions the run asks happen in the pane, and Herdr notifies the user.
+Resolve the spec here first (Phase 0), so the pane receives a path and never
+has to ask which spec.
+
+- **Command string**: `/feature-dev:spec-review <resolved spec path> --no-pane`
+- **Report**: `<scratchpad dir>/spec-review-<slug>.md`
+- **Present**: the findings and any fixes applied, as the report lists them. The spec
+  on disk already carries the applied fixes; do not apply them again.
 
 ## Phase 1: Validate
 

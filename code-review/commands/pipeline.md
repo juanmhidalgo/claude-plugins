@@ -18,7 +18,7 @@ allowed-tools:
   - Agent
   - Glob
   - Grep
-argument-hint: PR#
+argument-hint: "PR# [--pane|--no-pane]"
 description: |
   Use only when the user explicitly asks for the autonomous PR pipeline (by name, or
   "run the pipeline on PR N"), or when /ship hands off a PR that Copilot commented on.
@@ -49,9 +49,31 @@ skills:
 
 ## Phase 0: Validate
 
+`--pane` / `--no-pane` are flags: drop them, and read the PR number from what
+remains.
+
 1. PR number was provided (from `$ARGUMENTS`)
 2. Working tree is clean. If dirty, **STOP** and ask user to commit or stash.
 3. PR is open: `gh pr view $ARGUMENTS --json state -q '.state'` must be `OPEN`. If draft/closed/merged, **STOP**.
+
+## Herdr pane
+
+With `--pane`, after Phase 0 passes, run the pipeline in a Herdr pane in
+**worktree** mode on the PR's branch, so its fixes, commit and push happen in
+their own checkout while you keep working in this one. Follow
+`${CLAUDE_PLUGIN_ROOT}/references/herdr-pane.md`. In the pane, Phase 0's
+clean-tree check runs against the new worktree, so a dirty tree here does not
+block it; say that in your one line.
+
+- **Branch**: `gh pr view <PR> --json headRefName -q .headRefName`, then
+  `open pipeline-<PR> <report> --worktree <branch>`. Exit `15` usually means the
+  PR branch is checked out here: offer to run the pipeline here instead.
+- **Command string**: `/code-review:pipeline <PR> --no-pane`
+- **Report**: `<scratchpad dir>/pipeline-<PR>.md`
+- **Present**: the Phase 8 report as written. Nothing comes back to this
+  checkout: the commits were pushed from the worktree, so `git pull` here if
+  you have the branch. Then offer `herdr-pane.sh cleanup <workspace_id>`
+  (without `--delete-branch`: it is the PR's branch).
 
 ## Autonomous mode
 

@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.7.0 (2026-10-06)
+
+### Added
+- **`/github-issues:verify --pane`** resolves the issue list here (so a `--label` query cannot drift), then verifies in a separate Claude Code session in a sibling Herdr pane. Posting approvals happen in the pane; the ledger comes back here.
+- `scripts/herdr-pane.sh` and `references/herdr-pane.md`. The script and its reference are synced copies of `shared/herdr-pane/` in the marketplace repo (`shared/sync.sh`); edit them there.
+
 ## 1.6.1 (2026-10-02)
 
 ### Changed

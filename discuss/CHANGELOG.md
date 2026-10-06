@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.13.0] - 2026-10-06
+
+### Added
+- **`/discuss:adversarial-doc-review --pane`** runs the review in a separate Claude Code session in a sibling Herdr pane: the "new session with only the doc path" fallback, done for you, and it does not block this session. The report comes back here.
+- `scripts/herdr-pane.sh` and `references/herdr-pane.md`. The script and its reference are synced copies of `shared/herdr-pane/` in the marketplace repo (`shared/sync.sh`); edit them there.
+
 ## [2.12.2] - 2026-10-02
 
 ### Changed

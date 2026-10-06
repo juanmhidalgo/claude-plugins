@@ -4,6 +4,7 @@ allowed-tools:
   - Bash(gh pr diff *)
   - Bash(gh pr list *)
   - Bash(git *)
+  - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/herdr-pane.sh *)
   - Agent
   - Read
   - Glob
@@ -12,7 +13,7 @@ disallowed-tools:
   - Edit
   - Write
   - NotebookEdit
-argument-hint: "<PR number or URL> [low|medium|high|max]"
+argument-hint: "<PR number or URL> [low|medium|high|max] [--pane|--no-pane]"
 description: |
   Use when you need a thorough code review of a pull request, reported in this session.
   Do NOT use for staged or branch-only reviews (use /code-review:staged or :branch),
@@ -36,7 +37,7 @@ hooks:
   - event: Stop
     once: true
     command: |
-      echo "PR review complete (findings reported in session, nothing posted to GitHub)."
+      echo "PR review — findings are reported in session, nothing is posted to GitHub:"
       echo "  - /code-review:fixes-plan to create fix tracking"
       echo "  - Ask to post these to the PR and the posting-a-pr-review skill covers it (Request changes, blocking findings inline) — it never fires on its own"
       echo "  - /code-review:implement-fix to apply fixes"
@@ -48,6 +49,7 @@ hooks:
 
 **Target PR**: $1
 **Effort level**: $2
+**All arguments**: $ARGUMENTS
 **Repository**: !`git remote get-url origin`
 **Current branch**: !`git branch --show-current`
 
@@ -60,6 +62,30 @@ findings on the PR, that is a separate, explicit decision they make — the
 `posting-a-pr-review` skill covers how, in a later turn, outside this command.
 
 </output_contract>
+
+---
+
+`--pane` / `--no-pane` are flags, not the PR or the level: drop them before
+reading `$1` and `$2`.
+
+## Herdr pane
+
+The pane is worth most here: Step 4's parallel reviewers fan out in a top-level
+session exactly as they do here, without filling this conversation.
+
+If `--pane` is in the arguments, or `review_in_pane` is configured `true`
+(`${user_config.review_in_pane}`), run this review in a Herdr pane in
+**collect** mode: follow `${CLAUDE_PLUGIN_ROOT}/references/herdr-pane.md`
+instead of Steps 1–7. It falls back to the normal run outside Herdr.
+
+- **Command string**: `/code-review:pr <PR> <effort> --no-pane`
+- **Report**: `<scratchpad dir>/pr-<PR>.md`
+- **Present**: do not re-verify. The pane ran this effort level's verification
+  in a fresh context, which beats this one. Run the two pre-presentation checks
+  of `verification.md` (citations, execution claims), present the distilled
+  findings, then one line: follow-ups go to the reviewer in its pane. To
+  re-verify here instead (the code changed meanwhile), pass the report path to
+  `/code-review:receive`.
 
 ---
 

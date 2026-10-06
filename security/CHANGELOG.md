@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.3.0] - 2026-10-06
+
+### Added
+- **`/security:audit --pane`** runs the audit in a separate Claude Code session in a sibling Herdr pane, without blocking this one; the findings come back here.
+- `scripts/herdr-pane.sh` and `references/herdr-pane.md`. The script and its reference are synced copies of `shared/herdr-pane/` in the marketplace repo (`shared/sync.sh`); edit them there.
+
 ## [1.2.2] - 2026-10-02
 
 ### Changed

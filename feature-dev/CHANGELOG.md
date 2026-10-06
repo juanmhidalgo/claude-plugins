@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.35.0 (2026-10-06)
+
+### Added
+- **`/feature-dev:tdd --pane`** hands the run to a fresh Claude Code session in a sibling Herdr pane (handoff mode) and stops this one: the run gets a full context budget instead of inheriting this one. Resume re-verifies completed steps, so handing off mid-run loses nothing. Inside Herdr, the milestone checkpoint line also offers it as the alternative to `/clear`.
+- **`/feature-dev:spec-review --pane` and `:plan-review --pane`** resolve the artifact here, then validate it in a sibling pane (collect mode) while you keep working. Questions and fix approval happen in the pane.
+- `scripts/herdr-pane.sh` and `references/herdr-pane.md`. The script and its reference are synced copies of `shared/herdr-pane/` in the marketplace repo (`shared/sync.sh`); edit them there.
+
 ## 1.34.0 (2026-10-02)
 
 ### Changed

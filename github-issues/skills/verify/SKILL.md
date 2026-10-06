@@ -5,7 +5,7 @@ description: |
   anyone works on them — triaging a backlog of AI-written issues, or checking whether an
   issue is still true, already fixed, or wrong. Read-only; posts nothing without approval.
   Do NOT use to implement an issue (use /github-issues:work), or to review a PR (use /code-review).
-argument-hint: "<issue-url | #number>... | --label <label> [--limit N]"
+argument-hint: "<issue-url | #number>... | --label <label> [--limit N] [--pane|--no-pane]"
 disable-model-invocation: true
 keywords:
   - github
@@ -24,6 +24,7 @@ allowed-tools:
   - Grep
   - Glob
   - Agent
+  - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/herdr-pane.sh *)
   - Bash(gh issue view *)
   - Bash(gh issue list *)
   - Bash(gh issue comment *)
@@ -69,6 +70,20 @@ Verification runs against the local checkout, so issues must belong to this repo
 from another repo → **STOP** and say which checkout to run it from.
 
 If the current branch is not the default branch, say so: the ledger is only true for this HEAD.
+
+## Herdr pane
+
+With `--pane`, run the verification in a Herdr pane in **collect** mode: follow
+`${CLAUDE_PLUGIN_ROOT}/references/herdr-pane.md`. It falls back to the normal run outside
+Herdr. Questions the run asks happen in the pane, and Herdr notifies the user.
+`--pane` / `--no-pane` are flags: drop them before reading the arguments.
+Resolve the list here first (step 1), so the pane receives issue numbers, not a
+label query that could resolve differently by the time it runs.
+
+- **Command string**: `/github-issues:verify <resolved issue numbers> --no-pane`
+- **Report**: `<scratchpad dir>/verify-<first issue>.md`
+- **Present**: the ledger and verdicts as the report has them. Anything the pane
+  posted to GitHub was approved there; do not offer to post it again.
 
 ## Workflow
 

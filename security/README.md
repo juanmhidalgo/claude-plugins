@@ -2,6 +2,12 @@
 
 Security auditing workflow with vulnerability scanning, OWASP Top 10 verification, dependency audit, and hardening recommendations.
 
+## Running in a Herdr pane
+
+`/security:audit [scope] --pane` runs the audit in a separate session in a sibling pane, without blocking this one. The findings come back here.
+
+Inside [Herdr](https://herdr.dev) only; outside it, `--pane` says so and runs normally. Approvals and questions appear in the pane, with a Herdr notification. Flow and exit codes: `references/herdr-pane.md` (a synced copy of `shared/herdr-pane/` in the marketplace repo).
+
 ## Installation
 
 ```bash

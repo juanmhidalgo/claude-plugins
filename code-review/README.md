@@ -6,8 +6,8 @@ Comprehensive code review workflow for Claude Code: branch reviews, PR feedback 
 
 | Command | Description |
 |---------|-------------|
-| `/code-review:pipeline PR#` | **Autonomous pipeline**: triage, fix, dismiss, test, commit, push, resolve |
-| `/code-review:pr <PR> [level]` | **Multi-agent PR review**, reported in session — never posts to GitHub |
+| `/code-review:pipeline PR# [--pane]` | **Autonomous pipeline**: triage, fix, dismiss, test, commit, push, resolve |
+| `/code-review:pr <PR> [level] [--pane]` | **Multi-agent PR review**, reported in session — never posts to GitHub |
 | `/code-review:branch [base] [level] [--pane]` | Review current branch vs base, in a reviewer that has not seen this conversation |
 | `/code-review:staged [level] [--pane]` | Review staged changes, in a reviewer that has not seen this conversation |
 | `/code-review:coverage-gate [base]` | Check coverage against CI thresholds locally before push |
@@ -125,27 +125,35 @@ Session A:
 /code-review/implement-fix  → Implement fixes
 ```
 
-### Review in a Herdr pane
+### Running in a Herdr pane
 
-Inside [Herdr](https://herdr.dev), `--pane` runs `branch` or `staged` as a
-separate top-level Claude Code session in a sibling pane, instead of a subagent:
+Inside [Herdr](https://herdr.dev), `--pane` runs a command as a separate
+top-level Claude Code session in another pane instead of a subagent or inline.
+This session is not blocked and is re-invoked when the result lands. The pane's
+own subagents fan out as in any top-level session, and the session stays open
+for follow-up questions (`herdr agent focus <agent>`). Approvals and questions
+appear in the pane, with a Herdr notification. The pane receives only the slash
+command and its arguments plus `--no-pane`, never framing from this
+conversation.
+
+| Command | Mode | What comes back |
+|---------|------|-----------------|
+| `:branch`, `:staged`, `:pr`, `:tech-debt` | collect: sibling pane, this checkout | The report, presented without a second verification |
+| `:pipeline <PR>` | worktree: a Herdr worktree on the PR branch | The Phase 8 report; the commits were pushed from the worktree |
+| `:staged-pipeline` | worktree: at `HEAD` carrying the staged diff | The report, and the fixes as a patch applied with `git apply --index --3way` |
 
 ```
-/code-review:branch main high --pane
+/code-review:pr 42 high --pane
   → splits a pane (focus stays here), starts `claude`, submits
-    /code-review:branch main high --no-pane
-  → this session keeps working; it is re-invoked when the pane has
-    written its report, and presents it (no second verification)
-  → follow-up questions go to the reviewer: herdr agent focus <agent>
+    /code-review:pr 42 high --no-pane
+  → you keep working; the findings are presented here when the pane is done
 ```
 
-What the pane adds over the subagent: it does not block this session, its
-`high`/`max` verifiers fan out as in any top-level session, and the reviewer
-stays open for questions. Approval prompts appear in the pane, with a Herdr
-notification. `review_in_pane` (`/plugin configure code-review`) makes it the
-default whenever the session is inside Herdr; `--no-pane` overrides it once.
-Outside Herdr, `--pane` says so and falls back to the subagent. Flow and exit
-codes: `skills/branch-review/references/review-pane.md`.
+`review_in_pane` (`/plugin configure code-review`) makes the pane the default
+for the four read-only reviews whenever the session is inside Herdr; `--no-pane`
+overrides it once. The pipelines use a pane only with an explicit `--pane`.
+Outside Herdr, `--pane` says so and runs normally. Flow and exit codes:
+`references/herdr-pane.md`.
 
 ### Pre-commit Review
 ```
@@ -203,7 +211,7 @@ The plugin includes bash scripts for GitHub API operations (no MCP required):
 - `pr-resolve-comment.sh` - Dismiss/resolve comments on GitHub
 - `pr-comments.sh` - Full PR comments fetch
 - `pr-review-summary.sh` - Quick review status summary
-- `review-pane.sh` - Opens a sibling Herdr pane with `claude`, runs a review there and collects its report (`--pane`)
+- `herdr-pane.sh` - Opens a Herdr pane or worktree with `claude`, runs a command there and collects its result (`--pane`). A synced copy of `shared/herdr-pane/herdr-pane.sh` in the marketplace repo
 
 ### pr-triage-comments.sh
 
@@ -257,7 +265,7 @@ Output includes `resolved` and `outdated` status for inline comments, with stats
 - For `coverage-gate`: the project's own test and coverage tooling (pytest-cov, jest, vitest, go test)
 - No MCP servers or browser
 - For `--pane`: [Herdr](https://herdr.dev) (this session running inside a Herdr pane), `claude` and `jq` in the PATH
-- Optional: `/plugin configure code-review` sets a fallback coverage threshold and a default base branch for `coverage-gate`, and `review_in_pane` for `branch`/`staged`
+- Optional: `/plugin configure code-review` sets a fallback coverage threshold and a default base branch for `coverage-gate`, and `review_in_pane` for the read-only reviews
 
 ## Installation
 

@@ -9,12 +9,13 @@ description: |
   Do NOT use for: proofreading, completeness checklists (/feature-dev:spec-review),
   code review (/code-review:*), an idea still in conversation with no file
   (/discuss:challenge), READMEs, changelogs, or runbooks and operational procedures.
-argument-hint: "<doc-path> [design|descriptive]"
+argument-hint: "<doc-path> [design|descriptive] [--pane|--no-pane]"
 allowed-tools:
   - Read
   - Glob
   - Agent
   - AskUserQuestion
+  - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/herdr-pane.sh *)
 keywords:
   - adversarial-review
   - doc-review
@@ -65,11 +66,24 @@ review yourself in the main conversation.
 If subagents are unavailable, tell the user plainly that the review will be
 weaker and why, and offer these fallbacks in order:
 
-1. Run the reviewer in a new session with only the doc path and the repo.
+1. Run the reviewer in a new session with only the doc path and the repo
+   (`--pane` does exactly this when inside Herdr).
 2. Run it inline anyway, and mark the report as context-contaminated.
 
 Do not silently downgrade. The contamination is the single largest failure
 mode of this skill.
+
+## Herdr pane
+
+With `--pane`, run the review in a Herdr pane in **collect** mode: follow
+`${CLAUDE_PLUGIN_ROOT}/references/herdr-pane.md`. It falls back to the normal run outside
+Herdr. Questions the run asks happen in the pane, and Herdr notifies the user.
+`--pane` / `--no-pane` are flags, not the doc path or the mode: drop them first.
+
+- **Command string**: `/discuss:adversarial-doc-review <doc-path> <mode, if given> --no-pane`
+- **Report**: `<scratchpad dir>/doc-review-<doc name>.md`
+- **Present**: the report as written, including its falsification log; the checks
+  in "After the report" apply to it unchanged.
 
 ## Dispatch
 

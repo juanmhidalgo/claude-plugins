@@ -1,7 +1,7 @@
 {
   "name": "code-review",
   "description": "Comprehensive code review workflow: branch reviews, PR triage, false positive dismissal, and fix tracking",
-  "version": "3.7.0",
+  "version": "3.8.0",
   "author": {
     "name": "Juan M. Hidalgo"
   },
@@ -9,7 +9,7 @@
     "review_in_pane": {
       "type": "boolean",
       "title": "Review in a Herdr pane",
-      "description": "Run /code-review:branch and :staged in a separate Claude Code session in a sibling Herdr pane whenever this session runs inside Herdr, as if --pane were passed. Outside Herdr it has no effect. --no-pane overrides it for one run.",
+      "description": "Run the read-only reviews (/code-review:branch, :staged, :pr, :tech-debt) in a separate Claude Code session in a sibling Herdr pane whenever this session runs inside Herdr, as if --pane were passed. Outside Herdr it has no effect. --no-pane overrides it for one run. The pipelines only use a pane with an explicit --pane.",
       "default": false
     },
     "coverage_threshold": {

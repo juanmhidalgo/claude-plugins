@@ -1,5 +1,16 @@
 # Changelog
 
+## 3.8.0 (2026-10-06)
+
+### Added
+- **`--pane` on the rest of the plugin.** `:pr` and `:tech-debt` run in a sibling Herdr pane like `:branch` and `:staged` (collect mode; `review_in_pane` now covers all four). `:pr` gains the most: its parallel reviewers fan out in a top-level session without filling this conversation.
+- **`:pipeline --pane`** runs in its own Herdr worktree on the PR's branch, so the fixes, commit and push happen in a separate checkout while you keep working. A PR branch already checked out here is reported (exit 15) with the offer to run it here.
+- **`:staged-pipeline --pane`** runs in a Herdr worktree at `HEAD` carrying the staged diff. The approval happens in the pane; on return, the fixes come back as a patch (`staged-patch`) applied with `git apply --index --3way`, and a conflict stops with the patch kept.
+
+### Changed
+- `scripts/review-pane.sh` became the generic `scripts/herdr-pane.sh` (adds `status`, `send`, `open --worktree`/`--worktree-staged`, `staged-patch`, `cleanup`), and the flow moved from `skills/branch-review/references/review-pane.md` to `references/herdr-pane.md`. The script and its reference are synced copies of `shared/herdr-pane/` in the marketplace repo (`shared/sync.sh`); edit them there.
+- `pr`, `tech-debt` and `staged-pipeline` Stop hooks no longer say "complete": in pane mode the first turn ends when the run starts.
+
 ## 3.7.0 (2026-10-06)
 
 ### Changed

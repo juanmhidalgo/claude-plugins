@@ -18,6 +18,7 @@ allowed-tools:
   - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/issue_spec.py *)
   - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/review_server.py snapshot *)
   - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/review_server.py artifacts *)
+  - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/herdr-pane.sh *)
   - Read
   - Write
   - Edit
@@ -28,7 +29,7 @@ allowed-tools:
   - SendMessage
 skills:
   - tdd-patterns
-argument-hint: "[PLAN-*.md or SPEC-*.md path, or feature description — optional; auto-discovers PLAN-*.md] [--coordinator <session-name>]"
+argument-hint: "[PLAN-*.md or SPEC-*.md path, or feature description — optional; auto-discovers PLAN-*.md] [--coordinator <session-name>] [--pane|--no-pane]"
 description: |
   Use when implementing a new feature or fixing a bug where you want tests to lead, not follow.
   Do NOT use for quick one-line fixes or refactors without behavioral change.
@@ -54,7 +55,9 @@ triggers:
 
 ## Phase 0: Resolve Spec and Validate
 
-**First, strip flags from `$ARGUMENTS`.** `--coordinator <session-name>` names a live Claude Code session acting as this feature's coordinator (Phase 3 routes cross-repo questions to it). Remove the flag and its value before anything else reads `$ARGUMENTS` — what remains is the feature spec, and it may now be empty, which is the normal auto-discovery path. Record the name. Do not resolve or validate it yet; a coordinator that turns out to be unreachable must not block a run that is otherwise fine.
+**First, strip flags from `$ARGUMENTS`.** `--coordinator <session-name>` names a live Claude Code session acting as this feature's coordinator (Phase 3 routes cross-repo questions to it). Remove the flag and its value before anything else reads `$ARGUMENTS` — what remains is the feature spec, and it may now be empty, which is the normal auto-discovery path. Record the name. Do not resolve or validate it yet; a coordinator that turns out to be unreachable must not block a run that is otherwise fine. Strip `--pane` / `--no-pane` too, and run `${CLAUDE_PLUGIN_ROOT}/scripts/herdr-pane.sh status` once: it prints `inside` or `outside` (Herdr), and the checkpoint line below depends on it.
+
+**`--pane` hands the run to a fresh session.** The run moves to a sibling Herdr pane in **handoff** mode (`${CLAUDE_PLUGIN_ROOT}/references/herdr-pane.md`) and this session stops: the pane gets a full context budget instead of inheriting this one. Resolve the argument to a `PLAN-*.md` or `SPEC-*.md` path first (step 1 below), then send `/feature-dev:tdd <path> [--coordinator <name>] --no-pane` with agent name `tdd-<slug>`. Phase 1b's resume re-verifies any steps already done, so handing off mid-run loses nothing. Do not run any step here after the handoff: two runs on one checkout race. Outside Herdr, say so and run here.
 
 1. **Resolve the feature spec:**
    - **If `$ARGUMENTS` is the path of an existing `PLAN-*.md`** → read it and use it exactly as a single auto-discovered plan below (the closing lines of `/feature-dev:explore-plan` and `/feature-dev:plan-review` print this form).
@@ -262,6 +265,8 @@ Its brief is an input to the user's decision, not a substitute for it. Do not ac
    ```
    Progress recorded in <plan path> (steps 1–<N> done). To free context: /clear, then /feature-dev:tdd <plan path>; resume re-verifies the completed steps.
    ```
+
+   When Phase 0's `herdr-pane.sh status` printed `inside`, end the line with: `Or interrupt and run /feature-dev:tdd <plan path> --pane to continue in a fresh pane.`
 
    Then continue with the next step in the same turn. Do not ask, and do not pause for an answer. The line exists because this orchestrator's context only grows: one run went from 98k to 389k tokens. Resume already re-verifies every recorded step (Phase 1b), so clearing between milestones costs one re-verification pass, not the run.
 

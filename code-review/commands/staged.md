@@ -1,7 +1,7 @@
 ---
 allowed-tools:
   - Bash(git *)
-  - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/review-pane.sh *)
+  - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/herdr-pane.sh *)
   - Agent
   - Read
 disallowed-tools:
@@ -43,7 +43,6 @@ hooks:
 - **Staged files**: !`git diff --cached --name-only`
 - **Effort level**: $1
 - **All arguments**: $ARGUMENTS
-- **Configured review_in_pane**: `${user_config.review_in_pane}`
 
 ## Staged Changes Summary
 !`git diff --cached --stat`
@@ -79,12 +78,19 @@ silently downgrade.
 
 ## Herdr pane
 
-If `--pane` is in the arguments, or `review_in_pane` is configured `true`, and
-`--no-pane` is not, follow **`references/review-pane.md` in the `branch-review`
-skill** instead of the Dispatch below. It runs this same command, with the same
-effort, as a separate top-level session in a sibling Herdr pane, and falls back
-to the Dispatch when this session is not inside Herdr. A configured value that
-still reads as a `user_config` placeholder counts as `false`.
+If `--pane` is in the arguments, or `review_in_pane` is configured `true`
+(`${user_config.review_in_pane}`), run this review in a Herdr pane in
+**collect** mode: follow `${CLAUDE_PLUGIN_ROOT}/references/herdr-pane.md`
+instead of the Dispatch below. It falls back to the normal run outside Herdr.
+
+- **Command string**: `/code-review:staged <effort> --no-pane`
+- **Report**: `<scratchpad dir>/staged-<branch>.md`
+- **Present**: do not re-verify. The pane ran this effort level's verification
+  in a fresh context, which beats this one. Run the two pre-presentation checks
+  of `verification.md` (citations, execution claims), present the distilled
+  findings, then one line: follow-ups go to the reviewer in its pane. To
+  re-verify here instead (the code changed meanwhile), pass the report path to
+  `/code-review:receive`.
 
 ## Dispatch
 

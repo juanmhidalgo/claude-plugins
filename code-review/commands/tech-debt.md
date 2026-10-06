@@ -1,13 +1,14 @@
 ---
 allowed-tools:
   - Bash(git *)
+  - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/herdr-pane.sh *)
   - Agent
   - Read
 disallowed-tools:
   - Edit
   - Write
   - NotebookEdit
-argument-hint: "[staged | base-branch]"
+argument-hint: "[staged | base-branch] [--pane|--no-pane]"
 description: |
   Use to analyze staged changes or branch diff for technical debt and maintainability issues before merge.
   Do NOT use for bug detection or security review.
@@ -27,7 +28,7 @@ hooks:
   - event: Stop
     once: true
     command: |
-      echo "Technical debt analysis complete."
+      echo "Technical debt analysis — once the verdict is in:"
       echo "  - Address BLOCKING/SIGNIFICANT items before merge"
       echo "  - Create tickets for MINOR items"
       echo "  - /code-review:branch for full code review"
@@ -39,6 +40,8 @@ hooks:
 - **Staged files**: !`git diff --cached --name-only`
 
 ## Scope Detection
+
+`--pane` / `--no-pane` are flags, not the scope: drop them first.
 
 Determine the scope based on the argument:
 
@@ -68,6 +71,21 @@ Before running the analysis, check if the local base branch is behind its remote
 5. If the remote ref cannot be resolved (no upstream, no `origin/<base>`) → proceed silently; do not fail the command
 
 Never auto-fetch or auto-pull — the user decides.
+
+## Herdr pane
+
+If `--pane` is in the arguments, or `review_in_pane` is configured `true`
+(`${user_config.review_in_pane}`), run this review in a Herdr pane in
+**collect** mode: follow `${CLAUDE_PLUGIN_ROOT}/references/herdr-pane.md`
+instead of the Instructions below. It falls back to the normal run outside Herdr.
+
+- **Command string**: `/code-review:tech-debt <scope argument, if any> --no-pane`
+- **Report**: `<scratchpad dir>/tech-debt-<branch>.md`
+- **Present**: the verdict and the items from the report, then one line:
+  follow-ups go to the analyst in its pane.
+
+Run the staleness pre-flight above first, here: a stale base is the user's
+call, and the pane cannot ask it on their behalf.
 
 ## Instructions
 

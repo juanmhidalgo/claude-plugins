@@ -231,6 +231,15 @@ Add the ones you want to your own `.claude/settings.json` (or
 "Bash(gh issue comment *)"
 ```
 
+## Running in a Herdr pane
+
+`/feature-dev:tdd`, `:spec-review` and `:plan-review` accept `--pane`.
+
+- **`tdd --pane`** hands the run to a fresh session in a sibling pane and stops this one, so the run gets a full context budget. Resume re-verifies completed steps, so handing off mid-run loses nothing. Inside Herdr, the milestone checkpoint line offers it as the alternative to `/clear`.
+- **`spec-review --pane` / `plan-review --pane`** resolve the artifact here, validate it in the pane, and present the findings here. Questions and fix approval happen in the pane.
+
+Inside [Herdr](https://herdr.dev) only; outside it, `--pane` says so and runs normally. Approvals and questions appear in the pane, with a Herdr notification. Flow and exit codes: `references/herdr-pane.md` (a synced copy of `shared/herdr-pane/` in the marketplace repo).
+
 ## Needs
 
 - **python3** (standard library only) for `scripts/review_server.py` and `scripts/issue_spec.py`: the review page, artifact listing and cleanup.

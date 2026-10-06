@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Tests for the two PostToolUse advisory hooks in this directory.
+# Tests for the PostToolUse advisory hooks in this directory.
 #
 # Each case builds a throwaway git repo shaped like this marketplace, pipes a
 # realistic PostToolUse payload into a hook, and asserts on stdout. The hooks
@@ -110,6 +110,34 @@ run_case "marketplace-sync: non-plugin file is silent" \
 printf '{ not json' >"$repo/.claude-plugin/marketplace.json"
 run_case "marketplace-sync: malformed registry warns" \
   marketplace-sync-check.sh "$repo/.claude-plugin/marketplace.json" warn "not valid JSON"
+rm -rf "$repo"
+
+# --- shared-sync-check.sh --------------------------------------------------
+repo=$(make_fixture)
+mkdir -p "$repo/shared/tool"
+cp "$hooks_dir/../../shared/sync.sh" "$repo/shared/sync.sh"
+printf 'demo\n' >"$repo/shared/tool/plugins"
+printf 'echo v1\n' >"$repo/shared/tool/tool.sh"
+"$repo/shared/sync.sh" --write >/dev/null
+run_case "shared-sync: copies in sync is silent" \
+  shared-sync-check.sh "$repo/shared/tool/tool.sh" silent ""
+
+printf 'echo v2\n' >"$repo/shared/tool/tool.sh"
+run_case "shared-sync: canonical edited without sync warns" \
+  shared-sync-check.sh "$repo/shared/tool/tool.sh" warn "differs: demo/scripts/tool.sh"
+run_case "shared-sync: SKIP_VERSION_CHECK=1 silences it" \
+  shared-sync-check.sh "$repo/shared/tool/tool.sh" silent "" SKIP_VERSION_CHECK=1
+
+"$repo/shared/sync.sh" --write >/dev/null
+printf 'echo local\n' >"$repo/demo/scripts/tool.sh"
+run_case "shared-sync: direct edit of a copy points back to shared/" \
+  shared-sync-check.sh "$repo/demo/scripts/tool.sh" warn "is a synced copy"
+
+rm "$repo/demo/scripts/tool.sh"
+run_case "shared-sync: missing copy warns" \
+  shared-sync-check.sh "$repo/shared/tool/plugins" warn "missing: demo/scripts/tool.sh"
+run_case "shared-sync: unrelated plugin file is silent" \
+  shared-sync-check.sh "$repo/demo/commands/hello.md" silent ""
 rm -rf "$repo"
 
 echo

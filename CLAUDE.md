@@ -23,6 +23,8 @@ Claude Code plugins marketplace. Each top-level directory (e.g., `code-review/`,
   README.md
 ```
 
+**Shared files**: plugins cannot read each other's files at runtime, so a file several plugins need lives once under `shared/<name>/` and is copied into each plugin listed in `shared/<name>/plugins` (`*.sh` → `scripts/`, `*.md` → `references/`). Edit the canonical file, then run `shared/sync.sh --write`; `shared-sync-check.sh` warns on drift. Every plugin that receives a changed copy needs its own version bump.
+
 For deeper conventions (frontmatter fields, discoverability, progressive disclosure), see `.claude/rules/plugin-creation.md` (auto-loaded when working in a plugin directory). For skill testing, see `.claude/rules/skill-testing.md`.
 
 </architecture>

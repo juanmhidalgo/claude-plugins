@@ -2,6 +2,12 @@
 
 Critical feature discussion and idea refinement tools for Claude Code.
 
+## Running in a Herdr pane
+
+`/discuss:adversarial-doc-review <doc> --pane` runs the review in a separate session in a sibling pane, instead of a subagent: the "new session with only the doc path" fallback, done for you. The report comes back here.
+
+Inside [Herdr](https://herdr.dev) only; outside it, `--pane` says so and runs normally. Approvals and questions appear in the pane, with a Herdr notification. Flow and exit codes: `references/herdr-pane.md` (a synced copy of `shared/herdr-pane/` in the marketplace repo).
+
 ## Installation
 
 ```bash

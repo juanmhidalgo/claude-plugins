@@ -2,6 +2,7 @@
 disable-model-invocation: true
 allowed-tools:
   - Bash(git *)
+  - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/herdr-pane.sh *)
   - Bash(npm *)
   - Bash(npx *)
   - Bash(yarn *)
@@ -19,7 +20,7 @@ allowed-tools:
   - Grep
   - EnterPlanMode
   - ExitPlanMode
-argument-hint: "[focus area]"
+argument-hint: "[focus area] [--pane|--no-pane]"
 description: |
   Use when you want to review and fix staged changes in a single session before committing.
   Do NOT use for PR reviews (use /code-review:pipeline) or read-only reviews (use /code-review:staged).
@@ -43,7 +44,7 @@ hooks:
   - event: Stop
     once: true
     command: |
-      echo "Staged review pipeline complete."
+      echo "Staged review pipeline — once it has finished:"
       echo "  - /commit to commit the changes"
       echo "  - git diff to review what was changed"
 ---
@@ -55,8 +56,36 @@ hooks:
 
 ## Phase 0: Validate
 
+`--pane` / `--no-pane` are flags, not the focus area: drop them first.
+
 1. Check staged changes exist: `git diff --cached --name-only` must return files. If empty, **STOP** and tell user to stage changes first.
 2. Note the staged file list for later phases.
+
+## Herdr pane
+
+With `--pane`, after Phase 0 passes, run the whole pipeline in a Herdr pane in
+**worktree** mode with `--worktree-staged`. Follow
+`${CLAUDE_PLUGIN_ROOT}/references/herdr-pane.md`. The worktree starts at
+`HEAD` with exactly what is staged here. Phase 3's approval happens in the
+pane, and Herdr notifies the user when it is waiting.
+
+- **Command string**: `/code-review:staged-pipeline <focus area, if any> --no-pane`
+- **Report**: `<scratchpad dir>/staged-pipeline-<branch>.md`
+- **On exit 0**: read the report, then bring the fixes back:
+  1. `herdr-pane.sh staged-patch <worktree_path> <base_tree> <scratchpad dir>/staged-pipeline-<branch>.patch`
+     prints the patch's stat, or `empty` when nothing was fixed.
+  2. If not empty, show the stat and apply it with
+     `git apply --index --3way <patch>`. This is the step Phase 4 would have
+     done here, and the user already approved it in the pane. If it conflicts
+     (you edited those files meanwhile), stop, keep the patch, and say which
+     files conflicted.
+  3. Present the report's Phase 6 summary, then offer
+     `herdr-pane.sh cleanup <workspace_id> --force --delete-branch <worktree_branch>`.
+     Use `--force` only after the patch applied (or was empty): until then the
+     fixes exist only in that worktree.
+
+Unstaged changes in this checkout are not carried into the worktree. Its tests
+run against what is staged, which is what is about to be committed.
 
 ## Phase 1: Review (dispatched)
 

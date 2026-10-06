@@ -3,8 +3,9 @@ allowed-tools:
   - Agent
   - Read
   - Glob
+  - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/herdr-pane.sh *)
   - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/review_server.py artifacts *)
-argument-hint: "[plan-file-path — optional; auto-discovers PLAN-*.md if omitted]"
+argument-hint: "[plan-file-path — optional; auto-discovers PLAN-*.md if omitted] [--pane|--no-pane]"
 description: |
   Use to re-validate a PLAN-*.md edited by hand, or one written before explore-plan reviewed its own plans. Outputs Blocking / Should Address / Nice to Have findings.
   Do NOT use right after /feature-dev:explore-plan (it already ran this review), for code review, or for SPEC review (use /feature-dev:spec-review).
@@ -32,11 +33,24 @@ If you were dispatched as a subagent to execute a specific task, skip this comma
 
 ## Phase 0: Resolve the Plan File
 
+`--pane` / `--no-pane` are flags: drop them before reading `$ARGUMENTS` below.
+
 1. **If `$ARGUMENTS` is provided** → use it as the path to the plan file. If the file does not exist, STOP and report.
 2. **If `$ARGUMENTS` is empty** → auto-discover plan files. List them with `${CLAUDE_PLUGIN_ROOT}/scripts/review_server.py artifacts --dir "<artifacts folder>" --kind plan` (the folder first, then legacy plans at the root). From the candidates:
    - **0 plans** → STOP and ask the user to provide a path or run `/feature-dev:explore-plan` first.
    - **1 plan** → use it. Inform the user: "Auto-selected plan: `<plan path>` (feature: <name>)".
    - **2+ plans** → use AskUserQuestion to let the user pick (label = `feature:` value, description = `<filename>`).
+
+## Herdr pane
+
+With `--pane`, run Phases 1–2 in a Herdr pane in **collect** mode: follow
+`${CLAUDE_PLUGIN_ROOT}/references/herdr-pane.md`. It falls back to the normal run outside
+Herdr. Questions the run asks happen in the pane, and Herdr notifies the user.
+Resolve the plan here first (Phase 0), so the pane receives a path.
+
+- **Command string**: `/feature-dev:plan-review <resolved plan path> --no-pane`
+- **Report**: `<scratchpad dir>/plan-review-<slug>.md`
+- **Present**: the Blocking / Should Address / Nice to Have list as the report has it.
 
 ## Phase 1: Validate
 

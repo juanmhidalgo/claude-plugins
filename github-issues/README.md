@@ -54,6 +54,12 @@ probes they propose can be run afterwards from the main session. `work` starts f
 
 Epics, spikes, and new features are out of scope — use `/feature-dev:spec`.
 
+## Running in a Herdr pane
+
+`/github-issues:verify <issues> --pane` resolves the issue list here, then verifies in a separate session in a sibling pane. Posting approvals happen in the pane; the ledger comes back here.
+
+Inside [Herdr](https://herdr.dev) only; outside it, `--pane` says so and runs normally. Approvals and questions appear in the pane, with a Herdr notification. Flow and exit codes: `references/herdr-pane.md` (a synced copy of `shared/herdr-pane/` in the marketplace repo).
+
 ## Needs
 
 - `gh`, installed and authenticated with repo scope
