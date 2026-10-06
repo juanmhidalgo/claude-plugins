@@ -1,5 +1,19 @@
 # Changelog
 
+## 3.6.0 (2026-10-06)
+
+### Added
+- **`--pane` for `/code-review:branch` and `:staged`**: inside Herdr, the review runs as a separate top-level Claude Code session in a sibling pane instead of a subagent. The calling session is not blocked (it is re-invoked when the report lands), the pane's `high`/`max` verifiers fan out as in any top-level session, and the reviewer stays open for follow-up questions. The pane receives only the slash command and its arguments, never framing from this conversation. The report comes back through a file and is presented without a second verification. Outside Herdr, `--pane` says so and falls back to the subagent.
+- `scripts/review-pane.sh` (`check` / `open` / `run`): splits the pane (right when wide, down otherwise, focus kept), starts `claude` with `--add-dir` on the report directory, submits the review, waits through approval prompts in the pane with a Herdr notification, then has the session save what it presented. Distinct exit codes for "not in Herdr", "agent did not start", "prompt not taken" and "no report written".
+- `review_in_pane` option (`/plugin configure code-review`, default off): use the pane whenever the session is inside Herdr. `--no-pane` overrides it for one run, and is what the pane session receives, so the option cannot recurse.
+- `/code-review:receive` accepts a report file path as well as pasted text.
+
+### Changed
+- The `branch` / `staged` Stop hook no longer says "review complete": in pane mode the first turn ends when the review starts.
+
+### Fixed
+- `claude plugin validate --strict` passes: `commands/pipeline.references/phase-details.md` moved to `references/pipeline-phase-details.md`. Under `commands/` it was validated (and could load) as a command with no frontmatter. `pipeline` now reads it by `${CLAUDE_PLUGIN_ROOT}` path instead of a relative `@` reference.
+
 ## 3.5.0 (2026-10-02)
 
 ### Added

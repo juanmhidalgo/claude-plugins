@@ -1,13 +1,14 @@
 ---
 allowed-tools:
   - Bash(git *)
+  - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/review-pane.sh *)
   - Agent
   - Read
 disallowed-tools:
   - Edit
   - Write
   - NotebookEdit
-argument-hint: "[base-branch] [low|medium|high|max]"
+argument-hint: "[base-branch] [low|medium|high|max] [--pane|--no-pane]"
 description: |
   Use to review branch changes for merge readiness in a reviewer that has NOT seen
   this conversation — the reviewer forms its own read of the code, so it is the right
@@ -32,7 +33,7 @@ hooks:
   - event: Stop
     once: true
     command: |
-      echo "Branch review complete."
+      echo "Branch review — before acting on the findings:"
       echo "  - Spot-check 2 cited file:line refs before acting — reviewers can fabricate them"
       echo "  - Any 'reproduced' / test output / probe result in the report is fabricated: the reviewer cannot run anything"
       echo "  - /code-review:fixes-plan to create fix tracking"
@@ -43,8 +44,13 @@ hooks:
 - **Current branch**: !`git branch --show-current`
 - **Specified base**: $1
 - **Effort level**: $2
+- **All arguments**: $ARGUMENTS
+- **Configured review_in_pane**: `${user_config.review_in_pane}`
 
 ## Base branch
+
+`--pane` / `--no-pane` are flags, not positional arguments: drop them before
+reading base and effort.
 
 Use `$1` if provided. Otherwise `main`, falling back to `master`.
 
@@ -78,8 +84,17 @@ This is the property that distinguishes this command from an inline review, and
 it is the reason to reach for it when **this session wrote the code**.
 
 If subagents are unavailable, say plainly that the review will be weaker and
-why, then offer: run it in a fresh session, or run it inline and mark the
-report as context-contaminated. Do not silently downgrade.
+why, then offer: run it in a fresh session (`--pane`, when inside Herdr), or run
+it inline and mark the report as context-contaminated. Do not silently downgrade.
+
+## Herdr pane
+
+If `--pane` is in the arguments, or `review_in_pane` is configured `true`, and
+`--no-pane` is not, follow **`references/review-pane.md` in the `branch-review`
+skill** instead of the Dispatch below. It runs this same command, with the same
+base and effort, as a separate top-level session in a sibling Herdr pane, and
+falls back to the Dispatch when this session is not inside Herdr. A configured
+value that still reads as a `user_config` placeholder counts as `false`.
 
 ## Dispatch
 

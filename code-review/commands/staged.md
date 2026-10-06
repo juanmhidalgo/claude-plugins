@@ -1,13 +1,14 @@
 ---
 allowed-tools:
   - Bash(git *)
+  - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/review-pane.sh *)
   - Agent
   - Read
 disallowed-tools:
   - Edit
   - Write
   - NotebookEdit
-argument-hint: "[low|medium|high|max]"
+argument-hint: "[low|medium|high|max] [--pane|--no-pane]"
 description: |
   Use to review staged changes before committing, in a reviewer that has NOT seen this
   conversation — the right choice when this session wrote the code being staged.
@@ -30,7 +31,7 @@ hooks:
   - event: Stop
     once: true
     command: |
-      echo "Staged changes review complete."
+      echo "Staged review — before acting on the findings:"
       echo "  - Spot-check 2 cited file:line refs before acting — reviewers can fabricate them"
       echo "  - Any 'reproduced' / test output / probe result in the report is fabricated: the reviewer cannot run anything"
       echo "  - Fix issues, then commit with /commit"
@@ -41,11 +42,15 @@ hooks:
 - **Current branch**: !`git branch --show-current`
 - **Staged files**: !`git diff --cached --name-only`
 - **Effort level**: $1
+- **All arguments**: $ARGUMENTS
+- **Configured review_in_pane**: `${user_config.review_in_pane}`
 
 ## Staged Changes Summary
 !`git diff --cached --stat`
 
 ## Effort level
+
+`--pane` / `--no-pane` are flags, not the effort level: drop them first.
 
 `$1` is one of `low | medium | high | max`, default `medium`. `low`/`medium`
 surface only findings verified against the code path; `high`/`max` add broader
@@ -69,7 +74,17 @@ reviewer must not start from. A subagent sees the diff and the repo and nothing
 else.
 
 If subagents are unavailable, say so plainly and offer to run it in a fresh
-session or inline-but-marked-contaminated. Do not silently downgrade.
+session (`--pane`, when inside Herdr) or inline-but-marked-contaminated. Do not
+silently downgrade.
+
+## Herdr pane
+
+If `--pane` is in the arguments, or `review_in_pane` is configured `true`, and
+`--no-pane` is not, follow **`references/review-pane.md` in the `branch-review`
+skill** instead of the Dispatch below. It runs this same command, with the same
+effort, as a separate top-level session in a sibling Herdr pane, and falls back
+to the Dispatch when this session is not inside Herdr. A configured value that
+still reads as a `user_config` placeholder counts as `false`.
 
 ## Dispatch
 

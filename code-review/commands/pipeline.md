@@ -55,7 +55,9 @@ skills:
 
 ## Autonomous mode
 
-This pipeline runs **without asking for input**. For the full decision-rules table covering simple fixes, ambiguous cases, test failures, coverage misses, and scope leaks from auto-formatters, see `@pipeline.references/phase-details.md` (Autonomous mode rules section).
+Read `${CLAUDE_PLUGIN_ROOT}/references/pipeline-phase-details.md` once, before Phase 1: every "see" below points into it.
+
+This pipeline runs **without asking for input**. For the full decision-rules table covering simple fixes, ambiguous cases, test failures, coverage misses, and scope leaks from auto-formatters, see `${CLAUDE_PLUGIN_ROOT}/references/pipeline-phase-details.md` (Autonomous mode rules section).
 
 Don't pause for input. Stop only on the conditions in the decision table and the containment rules below.
 
@@ -98,11 +100,11 @@ outcomes, and only the user decides which one applies.
 
 Fetch all PR comments and verify each in parallel using the `comment-verifier` agent. Collect `VALID BUG` / `FALSE POSITIVE` verdicts with `ref_id` preserved.
 
-For the exact script invocation and verifier-prompt format, see `@pipeline.references/phase-details.md` (Phase 1 detail).
+For the exact script invocation and verifier-prompt format, see `${CLAUDE_PLUGIN_ROOT}/references/pipeline-phase-details.md` (Phase 1 detail).
 
 ## Phase 2: Dismiss false positives
 
-For each `FALSE POSITIVE`, run `pr-resolve-comment.sh ... dismiss "REASON"`. For canonical reason phrases, see `@pipeline.references/phase-details.md` (Phase 2 detail).
+For each `FALSE POSITIVE`, run `pr-resolve-comment.sh ... dismiss "REASON"`. For canonical reason phrases, see `${CLAUDE_PLUGIN_ROOT}/references/pipeline-phase-details.md` (Phase 2 detail).
 
 ## Phase 3: Plan fixes
 
@@ -120,25 +122,25 @@ Group fixes by file. Fixes touching **different files** can run in parallel; fix
 - **After all fixes** — read each modified file to verify no syntax errors.
 - **Scope check** — discard auto-formatter-induced changes to files NOT in the fix plan via `git checkout -- <file>`; log the count.
 
-For agent prompts, parallel-launch instructions, and the full scope-check procedure, see `@pipeline.references/phase-details.md` (Phase 4 detail).
+For agent prompts, parallel-launch instructions, and the full scope-check procedure, see `${CLAUDE_PLUGIN_ROOT}/references/pipeline-phase-details.md` (Phase 4 detail).
 
 ## Phase 5: Run tests
 
 Skip if no code changes were made (go to Phase 8). Discover the project's test runner, run the suite, fix-and-retry on failure (up to 3 attempts, then STOP).
 
-For runner-discovery order and the failure handling sequence, see `@pipeline.references/phase-details.md` (Phase 5 detail).
+For runner-discovery order and the failure handling sequence, see `${CLAUDE_PLUGIN_ROOT}/references/pipeline-phase-details.md` (Phase 5 detail).
 
 ## Phase 5b: Coverage gate
 
 Detect CI coverage config in `.github/workflows/*.yml`. If none, skip and note in report. If present, extract thresholds, categorize new/modified files by diff against the PR base, run coverage, gate per-file, and write additional tests for uncovered lines (up to 2 cycles).
 
-For threshold parsing, file categorization, and the cycle-limit behavior, see `@pipeline.references/phase-details.md` (Phase 5b detail).
+For threshold parsing, file categorization, and the cycle-limit behavior, see `${CLAUDE_PLUGIN_ROOT}/references/pipeline-phase-details.md` (Phase 5b detail).
 
 ## Phase 6: Commit and push
 
 Skip if no code changes were made. Otherwise create a structured commit and `git push`.
 
-For the commit-message template, see `@pipeline.references/phase-details.md` (Phase 6 detail).
+For the commit-message template, see `${CLAUDE_PLUGIN_ROOT}/references/pipeline-phase-details.md` (Phase 6 detail).
 
 ## Phase 7: Resolve GitHub threads
 
@@ -146,4 +148,4 @@ For each `VALID BUG` that was fixed, run `pr-resolve-comment.sh ... resolve`.
 
 ## Phase 8: Report
 
-Print a final summary covering Fixed, Dismissed, Threads Resolved, Tests, Coverage, and Commits. For the report template, see `@pipeline.references/phase-details.md` (Phase 8 detail).
+Print a final summary covering Fixed, Dismissed, Threads Resolved, Tests, Coverage, and Commits. For the report template, see `${CLAUDE_PLUGIN_ROOT}/references/pipeline-phase-details.md` (Phase 8 detail).
