@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.5.0] - 2026-10-06
+
+### Added
+- **Phase 7 — watch CI and Copilot**: once the branch has an open PR, `/ship` runs `scripts/pr-watch.sh` in the background and ends its turn. The script exits when every check has finished and, if Copilot's review was requested in this run (and the PR is not a draft), when Copilot has reviewed the current head commit. Older Copilot reviews do not count. It gives up after 30 minutes (exit 3). It was tested against a real PR, where it found a Copilot review and counted its 5 inline comments.
+- **Phase 8 — act on the result**: a CI failure is reported with the failing log and not fixed. Copilot's inline comments go to `/code-review:pipeline <PR#>`, and CI is then watched once more on the fix commit (no second Copilot round). A review with no inline comments is only reported.
+- `--no-watch` skips both phases.
+- **Natural-language trigger**: `disable-model-invocation` removed, so "let's ship it", "ship it", "ship this" or "ready to ship" start the skill without typing `/ship`. The description excludes requests to only commit or only push, and questions about whether the work is ready. Flags are read from the wording ("as a draft" → `--draft`, "don't wait" → `--no-watch`). This is a deliberate exception to the side-effects rule in `.claude/rules/plugin-creation.md`: "ship it" is the explicit instruction the rule protects. Tested with `claude -p` in a scratch repo with no remote and Bash disallowed: "looks good, let's ship it" invoked `ship`, "commit this please" invoked `commit`, and "is this ready to ship?" invoked no skill.
+
+### Changed
+- When `gh pr edit --add-reviewer @copilot` fails, the Copilot request is retried through `gh api .../requested_reviewers` with `Copilot` capitalized, and confirmed in the issue timeline: `reviewRequests` never lists bot reviewers.
+
+### Removed
+- The `Stop` hook. It printed "Ship complete" at the end of the first turn, which ends before the PR question is answered and long before the watcher finishes. Phase 8 now writes the final report.
+
+### Why
+The same instruction ("after the PR, check CI, wait for Copilot, run /code-review:pipeline on its feedback") was being typed by hand at the end of most sessions. In one of them the hand-off failed because the pipeline could not be invoked by the model. code-review 3.7.0 fixes that.
+
 ## [1.4.3] - 2026-10-02
 
 ### Changed

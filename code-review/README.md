@@ -27,6 +27,8 @@ Comprehensive code review workflow for Claude Code: branch reviews, PR feedback 
 /code-review:pipeline 42   → Triage → fix → dismiss → test → commit → push → resolve
 ```
 
+`/ship` (1.5.0+) runs it for you when Copilot comments on the PR it opened. Otherwise Claude starts it only when you ask for the pipeline by name. To look at the comments without fixing them, use `/code-review:triage`.
+
 **What it does in one pass:**
 1. Fetches and triages all bot/reviewer comments
 2. Dismisses false positives with justifications

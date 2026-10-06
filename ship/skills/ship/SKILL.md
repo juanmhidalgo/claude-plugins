@@ -1,10 +1,12 @@
 ---
 name: ship
 description: |
-  Use when ready to ship code to remote — handles direct push to main and PR-based feature branch flows.
-  Do NOT use for partial workflows like just committing or just pushing.
-disable-model-invocation: true
-argument-hint: "[--skip-tests] [--no-pr] [--draft] [--skip-copilot-review] [--no-notify]"
+  Use when the user tells you to ship the current work — "ship it", "let's ship it",
+  "ship this", "ready to ship", "send it", or asks to commit, push and open the PR in
+  one go. Commits, pushes, opens the PR, then waits for CI and Copilot's review.
+  Do NOT use when the user asks only to commit or only to push, or is asking whether
+  the work is ready to ship rather than telling you to ship it.
+argument-hint: "[--skip-tests] [--no-pr] [--draft] [--skip-copilot-review] [--no-watch] [--no-notify]"
 keywords:
   - ship
   - commit-push-pr
@@ -15,10 +17,13 @@ triggers:
   - "ship my changes"
   - "commit and push"
   - "ship it"
+  - "let's ship it"
+  - "ship this"
   - "ready to ship"
   - "push and create PR"
   - "commit push and PR"
 allowed-tools:
+  - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/*)
   - Bash(git *)
   - Bash(gh *)
   - Bash(npm test*)
@@ -36,20 +41,6 @@ allowed-tools:
   - Glob
   - ListAgents
   - SendMessage
-hooks:
-  - event: Stop
-    once: true
-    command: |
-      BRANCH=$(git branch --show-current 2>/dev/null)
-      DEFAULT_BRANCH=$(gh repo view --json defaultBranchRef -q .defaultBranchRef.name 2>/dev/null || echo "main")
-      echo "Ship complete on $BRANCH."
-      if [ "$BRANCH" != "$DEFAULT_BRANCH" ] && [ "$BRANCH" != "prod" ]; then
-        PR_URL=$(gh pr view --json url -q .url 2>/dev/null)
-        if [ -n "$PR_URL" ]; then
-          echo "  PR: $PR_URL"
-        fi
-      fi
-      echo "  CI: gh run list --limit 3"
 ---
 
 # Ship Workflow
@@ -62,6 +53,8 @@ Execute these phases in order. Stop and report at any failure.
 - **Remote tracking**: !`git rev-parse --abbrev-ref @{upstream} 2>/dev/null || echo "no upstream"`
 - **Uncommitted changes**: !`git status --short | head -20`
 - **Arguments**: $ARGUMENTS
+
+When you invoked this skill from the conversation rather than the user typing `/ship`, read the flags from what the user said: "as a draft" → `--draft`, "no PR" → `--no-pr`, "skip tests" → `--skip-tests`, "don't wait" / "no need to watch CI" → `--no-watch`. Anything not mentioned keeps its default.
 
 ## Phase 1: Status & Branch Detection
 
@@ -225,8 +218,42 @@ If on a feature branch:
    ```bash
    gh pr edit --add-reviewer @copilot
    ```
-   If this fails (e.g., Copilot review not available on the repo's plan), warn the user and continue — do not fail the workflow.
+   If it fails, retry once through the API, with `Copilot` capitalized (the lowercase login can resolve without triggering a review):
+   ```bash
+   gh api repos/{owner}/{repo}/pulls/<number>/requested_reviewers -X POST -f 'reviewers[]=Copilot'
+   ```
+   `reviewRequests` and the POST's response never list bot reviewers, so an empty list there is not a failure — do not re-request on it. Confirm in the timeline instead: `gh api repos/{owner}/{repo}/issues/<number>/timeline --jq '.[] | select(.event=="review_requested") | .requested_reviewer.login'`. If both attempts fail (e.g., Copilot review not available on the repo's plan), warn the user and continue — do not fail the workflow. Remember whether the request landed: Phase 7 waits for Copilot only if it did.
 6. Report the PR URL
+
+## Phase 7: Watch CI and Copilot (Feature Branches Only)
+
+Skip if `$ARGUMENTS` contains `--no-watch`, or if the branch has no open PR (none was created and none existed).
+
+Start the watcher **in the background** (Bash with `run_in_background`); you are re-invoked when it exits, so do not poll or sleep in the meantime:
+
+```bash
+${CLAUDE_PLUGIN_ROOT}/scripts/pr-watch.sh <number> [--copilot]
+```
+
+Pass `--copilot` only if the Phase 6 request landed in this run and the PR is not a draft. It exits once every check has finished and, with `--copilot`, once Copilot has reviewed the current head commit — or after 30 minutes (exit 3). Tell the user in one line what you are waiting for, then end the turn.
+
+## Phase 8: Act on the Results
+
+Read the final block the watcher printed (`CI:`, `FAILED:`, `COPILOT:` lines).
+
+| Result | Action |
+|--------|--------|
+| `CI: fail` | For each `FAILED:` line, take the run id from its link (`/actions/runs/<run-id>/`) and show the failing step with `gh run view <run-id> --log-failed \| tail -50`. A link outside GitHub Actions is an external check: give the link. Report it. Do not fix it as part of `/ship` — a CI failure is a new problem for the user to scope. |
+| `CI: none` | Say the PR reported no checks; nothing to wait for. |
+| `COPILOT: N inline comments`, N > 0 | Invoke `/code-review:pipeline <number>` with the Skill tool. It triages, fixes, tests, pushes and resolves on its own. If the Skill call fails (the code-review plugin is not installed), tell the user to run it. |
+| `COPILOT: 0 inline comments` | Report that Copilot reviewed with no comments. Its summary review body alone does not warrant the pipeline. |
+| Exit 3 (timeout) | Report what is still pending (`CI: pending` and/or `COPILOT: pending`) with the PR URL. Do not restart the watcher on your own. |
+
+When CI failed **and** Copilot commented, report the failure first, then run the pipeline: its fixes do not depend on the CI result.
+
+If the pipeline pushed a commit, run the watcher once more **without** `--copilot` to report CI on that commit. Do not request another Copilot review and do not run the pipeline again — one round, no loop.
+
+End with a short report: branch, PR URL, CI result, and what happened to Copilot's feedback. When Phase 7 was skipped, end with the PR URL and `gh pr checks <number>` to check CI later.
 
 ## Error Recovery
 

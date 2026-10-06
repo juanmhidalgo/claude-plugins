@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.7.0 (2026-10-06)
+
+### Changed
+- **`/code-review:pipeline` can now be invoked by the model** (`disable-model-invocation` removed), so `/ship` 1.5.0 can hand it a PR that Copilot commented on. Before, the Skill tool refused the call and the user had to type the command after every ship. This is a deliberate exception to the side-effects rule in `.claude/rules/plugin-creation.md`. To keep it from triggering on its own, the description now says to use it only when the user asks for the pipeline by name or `/ship` hands it off, and to use `/code-review:triage` for "look at the PR comments". The broad triggers "fix all PR comments", "resolve all PR feedback", "autonomous PR review" and "review fix and ship" were removed. The containment rules for comment text are unchanged.
+
 ## 3.6.0 (2026-10-06)
 
 ### Added
