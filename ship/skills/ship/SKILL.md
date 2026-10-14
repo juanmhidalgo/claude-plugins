@@ -190,8 +190,16 @@ If on a feature branch:
    - Use the default branch detected in Phase 1 as the base
    - Run `git log <default-branch>..HEAD --oneline` to gather commit history
    - Generate a concise PR title (under 70 chars)
-   - Generate body with summary bullets, test plan, and rollback triggers (see below)
-3. **Rollback Triggers** — decide before merging what objective signals would warrant reverting this change post-merge. This is *the* time to write them; deciding mid-incident is too late.
+   - Generate the body with the template below, picking the Summary visual from [pr-body.md](references/pr-body.md)
+3. **Repo template first.** If the repo has a PR template (`.github/pull_request_template.md`, `.github/PULL_REQUEST_TEMPLATE.md`, `docs/pull_request_template.md`, `pull_request_template.md`, or a file in `.github/PULL_REQUEST_TEMPLATE/`; when that folder holds several, ask the user which one), keep its headings and their order and fill them using the rules below. Append **Merge Danger** and **Rollback Triggers** only when the template has no equivalent section.
+4. **Evidence is only what this session ran.**
+   - **After**: the Phase 4 test command and its pass line. If Phase 4 was skipped, or no test runner was found and the user agreed to proceed, write `Tests skipped (<reason>)`.
+   - **Before**: a failing run whose output appears verbatim in a Bash result in this conversation (the test name and its key failure line, copied, not retyped). A failure a subagent reported, or one remembered from a summary of earlier context, does not count. Otherwise write `not captured`.
+   - Never check out the base, revert code, or re-run anything to manufacture a "before", and never present pseudo-output as real output. `not captured` is the honest answer, the same way `N/A` is for Rollback Triggers.
+5. **Merge Danger** — one line each:
+   - **Door**: `one-way` or `two-way`, with the reason. One-way: a migration that drops or rewrites data, a change to a published API or schema contract, external side effects (emails, payments, webhooks), a major dependency bump. Everything else is two-way.
+   - **Blast radius**: one word, then who or what breaks if this is wrong.
+6. **Rollback Triggers** — decide before merging what objective signals would warrant reverting this change post-merge. This is *the* time to write them; deciding mid-incident is too late.
    - For runtime-impacting changes, list 2-4 concrete thresholds:
      - "Error rate on `<endpoint>` exceeds X% sustained for 5 min"
      - "p99 latency on `<endpoint>` exceeds Yms for 5 min"
@@ -199,14 +207,20 @@ If on a feature branch:
      - "Customer-reported regression on `<feature>` within 24h of deploy"
    - For non-runtime changes (docs, tests, config without behavior change, dev tooling), use `N/A — non-runtime change`. Don't fabricate triggers; honest N/A is more useful than ceremonial ones.
    - For database migrations, always include rollback SQL or migration-reversal procedure as a trigger, even if the rest is N/A.
-4. Create PR:
+7. Create PR. Keep the body under ~40 lines, with no preamble. If step 3 found a repo template, its headings replace the ones below:
    ```bash
    gh pr create --base <default-branch> --title "<title>" --body "$(cat <<'EOF'
    ## Summary
-   <bullets>
+   <one sentence of why>
+   <optional: one visual, derived from `git diff <default-branch>...HEAD`>
 
-   ## Test plan
-   <checklist>
+   ## Evidence
+   - **Before:** <failing run observed this session | not captured>
+   - **After:** <Phase 4 command + pass line | Tests skipped (<reason>)>
+
+   ## Merge Danger
+   **Door:** <one-way | two-way> — <why>
+   **Blast radius:** <one word> — <who/what breaks if wrong>
 
    ## Rollback Triggers
    <concrete thresholds, OR "N/A — non-runtime change">
@@ -214,7 +228,7 @@ If on a feature branch:
    )"
    ```
    - If `$ARGUMENTS` contains `--draft`, add the `--draft` flag to `gh pr create`
-5. **Request Copilot review** (unless `$ARGUMENTS` contains `--skip-copilot-review`):
+8. **Request Copilot review** (unless `$ARGUMENTS` contains `--skip-copilot-review`):
    ```bash
    gh pr edit --add-reviewer @copilot
    ```
@@ -223,7 +237,7 @@ If on a feature branch:
    gh api repos/{owner}/{repo}/pulls/<number>/requested_reviewers -X POST -f 'reviewers[]=Copilot'
    ```
    `reviewRequests` and the POST's response never list bot reviewers, so an empty list there is not a failure — do not re-request on it. Confirm in the timeline instead: `gh api repos/{owner}/{repo}/issues/<number>/timeline --jq '.[] | select(.event=="review_requested") | .requested_reviewer.login'`. If both attempts fail (e.g., Copilot review not available on the repo's plan), warn the user and continue — do not fail the workflow. Remember whether the request landed: Phase 7 waits for Copilot only if it did.
-6. Report the PR URL
+9. Report the PR URL
 
 ## Phase 7: Watch CI and Copilot (Feature Branches Only)
 

@@ -38,6 +38,10 @@ Say "let's ship it" (or "ship it", "ship this") in the conversation, or type `/s
 /ship --skip-tests --draft  # Combine flags
 ```
 
+## The PR body
+
+Four sections: **Summary** (one sentence of why, plus one visual derived from the diff when the change spans several files or changes control flow), **Evidence** (before/after from runs this session actually made; `not captured` otherwise, never invented), **Merge Danger** (one-way or two-way door, and blast radius) and **Rollback Triggers**. If the repo has its own `pull_request_template.md`, its headings win and Merge Danger and Rollback Triggers are appended only when it has no equivalent.
+
 ## Watching CI and Copilot
 
 Once the branch has a PR, `/ship` starts `scripts/pr-watch.sh` in the background and ends its turn; the session is re-invoked when the script exits. The script waits until every check has finished and, if Copilot's review was requested in this run, until Copilot has reviewed the PR's current head commit (30-minute cap).
