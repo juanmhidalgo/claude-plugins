@@ -14,13 +14,6 @@ triggers:
   - "pros and cons"
   - "which should I choose"
   - "X vs Y"
-hooks:
-  - event: Stop
-    once: true
-    command: |
-      echo "Tradeoff analysis complete. Next steps:"
-      echo "  - /feature-dev:spec to formalize the decision into a structured spec"
-      echo "  - /feature-dev:explore-plan to explore implementation"
 ---
 
 # Tradeoff Analysis
@@ -161,3 +154,12 @@ If one option is clearly superior for this context, say so directly.
 </rule>
 </critical_rules>
 
+## Next step
+
+When the analysis is finished (not when you stop to ask the user something), end your final message with:
+
+```
+Tradeoff analysis complete. Next steps:
+  - /feature-dev:spec to formalize the decision into a structured spec
+  - /feature-dev:explore-plan to explore implementation
+```

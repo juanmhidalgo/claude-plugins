@@ -64,6 +64,28 @@ Compare 2-4 specific options with structured pros/cons matrix. Produces decision
 
 ## Skills
 
+### `/discuss:grill <plan, decision, or idea>`
+
+Interviews you until every decision is settled. Questions come in rounds: each round asks only what can be decided now, each question carries a recommended answer, and "yes" accepts it (reply `1 yes, 3 no: <reason>`). Facts it can look up in the code it looks up itself; only decisions reach you. Ends with a ledger of decisions and a pointer to `/feature-dev:spec`. No question cap; say "wrap up" to stop early.
+
+**Example:**
+```
+/discuss:grill move session storage from cookies to Redis
+```
+
+---
+
+### `/discuss:wait-what [the part that lost you]`
+
+Your last message did not land. The agent re-explains it in the conversation's language: context first, short sentences, jargon defined or replaced, a table or diagram only when shorter than the prose, and shorter than the original. User-invoked only; the model never decides on its own that you are lost.
+
+**Example:**
+```
+/discuss:wait-what the part about the frontier
+```
+
+---
+
 ### `/discuss:adversarial-doc-review <doc-path> [design|descriptive]`
 
 Adversarial review of a technical document that already exists as a **file** — PRD, ADR, spec, RFC, architecture doc. Dispatches the `doc-adversary` subagent in a **fresh context** and reports only what would cause a bad architecture, design, or implementation decision. Not a proofreader and not a completeness checker.
@@ -105,6 +127,8 @@ If both apply, `descriptive` runs first — a wrong base state invalidates the d
     ↓
 /discuss:challenge                  → Stress-test decision
     ↓
+/discuss:grill                      → Settle every open decision
+    ↓
 /feature-dev:spec                   → Formalize as structured spec
     ↓
 /discuss:adversarial-doc-review     → Red-team the written spec/ADR
@@ -118,7 +142,7 @@ second attacks a document after it is written — and must run in a fresh contex
 a reviewer that already holds the doc's framing cannot form an independent model of the
 problem.
 
-Each command suggests the next step via Stop hooks, including cross-plugin suggestions.
+Each command ends by printing the next step, including cross-plugin suggestions. `grill` and `wait-what` are adapted from [mattpocock/skills](https://github.com/mattpocock/skills) (MIT).
 
 ## Needs
 
