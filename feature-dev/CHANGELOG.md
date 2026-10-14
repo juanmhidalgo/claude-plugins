@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.1.0 (2026-10-14)
+
+### Added
+- **Test quality checks.** `tdd-patterns` gains a Test Quality section: the expected value comes from a literal or the spec, never from the code under test; mock only external boundaries (third-party HTTP, time, randomness), never the project's own services, models or composables; no call-count asserts on the project's own code; a database assert is fine when the row is the contract. Examples for pytest and vitest in `skills/tdd-patterns/references/test-quality.md`. Adapted from [mattpocock/skills](https://github.com/mattpocock/skills) (MIT, Copyright (c) 2026 Matt Pocock).
+- `tdd-runner` checks at RED where each expected value comes from, and halts with a `blocker` when the behavior has no test seam (reachable only through a private helper or a mock of the project's own code). A seam the approved plan names counts as confirmed.
+
+### Changed
+- RED in `tdd-patterns` now reads "write ONE test that must fail", matching `tdd-runner`.
+- Each `Tests added` line in the `tdd-runner` report names its expected-value source. The field name is unchanged, so `/feature-dev:tdd` parses the report as before.
+- `tdd-runner` notes that a mutation proof does not show the expected value is independent of the code.
+
 ## 2.0.0 (2026-10-14)
 
 ### Breaking

@@ -62,7 +62,8 @@ Repeat up to `cycle_cap` times:
 1. Write ONE failing test that asserts the next slice of behavior. One assertion focus per test; don't bundle.
 2. Run the verification command.
 3. **Validate the failure is the right one**: the test must fail because the behavior is missing or wrong, not because of import errors, syntax bugs, or missing fixtures. If the failure mode is wrong, fix the test and re-run before moving on.
-4. If the test passes on first run → STOP the cycle and report `RED passed early`. Either the behavior already exists or the test doesn't actually assert it. Do NOT proceed to GREEN, and do not switch to characterization mode on your own — the mode is the spawner's call. If the step carries `Pins:`, write and prove them first (see *Pins*): they lock in existing behavior, so they do not depend on the Accept being new.
+4. **Check where the expected value comes from**: a literal or a value the spec states, never one computed with the code under test or the helpers it uses (see `tdd-patterns` § Test Quality). Mock only external boundaries. If the behavior can only be reached through a private helper or with a mock of the project's own code, there is no test seam: stop before GREEN and report a `blocker` naming the missing seam. A seam the approved plan names (the function or endpoint the step tests through) counts as confirmed; do not ask about it again.
+5. If the test passes on first run → STOP the cycle and report `RED passed early`. Either the behavior already exists or the test doesn't actually assert it. Do NOT proceed to GREEN, and do not switch to characterization mode on your own — the mode is the spawner's call. If the step carries `Pins:`, write and prove them first (see *Pins*): they lock in existing behavior, so they do not depend on the Accept being new.
 
 ### GREEN
 1. Write the **minimum** production code to make the failing test pass. No speculative branches, no unused params, no future-proofing.
@@ -102,6 +103,7 @@ Prove a passing test is falsifiable by a minimal temporary mutation of the impl 
 - **Mutate, run, and restore in one Bash command** — copy the file to a scratch backup, apply the mutation, run the test, copy the backup back — so a turn limit can never land between the mutation and its restore.
 - **Confirm the restore with `git diff`.** Capture `git diff -- <file>` before the mutation (the file may already carry this run's or earlier steps' uncommitted changes, so "no diff" is not the target) and check it is identical after.
 - Never leave a mutation in place, and never use `git stash`, `git checkout` or `git restore` to undo one.
+- A mutation proof shows the test can fail, not that its expected value is independent of the code. A tautological test fails under a mutation too. The expected-value check in RED still applies.
 
 ## Halting conditions
 
@@ -115,6 +117,7 @@ Stop the loop when ANY of these is true:
 - **A characterization test or a pin fails on first run** → behavior gap; `blocker`.
 - **A characterization test no minimal mutation can break, even after tightening** → `blocker`.
 - **The step is bigger than your budget** → `blocker`, mis-sized, with the enumeration.
+- **No test seam**: the behavior is reachable only through a private helper or a mock of the project's own code → `blocker`, naming the seam that is missing.
 - **A pre-existing test in the file breaks and you can't fix it within the scope of this behavior** → halt; surface as a blocker.
 - **You discover the behavior depends on a code change outside the impl target path** → halt; the scope is wrong.
 
@@ -155,7 +158,7 @@ If you stopped mid-change, the **Tree state: BROKEN** block precedes everything 
 
 **Cycles run** — `N of cap`. One-line per cycle: `Cycle 1: RED ✓ / GREEN ✓ / REFACTOR (skipped|description)`. In characterization mode: `Characterization: N tests, first run GREEN, N proven falsifiable`.
 
-**Tests added** — bullet list with one-line description per test.
+**Tests added** — bullet list with one-line description per test, ending with the source of its expected value: `(expected: literal)`, `(expected: spec <section or AC id>)`. Mocks, if any, name the boundary they stand in for.
 
 **Pins** — `<n written>, <n proven falsifiable>`, or "None requested". A pin that failed on first run goes under Blockers.
 
