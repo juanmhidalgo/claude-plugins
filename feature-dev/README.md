@@ -54,7 +54,7 @@ Feature development workflows with structured phases and quality gates.
 | Skill | Purpose |
 |-------|---------|
 | `spec-driven-development` | Gated specification workflow: assumption surfacing, numbered acceptance criteria, spec template |
-| `tdd-patterns` | Institutional TDD knowledge: iteration limits, coverage gates, phase constraints |
+| `tdd-patterns` | Institutional TDD knowledge: iteration limits, coverage gates, phase constraints, test quality (independent expected values, mock only external boundaries) |
 
 ## Workflow
 

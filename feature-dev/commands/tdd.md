@@ -241,7 +241,7 @@ For each criterion:
 | `GREEN unreachable` | **STOP**. Report the diagnosis verbatim |
 | Verification failed | Attribute against the Baseline (below). Every failure in a `pre-existing-fail` row → the step passes; note them for Phase 6. Anything else → **STOP**, report verbatim |
 | `scope mismatch` | **STOP**. The step's impl target was wrong — the plan needs revision |
-| `blocker` (includes a mis-sized step, a pin that failed on first run, a characterization gap, a characterization test no mutation could break) | **STOP**. Report the blocker verbatim |
+| `blocker` (includes a mis-sized step, a pin that failed on first run, a characterization gap, a characterization test no mutation could break, a missing test seam) | **STOP**. Report the blocker verbatim |
 | `Tree state: BROKEN` block | **STOP** and carry the block verbatim. The agent stopped mid-change on purpose; never dispatch the next step over a broken tree — that agent would read the breakage as pre-existing |
 | Deviation but verification passed | Accept, note it in the final report, continue |
 | Verification ran but you **cannot attribute** the result | **STOP**. See below — this is a blocker, not a pass |

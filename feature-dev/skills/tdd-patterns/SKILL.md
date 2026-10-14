@@ -21,7 +21,7 @@ keywords:
 
 Phases are strictly sequential. Never skip or reorder:
 
-1. **RED**: Write tests that MUST fail. If any test passes immediately, it is testing existing behavior — remove or rewrite it. The exceptions are a step dispatched in characterization mode and a step's `Pins:`, whose tests are meant to pass on first run; there, a passing test proves nothing until a temporary mutation shows it can fail (see `tdd-runner`).
+1. **RED**: Write ONE test that MUST fail. If it passes immediately, it is testing existing behavior — remove or rewrite it. The exceptions are a step dispatched in characterization mode and a step's `Pins:`, whose tests are meant to pass on first run; there, a passing test proves nothing until a temporary mutation shows it can fail (see `tdd-runner`).
 2. **GREEN**: Write the minimum code to make tests pass. No refactoring, no optimization, no "while I'm here" changes.
 3. **REFACTOR**: Only after all tests are green. Run tests after every refactoring change. If a test breaks during refactor, undo the refactoring change.
 
@@ -32,6 +32,18 @@ When a test fails during the GREEN phase:
 - Default action: fix the **implementation**, not the test.
 - Only modify a test if the test itself has a bug (wrong assertion, incorrect setup) — never weaken a test to make it pass.
 - If the spec is ambiguous, ask the user rather than adjusting the test.
+
+## Test Quality
+
+A test that fails first can still prove nothing. RED and mutation proof show a test *can* fail; they do not show it fails for the right reason. Check these when writing each test:
+
+- **The expected value comes from outside the code under test**: a literal, or a value the spec states. Computing it with the same function, formula or helper the impl uses is a tautology: the test and the code agree by construction, and both are wrong together.
+- **Mock only external boundaries**: third-party HTTP (`responses`, `respx`, `vi.mock` on the client module), time (`time-machine`, `freezegun`, `vi.useFakeTimers`), randomness. Never mock the project's own services, models or composables; a test that does proves the wiring you wrote, not the behavior.
+- **No call-count asserts on the project's own code** (`assert_called_once`, `toHaveBeenCalledTimes`). They pin the implementation, so every refactor breaks them. Assert the observable outcome instead: the return value, the response, the state.
+- **A database assert is fine when the row is the contract**: a Django test that checks the row a request created asserts the behavior, not the implementation.
+- **Test through the public interface.** If the behavior is only reachable through a private helper, or only with a mock of the project's own code, there is no good test seam: report it rather than testing the helper.
+
+Examples per stack: `references/test-quality.md`.
 
 ## Coverage Gate Workflow
 
@@ -71,4 +83,6 @@ If you catch yourself thinking any of these, STOP — you are about to violate t
 | "I'm on cycle 4, one more try should work" | After 5 cycles, you STOP. After 3 identical failures, you STOP immediately. These limits exist because continuing wastes time. |
 | "I'll clean up this code while making the test green" | GREEN phase = minimum code only. Refactoring belongs in the REFACTOR phase. Mixing them hides what broke what. |
 | "The project doesn't have a linter, so I'll skip that phase" | Check all three detection paths (package.json, config files, Makefile) first. Only skip with a note after exhausting all paths. |
+| "I'll compute the expected value the same way the code does" | Then the test agrees with the code by construction. Take the value from a literal or the spec. |
+| "I'll mock our service so the test stays a unit test" | Mocking the project's own code tests the wiring you wrote. Mock only external boundaries; if nothing else works, report the missing seam. |
 | "Coverage looks fine overall" | Overall coverage masks per-file gaps. Check CHANGED files against thresholds, not aggregate numbers. |
