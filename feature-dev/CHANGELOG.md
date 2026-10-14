@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.1.2 (2026-10-14)
+
+### Fixed
+- **`/feature-dev:spec` asks one question per assumption.** Step 3 (and `spec-driven-development`) now asks the assumptions as separate AskUserQuestion questions, up to 4, each with the assumption as the recommended option and a concrete alternative. A single question listing every assumption with "confirm all / correct some" made the answer all-or-nothing, and correcting one item meant typing which one and how. Each assumption is one decision; facts about the code are checked or listed as unverified claims, not asked; assumptions beyond 4 go to the review brief.
+
 ## 2.1.1 (2026-10-14)
 
 ### Fixed

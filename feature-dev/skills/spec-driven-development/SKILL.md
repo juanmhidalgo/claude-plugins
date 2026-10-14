@@ -52,14 +52,11 @@ Each gate ends with a short review brief (decided / assumed / unverified claims 
 
 The first interaction is one scope question, asked alone (AskUserQuestion, a single question) before assumptions and before exploring any code: which repos and components are in, what is explicitly out, with a recommended option inferred from the description (the multi-repo detection below feeds it). Scope sizes everything after it, and a scope question bundled with others gets answered last; scope that moves after approval means a re-plan. What the answer rules out becomes the spec's `## Non-Goals`.
 
-Then surface assumptions, in their own round-trip:
+Then surface assumptions, in their own round-trip: one AskUserQuestion call with one question per assumption (up to 4), each a single decision with the assumption as the recommended option and a concrete alternative beside it. A single question that lists every assumption with "confirm all / correct some" makes the answer all-or-nothing, and a correction means typing which item and how. Facts about the code are checked, not asked.
 
 ```
-ASSUMPTIONS I'M MAKING:
-1. This is a web application (not native mobile)
-2. Authentication uses session-based cookies
-3. The database is PostgreSQL
-→ Correct me now or I'll proceed with these.
+Q "Auth"   — Sessions use the existing cookie auth?  [Yes (Recommended)] [New token per link]
+Q "Expiry" — Links expire after 30 days?            [30 days (Recommended)] [Never] [Configurable]
 ```
 
 Write a spec covering nine areas:

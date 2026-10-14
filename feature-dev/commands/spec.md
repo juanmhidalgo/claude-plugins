@@ -77,7 +77,11 @@ Each phase that runs requires user approval before advancing.
 
    Scope goes first because everything after it is sized by it: a scope change after approval (a backend endpoint added, "not tied to one customer") has meant re-planning. It goes alone because a scope question bundled with other questions gets answered last — one sat unanswered for almost 7 hours.
 
-3. **Surface assumptions.** Now list 3-5 assumptions about the tech stack, architecture, and behavior within the agreed scope. Ask the user to confirm or correct — its own round-trip, after the scope answer.
+3. **Surface assumptions.** Now list 3-5 assumptions about the tech stack, architecture, and behavior within the agreed scope, and ask about them in their own round-trip, after the scope answer. Each assumption is one question so each can be answered on its own:
+   - **One AskUserQuestion call, one question per assumption** (up to 4). The question states the assumption in one or two sentences; the options are the assumption itself, marked "(Recommended)", and one or two concrete alternatives, so a correction takes a click, not a note. Never a single question listing the assumptions with "confirm all" / "correct some" options: it forces an all-or-nothing answer, and correcting one item means typing out which one and how.
+   - **One decision per assumption.** If it joins two choices (token audience *and* expiry, status codes *and* the field that triggers them), split it, or keep the one that shapes the model or the contract and move the rest to the review brief's "Decided" group.
+   - **Don't ask what you can check.** A fact about the code or the infrastructure is not an assumption for the user to confirm: read the file, or list it under "Unverified claims about the code" in the review brief.
+   - **More than 4:** ask the ones that change the data model or a contract; the rest go to the brief's "Assumed — confirm" group.
 
 4. **Reframe vague requirements.** If the input is vague, translate it into concrete, testable success criteria. Present these to the user for validation.
 
