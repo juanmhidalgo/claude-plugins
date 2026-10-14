@@ -2,13 +2,14 @@
 allowed-tools:
   - Bash(git *)
   - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/herdr-pane.sh *)
+  - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/find-spec.sh *)
   - Agent
   - Read
 disallowed-tools:
   - Edit
   - Write
   - NotebookEdit
-argument-hint: "[low|medium|high|max] [--pane|--no-pane]"
+argument-hint: "[low|medium|high|max] [--spec <path|#N>] [--pane|--no-pane]"
 description: |
   Use to review staged changes before committing, in a reviewer that has NOT seen this
   conversation — the right choice when this session wrote the code being staged.
@@ -49,7 +50,7 @@ hooks:
 
 ## Effort level
 
-`--pane` / `--no-pane` are flags, not the effort level: drop them first.
+`--pane` / `--no-pane` and `--spec <value>` are flags (drop the value after `--spec` too), not the effort level: drop them first.
 
 `$1` is one of `low | medium | high | max`, default `medium`. `low`/`medium`
 surface only findings verified against the code path; `high`/`max` add broader
@@ -83,7 +84,7 @@ If `--pane` is in the arguments, or `review_in_pane` is configured `true`
 **collect** mode: follow `${CLAUDE_PLUGIN_ROOT}/references/herdr-pane.md`
 instead of the Dispatch below. It falls back to the normal run outside Herdr.
 
-- **Command string**: `/code-review:staged <effort> --no-pane`
+- **Command string**: `/code-review:staged <effort> [--spec <value>] --no-pane`
 - **Report**: `<scratchpad dir>/staged-<branch>.md`
 - **Present**: do not re-verify. The pane ran this effort level's verification
   in a fresh context, which beats this one. Run the two pre-presentation checks
@@ -112,6 +113,15 @@ Never present a missing report as a clean one.
 
 Keeping the full report in the file is also what keeps this conversation clean
 for the commit you are about to make.
+
+### Spec axis
+
+At effort `medium` and above, also review the change against the spec it was
+built from, following **`references/spec-axis.md` in the `branch-review`
+skill**: run `find-spec.sh --staged [--spec <value>]`, and if it finds a source, launch
+`code-review:spec-conformance-reviewer` in the same message as the reviewer
+above. Its findings are verified under the same trigger as the reviewer's and
+presented in their own `### Spec` section.
 
 ## Verify, then present
 

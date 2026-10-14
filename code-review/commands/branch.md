@@ -2,13 +2,14 @@
 allowed-tools:
   - Bash(git *)
   - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/herdr-pane.sh *)
+  - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/find-spec.sh *)
   - Agent
   - Read
 disallowed-tools:
   - Edit
   - Write
   - NotebookEdit
-argument-hint: "[base-branch] [low|medium|high|max] [--pane|--no-pane]"
+argument-hint: "[base-branch] [low|medium|high|max] [--spec <path|#N>] [--pane|--no-pane]"
 description: |
   Use to review branch changes for merge readiness in a reviewer that has NOT seen
   this conversation — the reviewer forms its own read of the code, so it is the right
@@ -48,8 +49,8 @@ hooks:
 
 ## Base branch
 
-`--pane` / `--no-pane` are flags, not positional arguments: drop them before
-reading base and effort.
+`--pane` / `--no-pane` and `--spec <value>` are flags (drop the value after `--spec` too), not positional
+arguments: drop them before reading base and effort.
 
 Use `$1` if provided. Otherwise `main`, falling back to `master`.
 
@@ -93,7 +94,7 @@ If `--pane` is in the arguments, or `review_in_pane` is configured `true`
 **collect** mode: follow `${CLAUDE_PLUGIN_ROOT}/references/herdr-pane.md`
 instead of the Dispatch below. It falls back to the normal run outside Herdr.
 
-- **Command string**: `/code-review:branch <base> <effort> --no-pane`
+- **Command string**: `/code-review:branch <base> <effort> [--spec <value>] --no-pane`
 - **Report**: `<scratchpad dir>/branch-<branch>.md`
 - **Present**: do not re-verify. The pane ran this effort level's verification
   in a fresh context, which beats this one. Run the two pre-presentation checks
@@ -127,6 +128,15 @@ must never be reported as one.
 
 `OUTPUT_PATH` also keeps this conversation clean: the full report lives in the
 file, and what you bring back here is the distilled finding list.
+
+### Spec axis
+
+At effort `medium` and above, also review the change against the spec it was
+built from, following **`references/spec-axis.md` in the `branch-review`
+skill**: run `find-spec.sh --base <base> [--spec <value>]`, and if it finds a source, launch
+`code-review:spec-conformance-reviewer` in the same message as the reviewer
+above. Its findings are verified under the same trigger as the reviewer's and
+presented in their own `### Spec` section.
 
 ## Verify, then present
 

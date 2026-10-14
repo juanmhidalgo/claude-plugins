@@ -3,6 +3,7 @@ disable-model-invocation: true
 allowed-tools:
   - Bash(git *)
   - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/herdr-pane.sh *)
+  - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/find-spec.sh *)
   - Bash(npm *)
   - Bash(npx *)
   - Bash(yarn *)
@@ -123,6 +124,10 @@ inline only to fill in a missing or empty file. If the agent finished and left
 neither, the review did not run: say so and re-run it. Never treat a missing
 report as a clean one.
 
+At effort `medium` and above, run the **Spec axis** in the same message:
+`find-spec.sh --staged`, then `code-review:spec-conformance-reviewer` if it
+found a source. Follow `references/spec-axis.md` in the `branch-review` skill.
+
 ## Phase 2: Verify (dispatched)
 
 Every finding is verified by an agent that did not produce it. Follow
@@ -138,6 +143,9 @@ Then:
 
 - `CONFIRMED` → Phase 3 as a proposed fix
 - `PLAUSIBLE` → Phase 3 as a question for the user, never as a fix
+- **Any spec finding, at any verdict** → Phase 3 as a question, never as a fix.
+  Fixing `unrequested` means deleting it, and `missing` is feature work, not a
+  review fix (`spec-axis.md`).
 - `REFUTED` → dropped, **and counted**
 - `REFUSED` → surfaced at the top of Phase 3 regardless of anything else
 
@@ -165,6 +173,9 @@ These are questions for you, not proposed fixes.
 
 ### Pre-existing ([count])
 Real, but not introduced by these changes. Not fixed here.
+
+### Spec ([count]) — against [sources]
+Questions for you, never proposed fixes: kind, quoted spec line, `file:line`.
 
 ### Dropped ([count])
 [count] refuted during verification — one line each on why

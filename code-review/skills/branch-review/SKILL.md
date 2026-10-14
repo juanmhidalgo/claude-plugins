@@ -188,6 +188,10 @@ verification at `high`/`max`, the two pre-presentation checks, carrying the
 refutation, and the no-silent-drops rule — is defined once in
 [verification.md](references/verification.md).
 
+The Spec axis (reviewing the change against the issue or SPEC/PLAN it was built
+from, in its own section, never as a fix) is defined in
+[spec-axis.md](references/spec-axis.md).
+
 It is not restated in the commands. Six copies of a protocol is one copy that
 drifts, which already happened to this plugin's analysis-focus block.
 

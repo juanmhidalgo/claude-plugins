@@ -84,6 +84,13 @@ git diff <base>...HEAD --name-only
 - New code without tests
 - Critical paths untested
 - Flaky test patterns
+- Tautological assertions: the expected value is recomputed the way the code
+  computes it (`assert total(items) == sum(i.price for i in items)`), so the test
+  passes by construction and cannot disagree with the code. Expected values come
+  from a literal, a worked example, or the spec
+- Mocks of the project's own modules, or call-count / call-order asserts on
+  them: the test breaks on a refactor while the behaviour holds. Mocks belong at
+  external boundaries (third-party HTTP, time, randomness)
 
 ## Evidence provenance
 

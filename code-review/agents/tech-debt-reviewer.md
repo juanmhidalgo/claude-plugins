@@ -64,6 +64,13 @@ git diff $BASE...HEAD | grep -E '^\+.*\b(TODO|FIXME|HACK|XXX|TEMP)\b'
 - Boolean parameters — consider separate methods
 - Stringly-typed code — use enums/types
 - Dead code, commented-out blocks, unused imports being added
+- Speculative generality: parameters, hooks, or abstractions for needs nothing in the change has
+- Shotgun surgery: one logical change forces scattered edits across many files
+- Divergent change: one file edited in this diff for several unrelated reasons
+- Feature envy: a function that reaches into another object's data more than its own
+
+The last four are judgement calls, named as such ("possible feature envy"), and a
+convention the repo documents overrides them (Fowler, *Refactoring*, ch. 3).
 
 ### 6. Dependencies & Infrastructure (MEDIUM impact)
 - New dependencies: are they maintained, not duplicating existing capabilities?

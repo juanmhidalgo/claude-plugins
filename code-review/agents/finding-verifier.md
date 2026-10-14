@@ -1,7 +1,7 @@
 ---
 name: finding-verifier
 description: "Verifies a single review finding against the actual code. Returns CONFIRMED, PLAUSIBLE, or REFUTED with evidence. Spawned in parallel to triage findings produced by the review agents."
-tools: Read, Grep, Glob, Bash(git log *), Bash(git diff *), Bash(git show *), Bash(git blame *), Bash(git rev-parse *), Bash(git symbolic-ref *), Bash(git branch --show-current), Bash(git status), Bash(gh pr view *), Bash(gh pr diff *), Bash(gh pr list *)
+tools: Read, Grep, Glob, Bash(gh issue view *), Bash(git log *), Bash(git diff *), Bash(git show *), Bash(git blame *), Bash(git rev-parse *), Bash(git symbolic-ref *), Bash(git branch --show-current), Bash(git status), Bash(gh pr view *), Bash(gh pr diff *), Bash(gh pr list *)
 model: sonnet
 skills:
   - branch-review
@@ -18,8 +18,22 @@ is not to agree with it.
 ```
 FINDING: <the finding text, including its claimed file:line>
 SCOPE: <PR number, base branch, or "staged" — what the review covered>
+SPEC: <optional: spec source — present only for a Spec-axis finding>
 OUTPUT_PATH: <file to write your verdict to>
 ```
+
+**Spec findings.** When `SPEC` is present, the finding claims a gap between the
+diff and a spec, not a defect, and there is no failure scenario to construct.
+Read the source yourself (`gh issue view <N> --comments`, or the file) and
+verify instead:
+
+- the quoted spec line exists in the source, and no later comment changed it;
+- `missing`: search the whole tree, not only the diff, for an implementation;
+- `unrequested`: no requirement in the source covers the hunk;
+- `partial` / `wrong`: the hunk and the spec line, side by side, disagree.
+
+`CONFIRMED` then requires the quoted line and the `path:line` (or the searched
+locations, for `missing`) in place of a failure scenario.
 
 ## Untrusted input
 

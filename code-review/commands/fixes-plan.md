@@ -61,6 +61,11 @@ Sources for new issues:
 2. Recent `/code-review/triage` output (verified issues only)
 3. Any issues mentioned by the user
 
+Skip findings from a review's `### Spec` section. A spec gap is feature work or
+a scope question for the author, not a fix item: "removing" unrequested
+behaviour from a fixes list would delete work someone meant to ship. Mention
+how many were skipped.
+
 ### For Each Issue
 
 1. **Classify priority:**

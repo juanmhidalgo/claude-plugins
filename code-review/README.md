@@ -95,6 +95,12 @@ lives in `skills/branch-review/references/verification.md`.
 /code-review/mark-fixed all → Verify all remaining issues
 ```
 
+### Spec axis
+
+At effort `medium` and above, `branch`, `staged`, `pr` and `staged-pipeline` also check the change against the spec it was built from: requirements missing, partial or implemented wrong, and behaviour nobody asked for. `scripts/find-spec.sh` finds the spec without the reviewing session choosing it: a `--spec <path|#N>` argument, the PR's closing issues, `Closes/Fixes #N` in the branch's commits, or a feature-dev `SPEC-*`/`PLAN-*` whose `branch:` frontmatter matches. With none found, the report says `Spec: skipped` and where it looked.
+
+Spec findings come from a separate agent (`spec-conformance-reviewer`, opus) and are reported in their own `### Spec` section, never merged with the defect findings. They are never turned into fixes: `staged-pipeline` asks about them and `fixes-plan` skips them, because "fixing" unrequested behaviour means deleting it.
+
 ### PR Feedback Triage (after PR)
 ```
 /code-review/triage 42      → Filter AI feedback (valid vs false positive)
@@ -211,6 +217,7 @@ The plugin includes bash scripts for GitHub API operations (no MCP required):
 - `pr-resolve-comment.sh` - Dismiss/resolve comments on GitHub
 - `pr-comments.sh` - Full PR comments fetch
 - `pr-review-summary.sh` - Quick review status summary
+- `find-spec.sh` - Lists the spec sources for a review (`--base`, `--pr`, `--staged`, optional `--spec`): explicit argument, closing issues, commit keywords, feature-dev `branch:` frontmatter
 - `herdr-pane.sh` - Opens a Herdr pane or worktree with `claude`, runs a command there and collects its result (`--pane`). A synced copy of `shared/herdr-pane/herdr-pane.sh` in the marketplace repo
 
 ### pr-triage-comments.sh
@@ -242,6 +249,7 @@ Output includes `resolved` and `outdated` status for inline comments, with stats
 | `pr-comments-reviewer` | Sonnet | Checks previous PR feedback |
 | `code-comments-reviewer` | Sonnet | Verifies code comment guidance |
 | `finding-verifier` | Sonnet | Verifies one finding → CONFIRMED / PLAUSIBLE / REFUTED |
+| `spec-conformance-reviewer` | Opus | Spec axis: the diff against the issue or SPEC/PLAN it was built from |
 
 ### Other Agents
 

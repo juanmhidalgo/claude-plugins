@@ -5,6 +5,8 @@ allowed-tools:
   - Bash(gh pr list *)
   - Bash(git *)
   - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/herdr-pane.sh *)
+  - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/find-spec.sh *)
+  - Bash(gh issue view *)
   - Agent
   - Read
   - Glob
@@ -13,7 +15,7 @@ disallowed-tools:
   - Edit
   - Write
   - NotebookEdit
-argument-hint: "<PR number or URL> [low|medium|high|max] [--pane|--no-pane]"
+argument-hint: "<PR number or URL> [low|medium|high|max] [--spec <path|#N>] [--pane|--no-pane]"
 description: |
   Use when you need a thorough code review of a pull request, reported in this session.
   Do NOT use for staged or branch-only reviews (use /code-review:staged or :branch),
@@ -65,8 +67,8 @@ findings on the PR, that is a separate, explicit decision they make — the
 
 ---
 
-`--pane` / `--no-pane` are flags, not the PR or the level: drop them before
-reading `$1` and `$2`.
+`--pane` / `--no-pane` and `--spec <value>` are flags, not the PR or the level:
+drop them (and the value after `--spec`) before reading `$1` and `$2`.
 
 ## Herdr pane
 
@@ -78,7 +80,7 @@ If `--pane` is in the arguments, or `review_in_pane` is configured `true`
 **collect** mode: follow `${CLAUDE_PLUGIN_ROOT}/references/herdr-pane.md`
 instead of Steps 1–7. It falls back to the normal run outside Herdr.
 
-- **Command string**: `/code-review:pr <PR> <effort> --no-pane`
+- **Command string**: `/code-review:pr <PR> <effort> [--spec <value>] --no-pane`
 - **Report**: `<scratchpad dir>/pr-<PR>.md`
 - **Present**: do not re-verify. The pane ran this effort level's verification
   in a fresh context, which beats this one. Run the two pre-presentation checks
@@ -149,6 +151,11 @@ Agent tool calls in a single message.
 | 3 | `code-review:code-comments-reviewer` | PR number, files changed | medium+ |
 | 4 | `code-review:git-history-reviewer` | PR number, files changed | high+ |
 | 5 | `code-review:pr-comments-reviewer` | PR number, files changed | high+ |
+| 6 | `code-review:spec-conformance-reviewer` | `SCOPE`, `SPEC_SOURCES` from `find-spec.sh --pr <N> [--spec <value>]`; skipped when it finds none | medium+ |
+
+Row 6 is the **Spec axis**: follow `references/spec-axis.md` in the
+`branch-review` skill. Its findings are verified like the rest but never merged
+with them, and they are reported in their own `### Spec` section.
 
 Give every agent an `OUTPUT_PATH` in your scratchpad directory
 (`<scratchpad>/review-<dimension>-pr<N>.md`) and tell it to write its full
@@ -211,6 +218,10 @@ Real, not introduced here. Ticket material, not merge blockers.
 ### Nits (<count>)   [max only, else a count]
 
 ### Dropped: <count> refuted during verification
+
+### Spec (<count>) — against <sources>   [medium+]
+Per `references/spec-axis.md`: kind, quoted spec line, `file:line`, counter-case.
+Or: `Spec: skipped (<reason>)` / `Spec too vague to check`.
 
 ### Not reviewed
 <dimensions that returned nothing at this effort level, or failed to report>
