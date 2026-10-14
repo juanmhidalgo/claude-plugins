@@ -15,13 +15,6 @@ triggers:
   - "review my idea"
   - "what do you think about"
   - "analyze this proposal"
-hooks:
-  - event: Stop
-    once: true
-    command: |
-      echo "Discussion complete. This skill does NOT implement."
-      echo "Recommended next step:"
-      echo "  - /feature-dev:spec to formalize the refined idea into a structured specification"
 ---
 
 # Critical Feature Discussion
@@ -191,7 +184,7 @@ Catches *violating the discussion-only boundary*. If you catch yourself thinking
 |----------------|----------------|
 | "The user answered my clarifying questions, so now I have enough to implement" | Clarification is scoped to the discussion. Implementation belongs in `/feature-dev:spec` and requires its own review gate. |
 | "This is a small change, skipping spec saves time" | `/discuss:feature` exists precisely to feed `/feature-dev:spec`. Jumping straight to code bypasses the spec review that catches misalignment. |
-| "I'll just sketch tasks so the user can see the plan" | Creating tasks is the start of implementation. The Stop hook provides the next-step hand-off — let the user invoke `/feature-dev:spec` when ready. |
+| "I'll just sketch tasks so the user can see the plan" | Creating tasks is the start of implementation. The final next-step lines hand off — let the user invoke `/feature-dev:spec` when ready. |
 | "The user said 'yes let's do it', that's explicit permission" | Agreement with the analysis is not a request to implement. Wait for explicit invocation of the next skill. |
 | "Writing the code is faster than explaining what I'd write" | The deliverable of this skill is analysis, not code. A concrete implementation can't be reviewed against a spec that doesn't exist yet. |
 
@@ -210,3 +203,13 @@ Catches *doing a bad analysis*. Different failure mode from the boundary violati
 | **Padded clarifying questions** | Asking 5+ questions to look thorough | Cap at 2 (already enforced) and only ask what would change the analysis. Padding wastes the user's turn. |
 | **Internal-focus complaints** | "The codebase is messy / the auth module needs refactoring" | That is a refactor concern, not a feature analysis. Note it as out-of-scope; don't let it dominate. |
 
+## Next step
+
+When the analysis is finished (not when you stop to ask the user something), end your final message with:
+
+```
+Discussion complete. This skill does NOT implement.
+Recommended next step:
+  - /feature-dev:spec to formalize the refined idea into a structured specification
+  - /discuss:grill first, if decisions are still open
+```

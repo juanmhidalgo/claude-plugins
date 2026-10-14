@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.14.0] - 2026-10-14
+
+### Added
+- **`/discuss:grill`**: interviews the user in rounds until every decision is settled. Each round asks only the decisions whose prerequisites are settled, each with a recommended answer worded so "yes" accepts it. Facts are looked up by an Explore subagent instead of being asked. Ends with a decision ledger and a pointer to `/feature-dev:spec`. Adapted from mattpocock/skills (MIT).
+- **`/discuss:wait-what`**: user-invoked only. Re-explains the agent's last message in the conversation's language, with context first, short sentences and jargon defined, and shorter than the original. Adapted from mattpocock/skills (MIT), with the English-only Simplified Technical English rule replaced by language-neutral rules.
+
+### Fixed
+- `feature`, `brainstorm`, `challenge` and `tradeoffs` lose their `Stop` hooks. All four can ask the user a question, which ends the first turn early, so the `once: true` hook printed "complete" before the analysis was done and never fired again. Each now prints its next steps as the last part of its final message. `feature` also points to `/discuss:grill` when decisions are still open.
+
 ## [2.13.0] - 2026-10-06
 
 ### Added

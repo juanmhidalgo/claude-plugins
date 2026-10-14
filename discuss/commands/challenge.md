@@ -14,13 +14,6 @@ triggers:
   - "challenge this decision"
   - "why shouldn't I"
   - "what could go wrong"
-hooks:
-  - event: Stop
-    once: true
-    command: |
-      echo "Challenge complete. Next steps:"
-      echo "  - /discuss:tradeoffs if comparing alternatives"
-      echo "  - /feature-dev:explore-plan to proceed with implementation"
 ---
 
 # Devil's Advocate
@@ -126,3 +119,14 @@ Be direct, even blunt. Examples:
 - "You're underestimating..." (not "One consideration is...")
 - "This is a bad idea if..." (not "In some cases...")
 </tone>
+
+## Next step
+
+When the analysis is finished (not when you stop to ask the user something), end your final message with:
+
+```
+Challenge complete. Next steps:
+  - /discuss:tradeoffs if comparing alternatives
+  - /discuss:grill to settle the decisions this left open
+  - /feature-dev:explore-plan to proceed with implementation
+```

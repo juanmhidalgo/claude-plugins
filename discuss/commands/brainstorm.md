@@ -14,13 +14,6 @@ triggers:
   - "what are my options"
   - "alternative approaches"
   - "how else could I"
-hooks:
-  - event: Stop
-    once: true
-    command: |
-      echo "Brainstorm complete. Next steps:"
-      echo "  - /discuss:tradeoffs to compare top approaches"
-      echo "  - /feature-dev:explore-plan to explore chosen approach"
 ---
 
 # Solution Brainstorming
@@ -121,3 +114,12 @@ Ground alternatives in what's realistic for THIS codebase based on exploration.
 </rule>
 </critical_rules>
 
+## Next step
+
+When the analysis is finished (not when you stop to ask the user something), end your final message with:
+
+```
+Brainstorm complete. Next steps:
+  - /discuss:tradeoffs to compare top approaches
+  - /feature-dev:explore-plan to explore chosen approach
+```
