@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.6.0] - 2026-10-14
+
+### Added
+- **PR body: Evidence and Merge Danger sections.** Evidence is a before/after pair built only from runs this session made: "After" is the Phase 4 test run, "Before" is a failing run actually observed, otherwise `not captured`. Ship never checks out the base or reverts code to manufacture one. Merge Danger is one line for the door (one-way or two-way, with the reason) and one for the blast radius. Rollback Triggers stay.
+- **Summary visual.** The Summary is one sentence of why plus at most one visual (call tree, file tree, pseudocode, Mermaid, or a `diff` of the shape), derived from the diff and skipped for one-file, docs, config, or dependency-only changes. Menu in `skills/ship/references/pr-body.md`, adapted from mattpocock/skills (MIT).
+
+### Fixed
+- **The repo's own PR template is respected.** When the repo has a `pull_request_template.md` (in `.github/`, `docs/`, the root, or `.github/PULL_REQUEST_TEMPLATE/`), ship keeps its headings and order and appends Merge Danger and Rollback Triggers only when the template has no equivalent. Before, ship ignored it.
+
 ## [1.5.0] - 2026-10-06
 
 ### Added
