@@ -1,286 +1,47 @@
-// Review band: the SPEC/PLAN files changed since their latest browser review,
-// with a way into /feature-dev:review. One pending artifact gets its own row;
-// two or more collapse into one summary row that "Show all" expands.
+// Feature sidebar: a `Features` pane listing the features of this repository,
+// active ones first, then a Done group. The list comes from
+// `scripts/features.py list --json`, run through `$.process.run`; the mod reads
+// no file itself (AC-20), so the script owns the layout and the state machine.
 //
-// Only recent changes are shown: an artifact modified within the last
-// `review_band_window_hours`, or since this session started. Old legacy files
-// that were never reviewed in the browser stay out of the way, and so does a
-// SPEC whose frontmatter says `status: approved`.
-//
-// Dismiss persists per repository in `.feature-dev/band-dismissed.json`
-// (gitignored with the rest of `.feature-dev/`), as artifact name → mtime:
-// hidden in every session until the file changes again. Not `$.store`, which
-// every project on the machine shares.
-//
-// Draws only where the engine raises `AbovePrompt` (the interactive terminal
-// and desktop). Under `claude -p`, VS Code, --safe-mode or disableAllHooks
-// nothing here runs, and the text suggestions in spec.md / explore-plan.md
-// stay the way in.
+// Draws only where the engine raises `Pane`. Under `claude -p`, VS Code,
+// --safe-mode or disableAllHooks nothing here runs.
 import { atom, read, update } from 'claude-code'
-import type { EngineInterface, FsEntry, Register } from 'claude-code'
+import type { EngineInterface, Register } from 'claude-code'
 
-import type { PendingArtifact } from '../types'
+import type { Feature } from '../types'
 
-const pendingAtom = atom({ plugin: 'feature-dev', key: 'pending' } as const, [] as PendingArtifact[])
-const dismissedAtom = atom({ plugin: 'feature-dev', key: 'dismissed' } as const, {} as Record<string, number>)
-const sessionStartAtom = atom({ plugin: 'feature-dev', key: 'sessionStart' } as const, 0)
-const expandedAtom = atom({ plugin: 'feature-dev', key: 'expanded' } as const, false)
+const PANE_ID = 'features'
+const PANE_TITLE = 'Features'
+const LIST_TIMEOUT_MS = 30_000
 
-/** Mirrors ARTIFACT_NAME in scripts/review_server.py. */
-const ARTIFACT_NAME = /^(SPEC|PLAN)-[A-Za-z0-9._-]+\.md$/
-/** History copies (`SPEC-x.<n>.md`) are snapshots, never artifacts. */
-const HISTORY_COPY = /\.\d+\.md$/
-/** Mirrors REVIEW_SUFFIX in scripts/review_server.py. */
-const REVIEW_FILE = /-\d{8}T\d{6}Z(?:-\d+)?\.md$/
-const SERVER_URL = /^http:\/\/127\.0\.0\.1:(\d{1,5})\/$/
-const REVIEW_COMMAND = 'feature-dev:review'
-const CLEANUP_COMMAND = 'feature-dev:cleanup'
-/** Mirrors BAND_DISMISSED in scripts/review_server.py, whose `purge` forgets deleted artifacts. */
-const DISMISSED_FILE = 'band-dismissed.json'
-/** Frontmatter sits at the top; an approval past this many characters is not looked for. */
-const FRONTMATTER_LIMIT = 4096
+const featuresAtom = atom({ plugin: 'feature-dev', key: 'features' } as const, [] as Feature[])
+const errorAtom = atom({ plugin: 'feature-dev', key: 'error' } as const, null as string | null)
+export const dismissedAtom = atom({ plugin: 'feature-dev', key: 'dismissed' } as const, [] as string[])
+export const paneOpenAtom = atom({ plugin: 'feature-dev', key: 'paneOpen' } as const, false)
+export const confirmDeleteAtom = atom({ plugin: 'feature-dev', key: 'confirmDelete' } as const, null as string | null)
+export const selectedAtom = atom({ plugin: 'feature-dev', key: 'selected' } as const, null as string | null)
 
-type Paths = {
-  /** Absolute project root; artifact paths shown to the command are relative to it. */
-  root: string
-  /** Folders holding SPEC-*.md / PLAN-*.md, searched in order; first name wins. */
-  artifactDirs: string[]
-  /** Where review_server.py writes reviews and `.<slug>.url` pointers. */
-  reviewsDir: string
-  /** The persistent Dismiss state: `{ version: 1, dismissed: { name: mtimeMs } }`. */
-  dismissedFile: string
-}
-
-type Dismissed = Record<string, number>
-
-const DEFAULT_ARTIFACTS_DIR = '.feature-dev'
-/** The `artifacts_dir` option, set by register(); same rules as artifacts_dir() in review_server.py. */
-let artifactsDir = DEFAULT_ARTIFACTS_DIR
-
-const DEFAULT_WINDOW_HOURS = 24
-const HOUR_MS = 60 * 60 * 1000
-/** The `review_band_window_hours` option, set by register(). */
-let windowHours = DEFAULT_WINDOW_HOURS
-
-/**
- * Defensive, like cleanArtifactsDir: the engine validates `options` against
- * userConfig before register() runs, but a literal `${user_config.…}` (an
- * unsaved option in a command's text) or a non-number still means the default.
- */
-function cleanWindowHours(raw: unknown): number {
-  if (typeof raw === 'string' && raw.includes('${')) return DEFAULT_WINDOW_HOURS
-  const value = typeof raw === 'number' ? raw : typeof raw === 'string' ? Number(raw.trim()) : NaN
-  return Number.isFinite(value) && value >= 1 ? value : DEFAULT_WINDOW_HOURS
-}
-
-function cleanArtifactsDir(raw: unknown): string {
-  const value = typeof raw === 'string' ? raw.trim() : ''
-  const parts = value.split('/').filter(p => p !== '' && p !== '.')
-  if (value.includes('${') || value.startsWith('/') || parts.includes('..') || parts.length === 0) {
-    return DEFAULT_ARTIFACTS_DIR
-  }
-  return parts.join('/')
-}
-
-/**
- * The one place artifact and review locations are resolved: specs in
- * `<artifacts_dir>/specs`, plans in `<artifacts_dir>/plans`, then legacy
- * files at the project root (a name in both is taken from the folder).
- */
-export async function artifactPaths($: EngineInterface): Promise<Paths> {
+/** Runs `features.py list --json` for the session root and parses its JSON array. */
+async function listFeatures($: EngineInterface): Promise<Feature[]> {
   const root = (await $.session.root()).replace(/\/+$/, '')
-  return {
-    root,
-    artifactDirs: [`${root}/${artifactsDir}/specs`, `${root}/${artifactsDir}/plans`, root],
-    reviewsDir: `${root}/.feature-dev/reviews`,
-    dismissedFile: `${root}/.feature-dev/${DISMISSED_FILE}`,
-  }
-}
-
-function frontmatter(text: string): Record<string, string> {
-  const lines = text.slice(0, FRONTMATTER_LIMIT).split(/\r?\n/)
-  const out: Record<string, string> = {}
-  if (lines[0]?.trim() !== '---') return out
-  for (const line of lines.slice(1)) {
-    if (line.trim() === '---') break
-    const m = /^([A-Za-z_][\w-]*):\s*(.*?)\s*(?:#.*)?$/.exec(line)
-    if (m?.[1] !== undefined) out[m[1]] = (m[2] ?? '').trim().replace(/^['"]+|['"]+$/g, '')
-  }
-  return out
-}
-
-/** Same derivation as artifact_slug() in review_server.py. */
-function slugOf(name: string, front: Record<string, string>): string {
-  const raw = front.slug || name.replace(/\.md$/, '').replace(/^(SPEC|PLAN)-/, '')
-  const slug = raw.replace(/[^A-Za-z0-9._-]+/g, '-').replace(/^[-.]+|[-.]+$/g, '')
-  return slug || 'artifact'
-}
-
-function baseName(path: string): string {
-  return path.split(/[\\/]/).pop() ?? path
-}
-
-async function list($: EngineInterface, dir: string): Promise<readonly FsEntry[]> {
-  return (await listChecked($, dir)).entries
-}
-
-/**
- * Lists `dir`; `ok` is false when the listing failed for a folder that is
- * there (unreadable, an I/O error), so its contents are unknown. A folder
- * that does not exist lists as empty and ok: nothing is in it.
- */
-async function listChecked($: EngineInterface, dir: string): Promise<{ entries: readonly FsEntry[]; ok: boolean }> {
-  try {
-    return { entries: await $.fs.list(dir), ok: true }
-  } catch {
-    const isMissing = await $.fs.exists(dir).then(
-      exists => !exists,
-      () => false,
-    )
-    return { entries: [], ok: isMissing }
-  }
-}
-
-async function liveUrl($: EngineInterface, pointer: string): Promise<string | undefined> {
-  try {
-    const raw = (await $.fs.read(pointer)).trim()
-    const port = SERVER_URL.exec(raw)?.[1]
-    if (port === undefined) return undefined
-    const alive = await $.http.fetch(`${raw}alive`)
-    // A Link takes https: or http://localhost only; the server accepts both Host spellings.
-    return alive.status === 204 ? `http://localhost:${port}/` : undefined
-  } catch {
-    return undefined
-  }
-}
-
-/**
- * Reads the persistent Dismiss state. Missing, unreadable or malformed reads
- * as nothing dismissed: the worst case is a row that shows up again.
- */
-async function readDismissed($: EngineInterface, file: string): Promise<Dismissed> {
-  try {
-    const parsed: unknown = JSON.parse(await $.fs.read(file))
-    const raw = (parsed as { dismissed?: unknown } | null)?.dismissed
-    if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) return {}
-    const out: Dismissed = {}
-    for (const [name, mtimeMs] of Object.entries(raw as Record<string, unknown>)) {
-      if (ARTIFACT_NAME.test(name) && typeof mtimeMs === 'number' && Number.isFinite(mtimeMs)) out[name] = mtimeMs
-    }
-    return out
-  } catch {
-    return {}
-  }
-}
-
-/**
- * `$.fs` has no rename, so this is a plain whole-file write: two sessions of
- * one repo writing at the same moment can lose one's entry (that row shows up
- * again), and a write torn by a crash reads back as nothing dismissed. Callers
- * read the file just before writing to keep that window small.
- */
-async function writeDismissed($: EngineInterface, file: string, dismissed: Dismissed): Promise<void> {
-  await $.fs.write(file, `${JSON.stringify({ version: 1, dismissed }, null, 2)}\n`)
-}
-
-function sameDismissed(a: Dismissed, b: Dismissed): boolean {
-  const keys = Object.keys(a)
-  return keys.length === Object.keys(b).length && keys.every(k => a[k] === b[k])
-}
-
-/** Adds `entries` to the persistent Dismiss state (read, merge, write) and to this session's copy. */
-async function dismiss($: EngineInterface, entries: readonly PendingArtifact[]): Promise<void> {
-  const added = Object.fromEntries(entries.map(p => [p.name, p.mtimeMs]))
-  await update($, dismissedAtom, d => ({ ...d, ...added }))
-  const { dismissedFile } = await artifactPaths($)
-  const merged = { ...(await readDismissed($, dismissedFile)), ...added }
-  await writeDismissed($, dismissedFile, merged)
-}
-
-type Scan = {
-  pending: PendingArtifact[]
-  /** Every artifact found, recent or not: name → mtimeMs. */
-  existing: Map<string, number>
-  /** False when an artifact folder that exists could not be listed: `existing` is partial. */
-  isComplete: boolean
-}
-
-/**
- * Artifacts whose mtime is newer than every review that names them, and
- * recent: within the window, or modified since this session started.
- */
-export async function scanPending($: EngineInterface): Promise<PendingArtifact[]> {
-  return (await scan($)).pending
-}
-
-async function scan($: EngineInterface): Promise<Scan> {
-  const paths = await artifactPaths($)
-  const now = await $.clock.now()
-  const sessionStart = await read($, sessionStartAtom)
-  const isRecent = (mtimeMs: number) =>
-    mtimeMs >= now - windowHours * HOUR_MS || (sessionStart > 0 && mtimeMs >= sessionStart)
-  const reviewEntries = await list($, paths.reviewsDir)
-  const reviews = reviewEntries.filter(e => e.kind === 'file' && REVIEW_FILE.test(e.name))
-  const pointers = new Set(reviewEntries.filter(e => e.name.endsWith('.url')).map(e => e.name))
-  const reviewedName = new Map<string, string>()
-  const existing = new Map<string, number>()
-  const pending: PendingArtifact[] = []
-
-  let isComplete = true
-  for (const dir of paths.artifactDirs) {
-    const { entries, ok } = await listChecked($, dir)
-    if (!ok) isComplete = false
-    for (const entry of entries) {
-      const { name } = entry
-      if (entry.kind !== 'file' || !ARTIFACT_NAME.test(name) || HISTORY_COPY.test(name) || existing.has(name)) continue
-      existing.set(name, entry.mtimeMs)
-      if (!isRecent(entry.mtimeMs)) continue
-      let isReviewed = false
-      for (const review of reviews) {
-        if (review.mtimeMs < entry.mtimeMs) continue
-        let named = reviewedName.get(review.name)
-        if (named === undefined) {
-          const text = await $.fs.read(`${paths.reviewsDir}/${review.name}`).catch(() => '')
-          named = baseName(frontmatter(text).artifact ?? '')
-          reviewedName.set(review.name, named)
-        }
-        if (named === name) {
-          isReviewed = true
-          break
-        }
-      }
-      if (isReviewed) continue
-      const absolute = `${dir}/${name}`
-      // Read only for an artifact that would otherwise be shown; frontmatter()
-      // parses the first FRONTMATTER_LIMIT characters ($.fs.read has no range).
-      const front = frontmatter(await $.fs.read(absolute).catch(() => ''))
-      // /feature-dev:review's approve verdict writes this; an approved spec needs no review prompt.
-      if (front.status === 'approved') continue
-      const pointer = `.${slugOf(name, front)}.url`
-      const url = pointers.has(pointer) ? await liveUrl($, `${paths.reviewsDir}/${pointer}`) : undefined
-      const path = absolute.startsWith(`${paths.root}/`) ? absolute.slice(paths.root.length + 1) : absolute
-      pending.push({ name, path, mtimeMs: entry.mtimeMs, ...(url ? { url } : {}) })
-    }
-  }
-  return { pending, existing, isComplete }
+  const result = await $.process.run(
+    ['python3', `${$.plugin.root}/scripts/features.py`, 'list', '--json', '--root', root],
+    { timeoutMs: LIST_TIMEOUT_MS },
+  )
+  if (result.exitCode !== 0) throw new Error(result.stderr.trim() || `features.py exited ${result.exitCode}`)
+  const parsed: unknown = JSON.parse(result.stdout)
+  if (!Array.isArray(parsed)) throw new Error('features.py list did not print a JSON array')
+  return parsed as Feature[]
 }
 
 async function refresh($: EngineInterface): Promise<void> {
   try {
-    const { pending, existing, isComplete } = await scan($)
-    const { dismissedFile } = await artifactPaths($)
-    const stored = await readDismissed($, dismissedFile)
-    // Prune what can never match again: an artifact that is gone, or one
-    // whose mtime moved on since it was dismissed. Only after every artifact
-    // folder listed: a folder that failed to list says nothing about its files.
-    const isLive = ([name, mtimeMs]: [string, number]) => !isComplete || existing.get(name) === mtimeMs
-    const kept = Object.fromEntries(Object.entries(stored).filter(isLive))
-    if (!sameDismissed(stored, kept)) await writeDismissed($, dismissedFile, kept).catch(() => undefined)
-    // A Dismiss of this session whose write failed still holds here.
-    await update($, dismissedAtom, session => ({ ...Object.fromEntries(Object.entries(session).filter(isLive)), ...kept }))
-    await update($, pendingAtom, () => pending)
-  } catch {
-    // A scan that fails leaves the last band in place rather than flashing it away.
+    const features = await listFeatures($)
+    await update($, featuresAtom, () => features)
+    await update($, errorAtom, () => null)
+  } catch (err) {
+    // The Pane shows this instead of the list; a later successful refresh clears it.
+    await update($, errorAtom, () => (err instanceof Error ? err.message : String(err)))
   }
 }
 
@@ -300,33 +61,77 @@ async function runCommand($: EngineInterface, full: string, args: string): Promi
   await $.command.run({ command, args })
 }
 
-function openReview($: EngineInterface, path: string): Promise<void> {
-  return runCommand($, REVIEW_COMMAND, path)
-}
+const pathOf = (f: Feature, kind: 'spec' | 'plan') => f.artifacts.find(a => a.kind === kind)?.path
 
-/**
- * /feature-dev:cleanup takes no arguments: it lists the candidates itself,
- * asks before deleting, and deletes through `review_server.py purge`. The
- * band never deletes anything.
- */
-function openCleanup($: EngineInterface): Promise<void> {
-  return runCommand($, CLEANUP_COMMAND, '')
+const isContinuable = (f: Feature) => ['planned', 'running', 'halted'].includes(f.status)
+
+const isDone = (f: Feature) => f.status === 'implemented'
+
+// A shipped feature is never marked: approving in chat writes no review, so its
+// artifacts keep reading "needs review" forever and would pin the band on.
+const isMarked = (f: Feature, dismissed: readonly string[]) =>
+  !isDone(f) && f.artifacts.some(a => a.needs_review) && !dismissed.includes(f.slug)
+
+/** Features still marked "needs review" once the dismissed ones are left out. */
+export const needsReviewCount = (features: readonly Feature[], dismissed: readonly string[]): number =>
+  features.filter(f => isMarked(f, dismissed)).length
+
+function label(f: Feature, dismissed: readonly string[]): string {
+  const needsReview = isMarked(f, dismissed)
+  return `${f.slug} · ${f.status}${needsReview ? ' · needs review' : ''}`
 }
 
 export const register: Register = (on, options) => {
   if (options.review_band === false) return
-  artifactsDir = cleanArtifactsDir(options.artifacts_dir)
-  windowHours = cleanWindowHours(options.review_band_window_hours)
 
   on('session.start', async ($, e, next) => {
     const result = await next(e)
-    // A hot reload fires session.start again; keep the first start time.
-    if ((await read($, sessionStartAtom)) === 0) {
-      const now = await $.clock.now()
-      await update($, sessionStartAtom, prev => prev || now)
+    if (e.isInteractive) {
+      // List first; an empty repository gets no pane at all (AC-22).
+      await refresh($)
+      // A failed list opens the pane too, so the person sees the error and Retry.
+      if ((await read($, featuresAtom)).length > 0 || (await read($, errorAtom)) !== null) {
+        const opened = await $.ui.open({ id: PANE_ID, title: PANE_TITLE })
+        if (opened.isPlaced) await update($, paneOpenAtom, () => true)
+      }
     }
-    if (e.isInteractive) await refresh($)
     return result
+  })
+
+  // Whether the pane is shown, from what the engine answers: the band hides
+  // while it is (AC-19). Render hooks only read this.
+  on('ui.open', async ($, e, next) => {
+    const result = await next(e)
+    if (e.id === PANE_ID && result.isPlaced) await update($, paneOpenAtom, () => true)
+    return result
+  })
+
+  on('ui.close', async ($, e, next) => {
+    const result = await next(e)
+    if (e.id === PANE_ID) await update($, paneOpenAtom, () => false)
+    return result
+  })
+
+  on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
+    if (e.props.hasSurvey || e.props.view.agentId !== undefined) return next(e)
+    if (await read($, paneOpenAtom)) return next(e)
+    if ((await read($, errorAtom)) !== null) return next(e)
+    const count = needsReviewCount(await read($, featuresAtom), await read($, dismissedAtom))
+    if (count === 0) return next(e)
+    const { Box, Button } = $.ui.resolve(e)
+    return (
+      <Box flexDirection="row">
+        <Button
+          key="band"
+          label={`${count} need review · ${PANE_TITLE}`}
+          variant="primary"
+          onPress={async () => {
+            const opened = await $.ui.open({ id: PANE_ID, focus: true })
+            if (opened.isPlaced) await update($, paneOpenAtom, () => true)
+          }}
+        />
+      </Box>
+    )
   })
 
   on('turn.complete', async ($, e, next) => {
@@ -335,78 +140,98 @@ export const register: Register = (on, options) => {
     return result
   })
 
-  on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
-    if (e.props.hasSurvey || e.props.view.agentId !== undefined) return next(e)
-    const dismissed = await read($, dismissedAtom)
-    const rows = (await read($, pendingAtom)).filter(p => dismissed[p.name] !== p.mtimeMs)
-    if (rows.length === 0) return next(e)
-
-    const { Box, Text, Button, Link } = $.ui.resolve(e)
-    /** The live review page when its server answers, else a button that runs the command. */
-    const openOrLink = (p: PendingArtifact, key: string, label: string, linkLabel: string) =>
-      p.url ? (
-        <Link key={`link:${key}`} href={p.url} label={linkLabel} />
-      ) : (
-        <Button
-          key={`open:${key}`}
-          label={label}
-          variant="primary"
-          onPress={() => openReview($, p.path).catch(err => $.ui.toast(`Could not open the review: ${String(err)}`))}
-        />
-      )
-    /** Hands off to /feature-dev:cleanup, which asks before deleting anything. One per band. */
-    const cleanupButton = (
-      <Button
-        key="cleanup"
-        label="Clean up"
-        onPress={() => openCleanup($).catch(err => $.ui.toast(`Could not start the cleanup: ${String(err)}`))}
-      />
-    )
-    const row = (p: PendingArtifact, withCleanup = false) => (
-      <Box key={`row:${p.name}`} flexDirection="row" gap={1}>
-        <Text wrap="truncate-middle">{p.name} · not reviewed since last change</Text>
-        {openOrLink(p, p.name, 'Open review', 'Review page')}
-        <Button
-          key={`dismiss:${p.name}`}
-          label="Dismiss"
-          onPress={() => dismiss($, [p]).catch(err => $.ui.toast(`Dismiss lasts this session only: ${String(err)}`))}
-        />
-        {withCleanup ? cleanupButton : null}
-      </Box>
-    )
-    const only = rows.length === 1 ? rows[0] : undefined
-    if (only !== undefined) return <Box flexDirection="column">{row(only, true)}</Box>
-
-    const expanded = await read($, expandedAtom)
-    if (expanded) {
+  on('ui.render', { component: 'Pane', requestId: PANE_ID }, async ($, e) => {
+    const { Box, Text } = $.ui.resolve(e)
+    const { Button } = $.ui.resolve(e)
+    const error = await read($, errorAtom)
+    if (error !== null) {
+      const { Button } = $.ui.resolve(e)
       return (
         <Box flexDirection="column">
-          <Box key="summary" flexDirection="row" gap={1}>
-            <Text>{rows.length} not reviewed</Text>
-            <Button key="collapse" label="Collapse" onPress={() => update($, expandedAtom, () => false)} />
-            {cleanupButton}
-          </Box>
-          {rows.map(p => row(p))}
+          <Text key="error" wrap="truncate-end">
+            {`Could not list features: ${error}`}
+          </Text>
+          <Button key="retry" label="Retry" onPress={() => refresh($)} />
         </Box>
       )
     }
-
-    const latest = rows.reduce((a, b) => (b.mtimeMs > a.mtimeMs ? b : a))
+    const features = await read($, featuresAtom)
+    const selectedSlug = await read($, selectedAtom)
+    const dismissed = await read($, dismissedAtom)
+    const selected = features.find(f => f.slug === selectedSlug)
+    const active = features.filter(f => !isDone(f))
+    const done = features.filter(isDone)
+    if (features.length === 0) {
+      return (
+        <Box flexDirection="column">
+          <Text key="empty" wrap="truncate-end">
+            No features yet. Start one with /feature-dev:spec
+          </Text>
+        </Box>
+      )
+    }
+    const row = (f: Feature) => (
+      <Box key={`feature:${f.slug}`} flexDirection="row">
+        <Button key={`select:${f.slug}`} label="▸" onPress={async () => {
+            await update($, selectedAtom, () => f.slug)
+            await update($, confirmDeleteAtom, () => null)
+          }}
+        />
+        <Text wrap="truncate-end">{label(f, dismissed)}</Text>
+      </Box>
+    )
+    const run = (command: string, path: string) => () =>
+      runCommand($, command, path).catch(err => $.ui.toast(`Could not run /${command}: ${String(err)}`))
+    const confirming = await read($, confirmDeleteAtom)
+    const deleteFeature = async (f: Feature) => {
+      if (f.status === 'running' || f.status === 'halted') {
+        $.ui.toast('Run in progress — finish it, or remove it with /feature-dev:cleanup')
+        return
+      }
+      if (confirming !== f.slug) {
+        await update($, confirmDeleteAtom, () => f.slug)
+        return
+      }
+      await update($, confirmDeleteAtom, () => null)
+      const root = (await $.session.root()).replace(/\/+$/, '')
+      const argv = ['python3', `${$.plugin.root}/scripts/features.py`, 'delete', f.slug, '--root', root]
+      if (!isDone(f)) argv.push('--force')
+      try {
+        const result = await $.process.run(argv, { timeoutMs: LIST_TIMEOUT_MS })
+        if (result.exitCode === 0) await refresh($)
+        else $.ui.toast(result.stderr.trim() || `features.py exited ${result.exitCode}`)
+      } catch (err) {
+        $.ui.toast(err instanceof Error ? err.message : String(err))
+      }
+    }
+    const deleteLabel = !selected || confirming !== selected.slug
+      ? 'Delete'
+      : isDone(selected)
+        ? 'Press again to delete'
+        : 'Not implemented: press again to force delete'
+    const spec = selected && pathOf(selected, 'spec')
+    const plan = selected && pathOf(selected, 'plan')
+    const continuePath = selected && (plan ?? spec)
     return (
       <Box flexDirection="column">
-        <Box key="summary" flexDirection="row" gap={1}>
-          <Text>{rows.length} not reviewed</Text>
-          {openOrLink(latest, 'latest', `Open ${latest.name}`, `Open ${latest.name}`)}
-          <Button key="show-all" label="Show all" onPress={() => update($, expandedAtom, () => true)} />
-          <Button
-            key="dismiss-all"
-            label="Dismiss all"
-            onPress={() =>
-              dismiss($, rows).catch(err => $.ui.toast(`Dismiss lasts this session only: ${String(err)}`))
-            }
-          />
-          {cleanupButton}
-        </Box>
+        {active.map(row)}
+        {done.length > 0 ? (
+          <Text key="group:done" bold>
+            Done
+          </Text>
+        ) : null}
+        {done.map(row)}
+        {selected ? (
+          <Box key="actions" flexDirection="row">
+            {spec ? <Button key="review-spec" label="Review spec" onPress={run('feature-dev:review', spec)} /> : null}
+            {plan ? <Button key="review-plan" label="Review plan" onPress={run('feature-dev:review', plan)} /> : null}
+            {isContinuable(selected) && continuePath ? (
+              <Button key="continue" label="Continue" onPress={run('feature-dev:tdd', continuePath)} />
+            ) : null}
+            <Button key="dismiss" label="Dismiss" onPress={() => update($, dismissedAtom, d => [...d, selected.slug])} />
+            <Button key="delete" label={deleteLabel} onPress={() => deleteFeature(selected)} />
+          </Box>
+        ) : null}
       </Box>
     )
   })

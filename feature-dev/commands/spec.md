@@ -29,7 +29,7 @@ allowed-tools:
   - Bash(gh issue edit *)
   - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/issue_spec.py *)
   - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/review_server.py snapshot *)
-  - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/review_server.py artifacts *)
+  - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/features.py *)
 ---
 
 <SUBAGENT-STOP>
@@ -42,7 +42,7 @@ If you were dispatched as a subagent to execute a specific task, skip this comma
 - **Recent commits**: !`git log --oneline -5`
 - **Additional directories**: !`jq -r '.permissions.additionalDirectories[]? // empty' .claude/settings.local.json 2>/dev/null || true`
 - **Parent context file**: !`test -f ../CLAUDE.md && echo "../CLAUDE.md exists (read for repo catalog)" || echo "no ../CLAUDE.md"`
-- **Artifacts folder**: `${user_config.artifacts_dir}` (a literal `${user_config...}` here means `.feature-dev`). Where specs are written and found: [artifact-locations.md](../skills/spec-driven-development/references/artifact-locations.md).
+- **Feature store**: each feature lives in `.feature-dev/features/<slug>/`, managed by `${CLAUDE_PLUGIN_ROOT}/scripts/features.py` (pass `--root <repo root>`). Layout: [artifact-locations.md](../skills/spec-driven-development/references/artifact-locations.md).
 - **Spec store option**: `${user_config.spec_store}` (a literal `${user_config...}` here means `file`).
 
 <best_practices>
@@ -95,7 +95,7 @@ Each phase that runs requires user approval before advancing.
    **Multi-repo features only** add one more section after Boundaries:
    - **Cross-Repo Contracts**: Endpoint(s), request/response shape, error codes, breaking-change flag, versioning notes. This is the artifact every in-scope repo commits to and the anchor for coordination. It belongs to the spec, so it is written with or without `--with-tasks`.
 
-6. **Save the spec** to the path `${CLAUDE_PLUGIN_ROOT}/scripts/review_server.py artifacts --dir "<artifacts folder>" --new SPEC-<feature-slug>.md` prints (`<folder>/specs/SPEC-<feature-slug>.md`); this is the **spec path** used below. If you are revising a spec that `artifacts` lists at the project root (written before 1.32.0), keep it there and edit it in place. If that file already exists, first copy it to `.feature-dev/history/<dir>/SPEC-<feature-slug>.<n>.md`, where n is one more than the highest n already there (1 if none): Read it, then Write the copy. `<dir>` is the slug as `review_server.py` sanitizes it — the frontmatter `slug:` with every run of characters outside `A-Za-z0-9._-` replaced by `-`, leading and trailing `-`/`.` stripped, and `artifact` if nothing is left — so a slug with a space or a `/` still lands in the folder `/feature-dev:review` diffs against and `/feature-dev:cleanup` groups by. Do the same once per review round before editing a spec the user has already seen. `/feature-dev:review` diffs against that copy, and without it nobody can see what changed between versions. The file MUST begin with this frontmatter block (one single block — merge the optional `repos:` lines inside the `---` delimiters when multi-repo):
+6. **Save the spec** to the path `${CLAUDE_PLUGIN_ROOT}/scripts/features.py new <feature-slug> --kind spec --root <repo root>` prints (`.feature-dev/features/<feature-slug>/SPEC-<feature-slug>.md`); this is the **spec path** used below. The script creates the feature as a `draft`. If it refuses because the feature already exists, you are revising: edit the existing SPEC in place. Before editing a spec the user has already seen, snapshot it once per review round with `${CLAUDE_PLUGIN_ROOT}/scripts/review_server.py snapshot <spec path>` — it copies the file to `.feature-dev/features/<feature-slug>/history/SPEC-<feature-slug>.<n>.md`, which `/feature-dev:review` diffs against; without it nobody can see what changed between versions. **Refuse an old-layout path:** if `$ARGUMENTS` or a spec path points outside `.feature-dev/features/` (a root `SPEC-*.md`, or the layout older than 2.0.0), refuse it in one line and name `.feature-dev/features/<slug>/` as the only place specs live. The file MUST begin with this frontmatter block (one single block — merge the optional `repos:` lines inside the `---` delimiters when multi-repo):
 
    ```markdown
    ---
@@ -104,7 +104,6 @@ Each phase that runs requires user approval before advancing.
    slug: [feature-slug]
    date: [YYYY-MM-DD]
    branch: [current branch]
-   status: draft  # draft | approved | implemented
    # repos: omit this block entirely for single-repo features.
    # Include for multi-repo features. Roles: owns-contract (defines the
    # API/data shape) | consumes-contract (depends on it). Paths are
@@ -119,9 +118,9 @@ Each phase that runs requires user approval before advancing.
    ---
    ```
 
-   Update `status:` to `approved` after the user validates the spec in step 8.
+   The feature's state (draft, approved, implemented) lives in `feature.json`, not in the frontmatter: after the user validates the spec in step 8, run `${CLAUDE_PLUGIN_ROOT}/scripts/features.py approve <feature-slug> --root <repo root>`.
 
-7. **Update `.gitignore`.** If the project's `.gitignore` does not already include `.feature-dev/` (review files, version history, and the default specs and plans folder), add it; if the artifacts folder is not under `.feature-dev/`, add that folder too. Keep an existing `SPEC-*.md` line: it still covers specs written at the root before 1.32.0. The spec is a local working artifact, not a repo deliverable — this prevents accidental commits via `git add .`. (Mirrors the same step performed by `/feature-dev:explore-plan` for `PLAN-*.md`.)
+7. **Update `.gitignore`.** If the project's `.gitignore` does not already include `.feature-dev/` (features, review files and version history), add it. The spec is a local working artifact, not a repo deliverable — this prevents accidental commits via `git add .`. (Mirrors the same step performed by `/feature-dev:explore-plan` for the plan.)
 
 8. **Present the review brief** (below) — not the spec itself. Do NOT proceed until the user approves.
 
@@ -192,12 +191,12 @@ Add tasks to the spec file and end with the review brief.
 
 After every phase that ran is approved:
 - The spec file is a **local working artifact**, not a repo deliverable. Do NOT commit it, and do NOT run any git commands. Downstream commands read it directly from the working tree.
-- Confirm the spec's frontmatter `status:` is `approved` (it will be flipped to `implemented` automatically when `/feature-dev:tdd` finishes).
+- Confirm the feature is approved (`${CLAUDE_PLUGIN_ROOT}/scripts/features.py approve <feature-slug> --root <repo root>` has run; `/feature-dev:tdd` marks it implemented when it finishes).
 - **Ask about publishing — once, gated, right here.** Read `.claude/feature-dev.local.md` (Read tool; a missing file is simply absent, no fallback value). This is the only place this question is asked: never on edits or review rounds — not when the user asks you to change something in an already-approved spec, and not at the end of any Phase 1/2/3 review brief. Phase 4 runs once, after the last phase that ran is approved, so asking only here already satisfies that.
   - **The store setting**: `spec_store` in `.claude/feature-dev.local.md` when that file sets it (project setting, wins); otherwise the **Spec store option** in Context. `issue` is the only value that means "issue"; anything else, or nothing set anywhere, is `file`.
-  - **Skip silently, changing nothing else in Handoff,** unless the store setting is `issue` or the spec's own frontmatter already has `issue:`. Either condition alone is enough to ask.
-  - Otherwise ask one AskUserQuestion with the options "keep local", "publish to #N" (target `#N`; offered only when the spec's frontmatter already has `issue:`), and "create an issue" (target `new`).
-  - **Default**: default when the store setting is `issue` is the publishing option — "publish to #N" if the spec already has `issue:`, otherwise "create an issue" (there is no `#N` yet to publish to). When the question was asked only because the spec already has `issue:` (store setting `file`), default to "keep local".
+  - **Skip silently, changing nothing else in Handoff,** unless the store setting is `issue` or the feature is already linked to an issue (its `issue` in `features.py list --json` is not null). Either condition alone is enough to ask.
+  - Otherwise ask one AskUserQuestion with the options "keep local", "publish to #N" (target `#N`; offered only when the feature is already linked to an issue), and "create an issue" (target `new`).
+  - **Default**: default when the store setting is `issue` is the publishing option — "publish to #N" if the feature is already linked to an issue, otherwise "create an issue" (there is no `#N` yet to publish to). When the question was asked only because the feature is already linked to an issue (store setting `file`), default to "keep local".
   - "Publish to #N" or "create an issue" runs [Publish Mode](#publish-mode) against this spec path and the chosen target (`#N` or `new`), start to finish, then continues below with its result. "Keep local" changes nothing and continues below immediately.
 - End with the next command, using the spec path you just wrote, then stop and let the user choose:
 

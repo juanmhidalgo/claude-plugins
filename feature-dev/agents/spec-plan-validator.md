@@ -23,7 +23,8 @@ You have Read, Grep and Glob. You cannot run commands, tests, migrations or the 
 
 You will be invoked with two pieces of information:
 - **artifact_type**: `spec` or `plan`
-- **artifact_path**: a path to a `SPEC-*.md` or `PLAN-*.md` file
+- **artifact_path**: a path to a `SPEC-*.md` or `PLAN-*.md` file, normally in `.feature-dev/features/<slug>/`
+- **feature** (optional): the feature's entry from `features.py list --json` (status, plan progress), passed by the calling command. You cannot run the script; without it, Read `feature.json` next to the artifact. State lives there, never in frontmatter.
 
 If `artifact_path` is missing or the file does not exist, STOP and report that explicitly. Do not attempt to discover the file yourself — that's the calling command's job.
 
@@ -42,8 +43,8 @@ Check each item below. Flag the severity if missing or malformed.
 | Check | Severity if failing |
 |-------|--------------------|
 | Frontmatter has `type: specification` | Blocking |
-| Frontmatter has `feature`, `slug`, `date`, `branch`, `status` | Blocking (missing any) |
-| `status:` is one of `draft`, `approved`, `implemented` | Blocking |
+| Frontmatter has `feature`, `slug`, `date`, `branch` | Blocking (missing any) |
+| The feature's state (from `feature` or `feature.json`) is one of `draft`, `approved`, `planned`, `running`, `halted`, `implemented`; `invalid` or no state found | Should Address (do not check `status:` in frontmatter) |
 | Body has an **Objective** section | Blocking |
 | Body has a **Commands** section with executable commands | Should Address |
 | Body has a **Project Structure** section | Should Address |
@@ -69,8 +70,7 @@ Then run the **code-claims pass** (step 3).
 |-------|--------------------|
 | Frontmatter has `type: implementation-plan` | Blocking |
 | Frontmatter has `feature`, `slug`, `date`, `branch` | Blocking (missing any) |
-| Frontmatter has `source_spec:` field (may be `null` if `/feature-dev:explore-plan` was called with `$ARGUMENTS` instead of auto-discovering a spec) | Should Address (warn, not block, when null — but block if the field is entirely absent) |
-| If `source_spec` is set to a path: the file exists at that path | Blocking |
+| The plan's spec exists: a `SPEC-*.md` in the same feature folder, or, for a plan whose spec lives in a sibling repo, the path on the `Source spec:` line of the body | Should Address when the plan has no spec at all (plan-only feature); Blocking when the body names a spec path that does not exist |
 | Body has a **Summary** section | Should Address |
 | Body has an **Exploration Findings** section with Backend, Frontend, Tests, History subsections | Should Address |
 | Body has a `### Baseline` table (command / steps / result on HEAD / detail) | Should Address (without it `/feature-dev:tdd` cannot tell a failure already present on HEAD from one the change caused; plans written before feature-dev v1.26.0 lack it) |
@@ -94,9 +94,8 @@ Then run the **code-claims pass** (step 3).
 | Body has a **Risks** section, non-empty | Should Address |
 | Body has an **Estimated Test Cases** section | Should Address |
 | Body has a **Parallelization Hints** section (added in feature-dev v1.9.0) | Nice to Have |
-| Frontmatter has `run_status:` and `completed_steps:` (added in feature-dev v1.19.0; absent means the plan predates resume support and cannot be resumed if a `/feature-dev:tdd` run halts) | Nice to Have |
 
-Then run the **AC coverage check** when frontmatter `source_spec:` resolves to a file whose acceptance criteria carry ids (`**AC-1**`, `**AC-2**`, …). Skip it silently otherwise, since there are no ids to trace. Read the spec's `## Acceptance Criteria` section and collect its ids. Retired ids are simply absent, and a gap in the numbering is not a finding. Then read every step's `Covers:`.
+Then run the **AC coverage check** when the plan's spec (same folder, or the `Source spec:` path) resolves to a file whose acceptance criteria carry ids (`**AC-1**`, `**AC-2**`, …). Skip it silently otherwise, since there are no ids to trace. Read the spec's `## Acceptance Criteria` section and collect its ids. Retired ids are simply absent, and a gap in the numbering is not a finding. Then read every step's `Covers:`.
 - An AC id that no step's `Covers:` cites → **Should Address**, one finding per AC, naming it and quoting its text. An AC no step covers is one no runner will make true: ACs were lost between spec and plan in exactly this way. **Exception:** an AC that the plan's `### Risks` names by id as deliberately left out of this plan, with a reason, is not a finding. Count it as uncovered and list it as excluded in the Summary line.
 - A `Covers:` that cites an id the spec does not define → **Should Address**, naming the step and the id. It usually means the spec was renumbered or the step cites the wrong criterion.
 - A behavior or characterization step (its `Test:` is a path, not `n/a`) without `Covers:` → **Should Address**, one finding listing all such steps. explore-plan requires it whenever the spec numbers its ACs, and without it the coverage count cannot be trusted. Non-behavioral steps (`Test: n/a`) may omit it.
@@ -105,7 +104,7 @@ Report the count as `AC coverage: <covered>/<total>` in the Summary (see the rep
 
 Then run the **path check**: Glob every path in **Files to Modify** and **Files to Create**, resolved from the repository root. A path starting with `../<dir>/` belongs to a sibling repo: match `../<dir>` against the `path` entries of the source spec's `repos:` block to confirm it is in scope, then Glob it as written.
 - A Files to Modify path that does not exist → Blocking (the plan was written against code that is not there; the step that edits it cannot run as planned).
-- A Files to Create path that already exists → Should Address, unless frontmatter `completed_steps:` is non-empty — a resumed run is expected to have created some of them.
+- A Files to Create path that already exists → Should Address, unless the feature's recorded progress (`plan.completed`) is non-empty — a resumed run is expected to have created some of them.
 - A path you cannot resolve (sibling repo not readable, or a `../<dir>` that matches no `repos:` entry) → not a finding; note it once under Nice to Have as unchecked.
 
 Report path-check results as ordinary findings in the severity sections. Plans do not get a `## Code claims` section.

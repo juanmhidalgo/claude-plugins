@@ -30,13 +30,22 @@ One marker section per issue body (never more than one spec per issue):
 Everything outside the markers belongs to the issue's author, not to feature-dev —
 publish only ever touches the text between them.
 
-Once a spec is published, its local frontmatter carries two keys that do not exist
-before the first publish:
+Once a spec is published, the link lives in the feature's `feature.json`, never in
+the spec's frontmatter. Only `features.py` writes it:
 
-- `issue: <owner>/<repo>#<N>` — which issue this spec is the local copy of.
-- `issue_fingerprint: <hash>` — the section fingerprint recorded at the last
-  verified publish or import. Both are written only after a write is verified
-  (Publish step 7); a failed publish leaves them exactly as they were.
+```bash
+${CLAUDE_PLUGIN_ROOT}/scripts/features.py link-issue <slug> <owner/repo#N> <fingerprint> --root <repo root>
+```
+
+- `issue.ref` — `<owner>/<repo>#<N>`, which issue this spec is the local copy of.
+  `features.py list --json` exposes it as the feature's `issue` (a string, or
+  `null` when never published).
+- `issue.fingerprint` — the section fingerprint recorded at the last verified
+  publish or import. `list --json` does not expose it; read it from the feature's
+  `feature.json`.
+
+The link is recorded only after a write is verified (Publish step 7); a failed
+publish leaves it exactly as it was.
 
 ## Fingerprints
 
@@ -55,7 +64,7 @@ gh issue view <N> --repo <owner>/<repo> --json body -q .body | ${CLAUDE_PLUGIN_R
 `fingerprint` hashes the section's inner text with CRLF normalized to LF and
 surrounding whitespace trimmed, so a full issue body and a bare `section` output
 that carry the same section hash identically — the two calls above are directly
-comparable, and so is the recorded `issue_fingerprint`.
+comparable, and so is the recorded `issue.fingerprint`.
 
 ## gh preflight
 
@@ -113,7 +122,7 @@ Run by `/feature-dev:spec --publish` and by cleanup's `Republish to #<N>`.
    **Target `#N`**: re-read the issue right now, before writing anything —
    `gh issue view <N> --repo <owner>/<repo> --json body -q .body` — and compute its
    section fingerprint.
-   - No `issue_fingerprint` recorded yet (first publish to a hand-picked issue), or
+   - No `issue.fingerprint` recorded yet (first publish to a hand-picked issue), or
      the issue's fingerprint equals the recorded one: proceed.
    - **Mismatch**: nothing is written. Show the diff (local section vs. the
      issue's current section) and ask — overwrite the issue, import the issue's
@@ -126,11 +135,12 @@ Run by `/feature-dev:spec --publish` and by cleanup's `Republish to #<N>`.
    <file>` (new), or `gh issue edit <N> --repo <owner>/<repo> --body-file <file>`
    (existing) — the spliced body from step 4, staged as a scratch file.
 6. **Verify**: re-read the issue and recompute its section fingerprint. On
-   mismatch, report a failed publish and leave `issue:`/`issue_fingerprint:`
-   unchanged — nothing is retried automatically.
-7. **Only on a verified match**: write `issue: <owner>/<repo>#<N>` and
-   `issue_fingerprint: <hash>` to the local spec's frontmatter, and print the
-   issue's URL.
+   mismatch, report a failed publish and leave the recorded link
+   (`issue.ref`/`issue.fingerprint`) unchanged — nothing is retried automatically.
+7. **Only on a verified match**: run `${CLAUDE_PLUGIN_ROOT}/scripts/features.py
+   link-issue <slug> <owner/repo#N> <fingerprint> --root <repo root>` with the
+   verified fingerprint, and print the issue's URL. Nothing is added to the spec's
+   frontmatter.
 
 **Never**: labels, milestones, assignees, closing the issue, or touching text
 outside the markers.
@@ -145,38 +155,44 @@ the user chooses to import the issue's version instead of overwriting it.
 2. **Resolve** the argument to `<owner>/<repo>#<N>` (Argument parsing). Read
    `gh issue view <N> --repo <owner>/<repo> --json title,body,state,comments,url`.
 3. **Closed issue** (`state != OPEN`): ask before continuing — the same shape as
-   tdd's existing confirmation for a spec with `status: implemented`.
+   tdd's existing confirmation for a feature whose status in `list --json` is
+   `implemented`.
 4. **Extract**: `${CLAUDE_PLUGIN_ROOT}/scripts/issue_spec.py extract -` on the
    body. Exit 2 (no start marker, more than one, or a start with no end marker):
    write no local file, stop, name the issue and point at
    `/feature-dev:spec --publish` as the way to create a section.
-5. **Find a local spec** whose frontmatter has this exact `issue:
-   <owner>/<repo>#<N>`, among the specs `review_server.py artifacts --dir
-   "<artifacts folder>" --kind spec` lists (see
-   [artifact-locations.md](artifact-locations.md)).
+5. **Find a local spec** whose `issue.ref` is this exact `<owner>/<repo>#<N>`: run
+   `${CLAUDE_PLUGIN_ROOT}/scripts/features.py list --json --root <repo root>` and
+   pick the feature whose `issue` equals it. Its spec is the artifact of kind
+   `spec` in that entry (see [artifact-locations.md](artifact-locations.md)).
    - **None found** — extract the slug with `issue_spec.py extract --slug
-     --fallback-title "<issue title>" -`. The target is the path `review_server.py
-     artifacts --dir "<artifacts folder>" --new SPEC-<slug>.md` prints (never
-     anywhere else — a slug containing `/`, `..` or a leading dot never reaches
-     a path component unsanitized). **If a spec of that name already exists**
-     (in the folder, or as a legacy file at the root), it belongs to another spec (its `issue:` is absent or different —
-     otherwise it would have been found above): never write over it silently.
-     Ask — write to `SPEC-<slug>-<N>.md` in the same folder instead (the default), snapshot it
-     (`${CLAUDE_PLUGIN_ROOT}/scripts/review_server.py snapshot <SPEC>`) and
-     overwrite, or cancel. Specs are uncommitted, so an unasked overwrite is
-     unrecoverable. Write the file with frontmatter rebuilt: `feature:` from the
-     issue title, `slug:` from the extracted slug, `branch:` = current branch
-     (`git branch --show-current`), `status: approved`, `issue:` and
-     `issue_fingerprint:` (the extracted section's fingerprint). Body = the
-     section's inner text. Rebuild `## Decisions Log` from the issue's
-     `## Decision — <slug>` comments, oldest first: each entry is the comment's
-     text *below* its heading (see Decision comment format) — drop the
-     `## Decision — <slug>` heading itself, so no `## ` line lands inside the log.
+     --fallback-title "<issue title>" -`. Create the feature with
+     `${CLAUDE_PLUGIN_ROOT}/scripts/features.py new <slug> --kind spec --root <repo
+     root>`; the path it prints is the target (never anywhere else — the script
+     rejects an invalid slug with exit 2, so one containing `/`, `..` or a leading dot
+     never reaches a path component). **If it refuses because a feature of that slug
+     already exists**, that feature belongs to another spec (its `issue` is null or
+     different — otherwise it would have been found above): never write over it
+     silently. Ask — import under `<slug>-<N>` instead (the default), snapshot the
+     existing spec (`${CLAUDE_PLUGIN_ROOT}/scripts/review_server.py snapshot <SPEC>`)
+     and overwrite, or cancel. Specs are uncommitted, so an unasked overwrite is
+     unrecoverable. Write the spec file with frontmatter rebuilt: `feature:` from
+     the issue title, `slug:` from the extracted slug, `branch:` = current branch
+     (`git branch --show-current`), and nothing else. Body = the section's inner
+     text. Rebuild `## Decisions Log` from the issue's `## Decision — <slug>`
+     comments, oldest first: each entry is the comment's text *below* its heading
+     (see Decision comment format) — drop the `## Decision — <slug>` heading
+     itself, so no `## ` line lands inside the log. Then run
+     `${CLAUDE_PLUGIN_ROOT}/scripts/features.py approve <slug> --root <repo root>`
+     and `${CLAUDE_PLUGIN_ROOT}/scripts/features.py link-issue <slug>
+     <owner/repo#N> <fingerprint> --root <repo root>` with the extracted section's
+     fingerprint.
    - **Found** — three-way compare: *local* = local `section | fingerprint`,
-     *recorded* = the local file's `issue_fingerprint`, *issue* = the freshly
-     extracted section's fingerprint.
+     *recorded* = the feature's `issue.fingerprint` in `feature.json`, *issue* = the
+     freshly extracted section's fingerprint.
      - `local == issue` → already in sync; use the local file as-is. If
-       `recorded` differs from them, update `issue_fingerprint:` to that value and
+       `recorded` differs from them, run `features.py link-issue <slug>
+       <owner/repo#N> <fingerprint> --root <repo root>` with that value and change
        nothing else — a stale record would otherwise read as "both changed" on
        the next import and as "not current" in cleanup.
      - `issue == recorded` (and `local` differs) → use the local file as-is and
@@ -185,10 +201,10 @@ the user chooses to import the issue's version instead of overwriting it.
        first (`${CLAUDE_PLUGIN_ROOT}/scripts/review_server.py snapshot <SPEC>`),
        then replace **only the spec body** — the text between the frontmatter and
        the local `## Decisions Log` — with the issue section's inner text, and
-       update `issue_fingerprint:` to the issue's fingerprint. Keep the rest of the
-       frontmatter and the local `## Decisions Log` as they are: the fingerprint
-       excludes the log, so it may hold decisions that never reached the issue
-       (an unposted tdd comment). Say so.
+       record the issue's fingerprint with `features.py link-issue`. Keep the rest
+       of the frontmatter and the local `## Decisions Log` as they are: the
+       fingerprint excludes the log, so it may hold decisions that never reached
+       the issue (an unposted tdd comment). Say so.
      - `issue != recorded` and `local != recorded` (both sides changed) → stop,
        show both diffs (issue vs. recorded, local vs. recorded), and ask which to
        keep.
@@ -196,7 +212,7 @@ the user chooses to import the issue's version instead of overwriting it.
 
 ## Decision comment format (AC-13)
 
-When the source spec has `issue:`, each decision tdd appends to the local
+When the feature's `issue` is non-null in `features.py list --json`, each decision tdd appends to the local
 `## Decisions Log` is also posted as a new issue comment:
 
 ```markdown
@@ -208,7 +224,7 @@ When the source spec has `issue:`, each decision tdd appends to the local
 Stage it as a scratch file (Scratch files, above) and post with `gh issue comment
 <N> --repo <owner>/<repo> --body-file <file>`. A failed post — or a failed `gh`
 preflight — does not halt the run; the caller lists it as unposted. This comment is
-the only write tdd makes to the issue: it never edits the body and never closes the
+the only thing tdd writes to the issue. It never edits the body and never closes the
 issue.
 
 ## Untrusted text (AC-19)

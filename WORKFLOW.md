@@ -33,7 +33,7 @@ Write a structured spec before coding. Surfaces assumptions and defines success 
 |------|---------|
 | Starting a new feature | `/feature-dev:spec <feature>` |
 
-The spec command follows a gated workflow: **Specify → Plan → Tasks → Implement**. Each gate requires your review before advancing. Saves a `SPEC-<feature>.md` file.
+The spec command follows a gated workflow: **Specify → Plan → Tasks → Implement**. Each gate requires your review before advancing. Saves `SPEC-<feature>.md` in `.feature-dev/features/<slug>/`, next to a `feature.json` that tracks its state (`draft`, `approved`, `planned`, `running`, `halted`, `implemented`).
 
 **Skip this phase** for single-file fixes or changes where requirements are unambiguous.
 
@@ -47,7 +47,7 @@ Understand the codebase before making changes.
 | Understand project architecture | `/onboard:architecture` |
 | Deep-dive into a specific area | `/onboard:explore <topic>` |
 
-`explore-plan` spawns 4 parallel agents (backend, frontend, tests, git history) and produces an implementation plan saved to `PLAN-<feature>.md`.
+`explore-plan` spawns 4 parallel agents (backend, frontend, tests, git history) and produces an implementation plan saved to `PLAN-<feature>.md` in the same `features/<slug>/` folder.
 
 ## Phase 4: Build
 
@@ -57,7 +57,7 @@ Implement with test-driven development.
 |------|---------|
 | Implement a feature with TDD | `/feature-dev:tdd <spec>` |
 
-Follows the RED → GREEN → REFACTOR cycle with coverage gates. If a `PLAN-*.md` exists from Phase 3, it loads it automatically instead of re-exploring.
+Follows the RED → GREEN → REFACTOR cycle with coverage gates. If a `PLAN-*.md` exists in the feature's `features/<slug>/` folder from Phase 3, it loads it automatically instead of re-exploring.
 
 ## Phase 5: Debug & Incident Response
 

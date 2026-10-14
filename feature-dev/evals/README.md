@@ -16,15 +16,16 @@ happened in 3 real runs before anyone noticed.
 
 The case stages a small fixture project (`explore-plan-fanout/fixture/`: a
 Python store, a JS list renderer, a unittest file, 3 commits, and an approved
-`SPEC-task-due-dates.md`). It runs `/feature-dev:explore-plan
-SPEC-task-due-dates.md` and grades:
+`SPEC-task-due-dates.md`, staged into the feature store and approved by the
+scaffold). It runs `/feature-dev:explore-plan
+.feature-dev/features/task-due-dates/SPEC-task-due-dates.md` and grades:
 
 | Grader | Type | Checks |
 |---|---|---|
 | `spawned-{backend,frontend,test,history}-explorer` | `tool_used` | an `Agent` call with that `subagent_type` appears in the trace |
 | `no-named-agent-spawn` | `tool_used` (max 0) | no `Agent` call carried a top-level `name` (the root cause) |
 | `no-teammate-refusal` | `regex` on trace | no tool result starts with `Teammates cannot spawn other teammates` or `In-process teammates cannot spawn background agents` |
-| `plan-written` | `file_exists` | `.feature-dev/plans/PLAN-task-due-dates.md` was created |
+| `plan-written` | `file_exists` | `.feature-dev/features/task-due-dates/PLAN-task-due-dates.md` was created |
 | `plan-not-degraded` | `regex` on the plan | no `Degraded exploration` line |
 | `plan-has-baseline` | `regex` on the plan | a `### Baseline` heading |
 | `plan-has-explorer-sections` | `regex` on the plan | `#### Backend` / `Frontend` / `Tests` / `History` subsections |

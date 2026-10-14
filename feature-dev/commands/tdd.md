@@ -17,7 +17,7 @@ allowed-tools:
   - Bash(gh issue comment *)
   - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/issue_spec.py *)
   - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/review_server.py snapshot *)
-  - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/review_server.py artifacts *)
+  - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/features.py *)
   - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/herdr-pane.sh *)
   - Read
   - Write
@@ -29,7 +29,7 @@ allowed-tools:
   - SendMessage
 skills:
   - tdd-patterns
-argument-hint: "[PLAN-*.md or SPEC-*.md path, or feature description — optional; auto-discovers PLAN-*.md] [--coordinator <session-name>] [--pane|--no-pane]"
+argument-hint: "[PLAN-*.md or SPEC-*.md path, or feature description — optional; auto-discovers a running or halted feature, then an unplanned one] [--coordinator <session-name>] [--pane|--no-pane]"
 description: |
   Use when implementing a new feature or fixing a bug where you want tests to lead, not follow.
   Do NOT use for quick one-line fixes or refactors without behavioral change.
@@ -51,7 +51,7 @@ triggers:
 - **Current branch**: !`git branch --show-current`
 - **Working tree clean**: !`git status --short`
 - **Feature spec**: $ARGUMENTS
-- **Artifacts folder**: `${user_config.artifacts_dir}` (a literal `${user_config...}` here means `.feature-dev`). Where specs and plans are found: [artifact-locations.md](../skills/spec-driven-development/references/artifact-locations.md).
+- **Feature store**: each feature lives in `.feature-dev/features/<slug>/`, managed by `${CLAUDE_PLUGIN_ROOT}/scripts/features.py` (every call below passes `--root <repo root>`). Run progress is recorded there with `step`, never by editing a file. Layout: [artifact-locations.md](../skills/spec-driven-development/references/artifact-locations.md).
 
 ## Phase 0: Resolve Spec and Validate
 
@@ -60,33 +60,37 @@ triggers:
 **`--pane` hands the run to a fresh session.** The run moves to a sibling Herdr pane in **handoff** mode (`${CLAUDE_PLUGIN_ROOT}/references/herdr-pane.md`) and this session stops: the pane gets a full context budget instead of inheriting this one. Resolve the argument to a `PLAN-*.md` or `SPEC-*.md` path first (step 1 below), then send `/feature-dev:tdd <path> [--coordinator <name>] --no-pane` with agent name `tdd-<slug>`. Phase 1b's resume re-verifies any steps already done, so handing off mid-run loses nothing. Do not run any step here after the handoff: two runs on one checkout race. Outside Herdr, say so and run here.
 
 1. **Resolve the feature spec:**
-   - **If `$ARGUMENTS` is the path of an existing `PLAN-*.md`** → read it and use it exactly as a single auto-discovered plan below (the closing lines of `/feature-dev:explore-plan` and `/feature-dev:plan-review` print this form).
-   - **If `$ARGUMENTS` is the path of an existing `SPEC-*.md`** → read its frontmatter, use `feature:` as the spec, and record the path as `source_spec`. There is no plan: skip the plan search in Phase 1 and take the no-plan path. This is the small-feature fallback `/feature-dev:spec` mentions; the spec's ACs (or its Tasks) are the reviewed anchor, the decisions go to its Decisions Log, and Phase 6 closes it. If its `status:` is `implemented`, say so and ask before continuing.
-   - **If `$ARGUMENTS` is `#N`, `owner/repo#N`, or an issue URL** → resolve it per [issue-store.md's Argument parsing](../skills/spec-driven-development/references/issue-store.md#argument-parsing), then run [issue-store.md's Import algorithm](../skills/spec-driven-development/references/issue-store.md#import-ac-8-ac-9-ac-10-ac-11-ac-12) against it, start to finish. Do not restate Import's steps here — follow the reference; its own step 3 is where a closed issue asks before continuing, the same shape as this command's `status: implemented` check above. A failed `gh` preflight, or a failed `gh issue view` call, stops here and names the issue that could not be read. On success, continue as if `$ARGUMENTS` had been the resulting `SPEC-<slug>.md` path (the `SPEC-*.md` bullet above applies).
-   - **If `$ARGUMENTS` is anything else** → use it as the feature spec. Continue to step 2.
-   - **If `$ARGUMENTS` is empty** → auto-discover plan files. List them with `${CLAUDE_PLUGIN_ROOT}/scripts/review_server.py artifacts --dir "<artifacts folder>" --kind plan` (the folder first, then legacy plans at the root):
+   - **If `$ARGUMENTS` is the path of an existing `PLAN-*.md`** → read it and use it exactly as a single auto-discovered plan below (the closing lines of `/feature-dev:explore-plan` and `/feature-dev:plan-review` print this form). Its feature slug is its folder name under `.feature-dev/features/`; refuse any other path (a root `PLAN-*.md`, or the layout older than 2.0.0) in one line and name `.feature-dev/features/<slug>/` as the only place plans live.
+   - **If `$ARGUMENTS` is the path of an existing `SPEC-*.md`** → the feature slug is its folder name under `.feature-dev/features/` (refuse any other path the same way). Read its `feature:` frontmatter value and use it as the spec; the spec path is the **source spec**. Then read the feature's entry from `${CLAUDE_PLUGIN_ROOT}/scripts/features.py list --json --root <repo root>`:
+     - If its `status` is `implemented`, say so and ask before continuing.
+     - If the spec is still `draft`: ask once with AskUserQuestion "This spec is still a draft. Mark it approved and implement it?" (options: approve and continue / stop). **Yes** → run `${CLAUDE_PLUGIN_ROOT}/scripts/features.py approve <slug> --root <repo root>` and continue. **No** → **STOP** and point the user to `/feature-dev:review <spec path>` to approve it first. Never implement from a draft.
+     - If the feature already has a PLAN artifact in its entry, use that plan as the **pre-selected plan** (as for a `PLAN-*.md` argument) — a spec with a plan is not a no-plan run.
+     - Otherwise there is no plan: skip the plan search in Phase 1 and take the no-plan path. This is the small-feature fallback `/feature-dev:spec` mentions; the spec's ACs (or its Tasks) are the reviewed anchor, the decisions go to its Decisions Log, and Phase 6 closes it. Record the run in the feature store before the first step: with the spec `approved`, run `${CLAUDE_PLUGIN_ROOT}/scripts/features.py plan <slug> --steps <number of ACs> --from-spec --root <repo root>` (one step per AC, matching the criteria Phase 2 derives). A refusal (`refused: …`) names the state and the valid events; report it instead of editing `feature.json`.
+   - **If `$ARGUMENTS` is `#N`, `owner/repo#N`, or an issue URL** → resolve it per [issue-store.md's Argument parsing](../skills/spec-driven-development/references/issue-store.md#argument-parsing), then run [issue-store.md's Import algorithm](../skills/spec-driven-development/references/issue-store.md#import-ac-8-ac-9-ac-10-ac-11-ac-12) against it, start to finish. Do not restate Import's steps here — follow the reference; its own step 3 is where a closed issue asks before continuing, the same shape as this command's `implemented` check above. A failed `gh` preflight, or a failed `gh issue view` call, stops here and names the issue that could not be read. On success, continue as if `$ARGUMENTS` had been the resulting `SPEC-<slug>.md` path (the `SPEC-*.md` bullet above applies).
+   - **If `$ARGUMENTS` is anything else** → use it as the feature spec. There is no feature in the store, so the run records no state. Continue to step 2.
+   - **If `$ARGUMENTS` is empty** → run `${CLAUDE_PLUGIN_ROOT}/scripts/features.py list --json --root <repo root>` (a missing `.feature-dev/features/` is an empty list) and keep the features whose `status` is `planned`, `running` or `halted` and that have a PLAN artifact, plus the `running` or `halted` features with only a SPEC artifact (a run straight from the spec; for these the SPEC path stands in for the plan path below, and the run continues as for a `SPEC-*.md` argument):
      - **0 plans found** → **STOP** and ask the user for a feature description.
-     - **1 plan found** → read it, extract the `feature:` value from its frontmatter, and use that as the spec. Record the plan path as the **pre-selected plan** for Phase 1. Inform the user: "Auto-selected plan: `<plan path>` (feature: <name>)".
-     - **2+ plans found** → read each plan's frontmatter to extract the `feature:` value. Use AskUserQuestion to let the user pick one (label = feature name, description = filename). The chosen plan's `feature:` becomes the spec and its path is the **pre-selected plan** for Phase 1.
+     - **1 plan found** → read its PLAN (path from `artifacts`), extract the `feature:` value from the spec when the feature has one (else the plan's title), and use that as the spec. Record the plan path as the **pre-selected plan** for Phase 1. Inform the user: "Auto-selected plan: `<plan path>` (feature: <name>, <status>)".
+     - **2+ plans found** → use AskUserQuestion to let the user pick one (label = feature name or slug, description = `<slug> — <status>`). The chosen feature's plan path is the **pre-selected plan** for Phase 1.
 2. **Check the working tree.** Use the `Working tree clean` field from the Context section above — it was captured before Phase 0 ran, so an issue import in step 1 (which writes a new, untracked `SPEC-<slug>.md` when no local copy exists) never trips this check on its own output.
-   - **Clean** → proceed normally.
-   - **Dirty** → this may be a halted run, not stray edits. Read the frontmatter of the plan resolved in step 1 (a spec-only run has no plan, so it cannot be a resumable run: apply the stop below). If it has `run_status: in-progress` or `run_status: halted` with a non-empty `completed_steps:`, the dirty tree is *this command's own* unfinished work → go to **Phase 1b: Resume** after Phase 1.
-   - **Dirty with no in-progress plan** → **STOP** and ask the user to commit or stash.
+   - **Clean** → proceed normally. If the resolved feature is `halted`, still go to **Phase 1b: Resume** after Phase 1: it records the restart, and `step done` is refused until it does.
+   - **Dirty** → this may be a halted run, not stray edits. Take the feature's `status` and `plan.completed` from `list --json` (a run with no feature in the store cannot be a resumable run: apply the stop below). If `status` is `running` or `halted` (a halt at step 1 leaves `plan.completed` empty and is still this command's work), the dirty tree is *this command's own* unfinished work → go to **Phase 1b: Resume** after Phase 1.
+   - **Dirty with no running or halted feature** → **STOP** and ask the user to commit or stash.
 
-   A plan with no `run_status:` field predates v1.19.0. Treat it as `not-started` and apply the plain dirty-tree stop.
+   A feature in `planned` has recorded no step, so a dirty tree there is not this command's work: apply the plain dirty-tree stop.
 
 ## Phase 1: Load Plan or Explore Codebase
 
 **First, determine the plan:**
 
 - **If a pre-selected plan was set in Phase 0** → use it directly; skip the search below.
-- **If `source_spec` was set from a `SPEC-*.md` argument** → no plan; go to "If no plan file exists" below. Also load that spec's `## Decisions Log`, if it has one, as binding prior decisions (see "Load prior decisions").
-- **Otherwise** (spec came from `$ARGUMENTS` as text), look for plans with the same `artifacts --kind plan` listing (plans are created by `/feature-dev:explore-plan`). If multiple exist, pick the one whose `feature:` frontmatter best matches the spec; if none clearly matches, ask the user which to use.
+- **If a `SPEC-*.md` argument has no plan** → no plan; go to "If no plan file exists" below. Also load that spec's `## Decisions Log`, if it has one, as binding prior decisions (see "Load prior decisions").
+- **Otherwise** (spec came from `$ARGUMENTS` as text), look for plans in `${CLAUDE_PLUGIN_ROOT}/scripts/features.py list --json --root <repo root>` (plans are created by `/feature-dev:explore-plan`). If multiple exist, pick the one whose feature best matches the spec; if none clearly matches, ask the user which to use.
 
 **If a plan file is in use:**
 - Read it and use it as the source of truth for files to modify/create, implementation order, and key decisions
-- **Drift check**: if the plan's frontmatter has `source_spec:` pointing to a `SPEC-*.md` file, compare modification times (`stat -c %Y <spec>` and `stat -c %Y <plan>`, or `git log -1 --format=%ct -- <file>` as a fallback). If the spec is newer than the plan, **warn the user**: "The source spec `<path>` was modified after the plan was generated. The plan may be stale. Proceed with the current plan, or re-run `/feature-dev:explore-plan` first?" and wait for confirmation.
-- **Load prior decisions**: if `source_spec:` resolves, read the spec's `## Decisions Log` section (if it has one). Those are decisions taken during earlier runs — in this repo or in a sibling one — and they bind this run. Thread them into the initial carry-over for Phase 3 and list them back in the Phase 1 summary. A recorded decision is as binding as the plan: do not re-open one on your own judgment, and do not let a runner contradict it. If `source_spec:` points outside this repo (`../<sibling>/SPEC-<slug>.md`), that is the expected multi-repo shape, not an error — read it there.
+- **Drift check**: if the feature has a SPEC artifact in the same folder, compare modification times (`stat -c %Y <spec>` and `stat -c %Y <plan>`, or `git log -1 --format=%ct -- <file>` as a fallback). If the spec is newer than the plan, **warn the user**: "The source spec `<path>` was modified after the plan was generated. The plan may be stale. Proceed with the current plan, or re-run `/feature-dev:explore-plan` first?" and wait for confirmation.
+- **Load prior decisions**: if the feature has a spec, read the spec's `## Decisions Log` section (if it has one); for a plan-only feature, read the PLAN's own `## Decisions Log`. Those are decisions taken during earlier runs — in this repo or in a sibling one — and they bind this run. Thread them into the initial carry-over for Phase 3 and list them back in the Phase 1 summary. A recorded decision is as binding as the plan: do not re-open one on your own judgment, and do not let a runner contradict it. If the PLAN's `Source spec:` line points outside this repo (`../<sibling>/.feature-dev/features/<slug>/SPEC-<slug>.md`), that is the expected multi-repo shape, not an error — read it there.
 - **Load the Baseline**: if the plan has a `### Baseline` section, keep its table — Phase 3 attributes failures against it and gates dispatch on it. If HEAD is no longer the sha it was run on and no precondition step of this plan moved it, say so in the Phase 1 summary: after unexplained HEAD movement the rows are not attributable. (A precondition step that moves HEAD refreshes the rows itself — see Routing.) A plan without the section (pre-1.26.0) keeps the behaviour below unchanged.
 - **Coordinator hint**: if the resolved spec has a `repos:` block and no `--coordinator` was passed, add exactly one line to the Phase 1 summary — "Multi-repo spec. If you have a coordinator session open, pass `--coordinator <name>` to route cross-repo questions to it." A line, not a question: do not block on it.
 
@@ -111,21 +115,25 @@ Summarize findings before proceeding. Include:
 
 ## Phase 1b: Resume (only if Phase 0 detected a halted run)
 
-The plan's `completed_steps:` records what a prior run finished. Do not trust it blindly — the tree has been sitting dirty and may have been edited since.
+The feature's `plan.completed` in `list --json` records what a prior run finished. Do not trust it blindly — the tree has been sitting dirty and may have been edited since.
 
 1. **Re-verify each completed step.** Run its `Verify:` command from the plan. This is exactly why the step contract requires a real command.
    - **Green** → genuinely done, skip it.
-   - **Red** (failures beyond the Baseline's `pre-existing-fail` rows) → the step regressed or was reverted by hand. Drop it from the completed set and re-dispatch it in Phase 3.
+   - **Red** (failures beyond the Baseline's `pre-existing-fail` rows) → the step regressed or was reverted by hand. Note it; the restart is recorded in item 5.
 2. **Report the resume point** to the user before dispatching anything:
 
    ```
-   Resuming <plan path> — halted at step <N> (<halt reason from frontmatter>)
+   Resuming <plan path> — halted at step <N> (<plan.halt_reason>)
      Steps 1-<N-1>: re-verified green, skipping
      Step <M>: re-verify FAILED, will re-run
      Resuming at step <N>
    ```
-3. **Reject a gapped record.** If `completed_steps` skips a number that exists in the plan, the prior run advanced past an unfinished step and the record is unreliable — **STOP** and report the gap. Resume from the gap, not from the highest recorded number.
+3. **Reject a gapped record.** If `plan.completed` skips a number that exists in the plan, the prior run advanced past an unfinished step and the record is unreliable — **STOP** and report the gap. Resume from the gap, not from the highest recorded number. (`features.py` refuses to write a gap, so this only happens if `feature.json` was hand-edited.)
 4. If **every** completed step re-verifies red, the tree is not what the plan thinks it is → **STOP**. Ask the user to reset or re-plan; do not attempt a partial repair.
+
+5. **Reopen the lowest regressed step.** When any step re-verified red, take the lowest one, `m`, and run `${CLAUDE_PLUGIN_ROOT}/scripts/features.py step <slug> reopen <m> --root <repo root>`. It removes `m` and every later step from `plan.completed` and clears any halt, so the feature is `running` again. Re-dispatch `m` in Phase 3; for the later steps that re-verified green, record each with `step done` in order, without re-dispatching them.
+
+6. **Record the restart.** When the feature's `status` is `halted`, run `${CLAUDE_PLUGIN_ROOT}/scripts/features.py step <slug> resume --root <repo root>` once the re-verification is done and before dispatching anything; it clears the halt (skip it if `reopen` already ran: it clears the halt itself). A `running` feature (a run that died without halting) needs no `resume`.
 
 Then continue into Phase 2 with the remaining steps only.
 
@@ -151,13 +159,13 @@ The plan's **Implementation Order** already carries them, one block per step:
    - Depends on: ...  → dispatch order
 ```
 
-**Take these verbatim. Do not re-derive, re-word, or "improve" them** — the plan was reviewed; re-deriving silently drops that review. The spec reference is the plan path + step number (or its `source_spec:` if set). Cycle cap is 5 unless the step is a tight bug fix.
+**Take these verbatim. Do not re-derive, re-word, or "improve" them** — the plan was reviewed; re-deriving silently drops that review. The spec reference is the plan path + step number (or the feature's spec, if it has one). Cycle cap is 5 unless the step is a tight bug fix.
 
 **If a step is missing `Accept:` or `Verify:`, or `Verify:` is a description rather than a runnable command** → **STOP**. The plan predates the step contract or was hand-edited. Tell the user to run `/feature-dev:plan-review` and re-generate with `/feature-dev:explore-plan`. Do not fill the gap by inference — that is the improvisation the runner contracts exist to prevent.
 
 ### If no plan exists (spec came from `$ARGUMENTS`)
 
-Derive the criteria yourself, producing the same six fields per criterion. The spec is the `source_spec` file when one was given, else the text. If the spec has a Tasks section (written with `--with-tasks`), start from its tasks — they already carry Accept, Verify, Files and Covers. Otherwise start from its acceptance criteria by id (`**AC-1**`…), carrying the ids in each criterion's `Covers:`, with the Phase 1 exploration filling in paths and commands — the ACs are then the only reviewed anchor. A criterion is correctly sized when it is:
+Derive the criteria yourself, producing the same six fields per criterion. The spec is the feature's SPEC file when one was given, else the text. If the spec has a Tasks section (written with `--with-tasks`), start from its tasks — they already carry Accept, Verify, Files and Covers. Otherwise start from its acceptance criteria by id (`**AC-1**`…), carrying the ids in each criterion's `Covers:`, with the Phase 1 exploration filling in paths and commands — the ACs are then the only reviewed anchor. A criterion is correctly sized when it is:
 
 - **Specific and testable** — not "add the booking flow", but "when contact has no active subjects, `start_booking` returns `NO_SUBJECTS` error code"
 - **Independently verifiable** — one command proves it
@@ -185,7 +193,7 @@ Work through the criteria **one at a time, in `Depends on` order**.
 
 **Baseline gate.** If the step is still gate-blocked (Phase 2) — the user's answer was not recorded, or a refreshed row turned gate-blocking — **STOP** before dispatching and quote the row. A runner cannot verify against a gate that checks nothing or cannot run; dispatching anyway spends its whole budget to reach the same halt. This applies to inline precondition steps too.
 
-**Dependency gate. Every step number in a step's `Depends on` must already be in `completed_steps`.** If any is missing, **STOP**. Do not dispatch. Report which dependency is outstanding and why you cannot proceed.
+**Dependency gate. Every step number in a step's `Depends on` must already be in `plan.completed`.** If any is missing, **STOP**. Do not dispatch. Report which dependency is outstanding and why you cannot proceed.
 
 This is not advisory. Two rationalizations look reasonable in the moment and are both wrong:
 
@@ -242,7 +250,7 @@ For each criterion:
 
 **An unattributable verification is a failure, not a pass.** If a step's `Verify` produced failures you cannot confidently assign to this change rather than to a pre-existing baseline — because the plan has no Baseline and the tree is red, because HEAD moved since the Baseline without a precondition step of this plan moving it, because the row is `not-run` and so recorded nothing, because the output was truncated, because you stopped waiting, because a parallel runner distributes names only in a final summary you never saw — then the step is **not verified**. Halt and say so plainly, naming the unresolved failures or the fact that you could not name them.
 
-Do **not**: advance to the next step, mark the step in `completed_steps`, commit, or describe the run as complete with a caveat attached. "N tests pass and 2 failures are probably pre-existing" is an unverified step wearing a verified step's clothes. Hand the ambiguity to the user — they can tell you the baseline in one sentence, which is cheaper than you guessing.
+Do **not**: advance to the next step, run `step done` for the step, commit, or describe the run as complete with a caveat attached. "N tests pass and 2 failures are probably pre-existing" is an unverified step wearing a verified step's clothes. Hand the ambiguity to the user — they can tell you the baseline in one sentence, which is cheaper than you guessing.
 
 **When a STOP is a cross-repo question rather than a defect** — "which side owns this field?", "does this break the declared contract?", "should the consumer branch on the code or on the status?" — you may spawn `feature-dev:cross-repo-advisor` **once** to produce a decision brief before handing the halt to the user. It is read-only and writes nothing.
 
@@ -272,11 +280,11 @@ Its brief is an input to the user's decision, not a substitute for it. Do not ac
 
    **Notifications for finished work get no turn.** Once a subagent's report has been parsed and its step recorded, a later idle or completion notification for that same agent needs nothing from you. Do not write an acknowledgement ("Noted", "Step 3 already recorded") and do not re-summarize; go on with the next action, or end the turn silently if there is none. One run received 18 such notices and spent 13 turns only acknowledging them. A notification that carries a report you have not processed yet is not one of these: parse it.
 
-   After each step that passes, use Edit on the `PLAN-*.md` frontmatter to append the step number to `completed_steps:` and set `run_status: in-progress`. **`completed_steps` must never contain a gap** — a recorded `[0,1,2,4]` claims step 3 was completed-and-skipped, which is not a state this command can produce. If you are about to write a gap, you have advanced past an unfinished step: stop and fix that instead. On a halt, set `run_status: halted` and add `halted_at: <step number>` plus a one-line `halt_reason:`. This is what makes the run resumable — a halted run that recorded nothing is a lost run.
+   After each step that passes, run `${CLAUDE_PLUGIN_ROOT}/scripts/features.py step <slug> done <n> --root <repo root>`. The script moves the feature to `running` and refuses any `n` that is not the next step after those completed, so the record never has a gap — if it refuses, you are about to advance past an unfinished step: stop and fix that instead. On a halt, run `${CLAUDE_PLUGIN_ROOT}/scripts/features.py step <slug> halt <n> --reason "<one line>" --root <repo root>`, with `n` the step that halted. This is what makes the run resumable — a halted run that recorded nothing is a lost run. A halt is recordable from `planned` (step 1 halting) or `running`. If the script refuses it anyway, report the refusal in the Phase 6 halt message instead of editing `feature.json`.
 
    Do **not** commit between steps. The command's contract is one reviewable change set at the end; `/code-review:branch` and `/commit` come after, as Phase 6 tells the user.
 
-   A spec-only run has no plan frontmatter to record progress in. It is not resumable: on a halt, the Phase 6 halt message says so instead.
+   A run with no feature in the store (a description-only run) records no state. It is not resumable: on a halt, the Phase 6 halt message says so instead.
 
 5. **Record decisions that bind other work.** Most steps produce none — that is the normal case, and an empty log is a correct log. A decision qualifies only when **both** hold:
 
@@ -289,7 +297,7 @@ Its brief is an input to the user's decision, not a substitute for it. Do not ac
    - a **carry-over delta that touches the contract**: a new error code, a schema change, a renamed field another repo reads,
    - a **user answer that unblocked a halt** — otherwise it is lost the moment the run resumes, which is exactly the answer you will need again in the consuming repo.
 
-   Append each to the `## Decisions Log` of the `source_spec` file (the plan's `source_spec:`, or the `SPEC-*.md` passed as the argument), creating the section at the end of the spec if it is absent. Newest last:
+   Append each to the `## Decisions Log` of the feature's SPEC (the spec in the same folder as the plan, or the `SPEC-*.md` passed as the argument), creating the section at the end of the spec if it is absent. Newest last:
 
    ```
    - **[repo: <repo name> · step <N>]** <the decision, one sentence>
@@ -299,9 +307,9 @@ Its brief is an input to the user's decision, not a substitute for it. Do not ac
 
    `Binds` is the field that earns the log its keep: it is what a run in the *other* repo reads to know the decision applies to it.
 
-   **If the source spec has `issue:`**, also post the decision as an issue comment (issue-store.md's [Decision comment format](../skills/spec-driven-development/references/issue-store.md#decision-comment-format-ac-13)): write it to a scratch file (the reference's Scratch files rule) under a `## Decision — <slug>` heading, then `gh issue comment <N> --repo <owner>/<repo> --body-file <file>`. A failed post, or a failed `gh` preflight, does not halt the run — add the decision text to a running "unposted decisions" list for the Phase 6 report and move on. This comment is the only write this command makes to the issue: it never edits the issue body and never closes the issue — `status: implemented` (Phase 6) stays a local edit to the spec file only.
+   **If the feature's entry in `list --json` has a non-null `issue`**, also post the decision as an issue comment (issue-store.md's [Decision comment format](../skills/spec-driven-development/references/issue-store.md#decision-comment-format-ac-13)): write it to a scratch file (the reference's Scratch files rule) under a `## Decision — <slug>` heading, then `gh issue comment <N> --repo <owner>/<repo> --body-file <file>`. A failed post, or a failed `gh` preflight, does not halt the run — add the decision text to a running "unposted decisions" list for the Phase 6 report and move on. This comment is the only write this command makes to the issue. It never edits the issue body and never closes the issue — marking the feature `implemented` (Phase 6) is a local store change only.
 
-   **If there is no `source_spec`** (a plan with `source_spec: null`, or a run from a text description), keep the entries under a `decisions:` key in the `PLAN-*.md` frontmatter when there is a plan, and reproduce them verbatim in the Phase 6 report either way — the plan is deleted on success, so the report is the only place they survive. A spec-only run always has a `source_spec`, so its decisions never go to a `decisions:` key.
+   **If the feature has no SPEC** (a plan-only feature, or a run from a text description), keep the entries in a `## Decisions Log` section at the end of the PLAN body when there is a plan, and reproduce them verbatim in the Phase 6 report either way. A run from a spec always has a spec, so its decisions never go to the PLAN.
 
 Thread only the **carry-over deltas** forward (new symbols, new fixtures, new test markers, schema changes) — not the full prior reports. The next agent needs the deltas, not a retrospective.
 
@@ -356,7 +364,7 @@ Output a final summary:
 ### Coverage: [percentage] on changed files (threshold: [threshold])
 
 ### Decisions Recorded: [count, or None]
-- [decision] — binds: [who] ([recorded in SPEC-<slug>.md | report only — no source_spec])
+- [decision] — binds: [who] ([recorded in SPEC-<slug>.md | recorded in PLAN decisions log | report only — no feature])
 
 ### Unposted decisions: [count, or None]
 - [decision text, verbatim]
@@ -372,11 +380,11 @@ Output a final summary:
 ### Ready to commit: Yes/No
 ```
 
-**The Acceptance criteria line** traces the run back to the spec. Take the AC ids from the `source_spec` (the plan's, or the spec passed as the argument). An AC is *covered* when at least one step whose `Covers:` cites it ended `met`, `pinned` or `RED passed early`. It is *halted* when every step citing it halted or never ran. It is *uncovered* when no step cites it. Omit the line when there is no source spec with numbered ACs. The line reports; it does not gate. An uncovered AC on an otherwise green run still gets named, because it is the criterion nobody built.
+**The Acceptance criteria line** traces the run back to the spec. Take the AC ids from the feature's spec (or the spec passed as the argument). An AC is *covered* when at least one step whose `Covers:` cites it ended `met`, `pinned` or `RED passed early`. It is *halted* when every step citing it halted or never ran. It is *uncovered* when no step cites it. Omit the line when there is no spec with numbered ACs. The line reports; it does not gate. An uncovered AC on an otherwise green run still gets named, because it is the criterion nobody built.
 
 If every criterion was met and the suite is green (apart from failures listed in the Baseline's `pre-existing-fail` rows):
-1. **Close the loop on the source spec (if any):** if the plan's frontmatter had a `source_spec:` pointing to a `SPEC-*.md` file, or the run was given a `SPEC-*.md` as its argument, use Edit to set that spec's `status:` field to `implemented`. This prevents auto-discovery from re-surfacing a completed feature on future runs.
-2. **Delete the `PLAN-*.md` file** that was used, if any (it has served its purpose — the implementation is done).
+1. **Close the loop in the feature store (if the feature has one):** run `${CLAUDE_PLUGIN_ROOT}/scripts/features.py implemented <slug> --root <repo root>` once the last step is recorded `done`. This prevents auto-discovery from re-surfacing a completed feature on future runs. A refusal (`refused: …`) means a step was not recorded: report it, do not edit `feature.json`.
+2. **Keep the `PLAN-*.md`.** It stays in the feature folder next to the spec; `/feature-dev:cleanup` removes finished features.
 3. Suggest a commit message following the project's convention.
 4. End with the next commands:
 
@@ -384,10 +392,10 @@ If every criterion was met and the suite is green (apart from failures listed in
    Next: /code-review:branch to review before merge, then /commit
    ```
 
-If any criterion halted, do **none** of the above. Leave the plan and spec on disk with `run_status: halted`, and tell the user verbatim:
+If any criterion halted, do **none** of the above. Leave the plan and spec on disk with the feature recorded as `halted` (`step … halt`), and tell the user verbatim:
 
-> Halted at step `<N>`. Fix the blocker, then run `/feature-dev:tdd <plan path>` — it will re-verify steps 1-`<N-1>` and resume from `<N>`. The dirty working tree is expected; do not stash it.
+> Halted at step `<N>`. Fix the blocker, then run `/feature-dev:tdd <plan path>` (the spec path for a run straight from the spec) — it will re-verify steps 1-`<N-1>` and resume from `<N>`. The dirty working tree is expected; do not stash it.
 
-with the path of the plan this run used. A spec-only run has no plan to resume from; tell the user instead that the steps landed so far are uncommitted in the tree, and that the next step is `/feature-dev:explore-plan <spec path>` against that tree or finishing by hand — re-running `/feature-dev:tdd` on the spec would stop on the dirty tree.
+with the path of the plan this run used. A run with no feature in the store has no plan to resume from; tell the user instead that the steps landed so far are uncommitted in the tree, and that the next step is `/feature-dev:explore-plan <spec path>` against that tree or finishing by hand — re-running `/feature-dev:tdd` on the spec would stop on the dirty tree. (A spec-only run recorded in the store is resumable like any plan: its halt is recorded, so give the plan-resume message above.)
 
 The stash instruction matters: stashing is the one action that makes the recorded progress unrecoverable.

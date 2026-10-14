@@ -14,7 +14,7 @@ context:
   scaffold_script: scaffold.sh
 
 execution:
-  prompt: /feature-dev:explore-plan SPEC-task-due-dates.md
+  prompt: /feature-dev:explore-plan .feature-dev/features/task-due-dates/SPEC-task-due-dates.md
   # Top-level turns only: the orchestrator reads the spec, spawns the
   # generator and the validator, then reads the plan. The explorers and the
   # generator have their own turn budgets.
@@ -67,21 +67,21 @@ graders:
   # --- The plan itself.
   - name: plan-written
     type: file_exists
-    path: .feature-dev/plans/PLAN-task-due-dates.md
+    path: .feature-dev/features/task-due-dates/PLAN-task-due-dates.md
   - name: plan-not-degraded
     type: regex
-    target: { source: file, path: .feature-dev/plans/PLAN-task-due-dates.md }
+    target: { source: file, path: .feature-dev/features/task-due-dates/PLAN-task-due-dates.md }
     match: not_contains
     pattern: 'Degraded exploration'
   - name: plan-has-baseline
     type: regex
-    target: { source: file, path: .feature-dev/plans/PLAN-task-due-dates.md }
+    target: { source: file, path: .feature-dev/features/task-due-dates/PLAN-task-due-dates.md }
     flags: m
     pattern: '^### Baseline\s*$'
   # Secondary signal, readable without the trace: one findings subsection per
   # always-on explorer.
   - name: plan-has-explorer-sections
     type: regex
-    target: { source: file, path: .feature-dev/plans/PLAN-task-due-dates.md }
+    target: { source: file, path: .feature-dev/features/task-due-dates/PLAN-task-due-dates.md }
     flags: m
     pattern: '^(?=[\s\S]*^#### Backend)(?=[\s\S]*^#### Frontend)(?=[\s\S]*^#### Tests)(?=[\s\S]*^#### History)'

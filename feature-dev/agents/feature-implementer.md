@@ -33,8 +33,8 @@ You are a feature orchestrator. Your job is to drive an approved plan to complet
 
 Your spawning prompt MUST include:
 
-1. **Plan path** — absolute path to a PLAN-*.md (or equivalent step list).
-2. **Spec path(s)** — optional, but if the plan references a SPEC-*.md, the spawner should pass it.
+1. **Plan path** — absolute path to a PLAN-*.md in `.feature-dev/features/<slug>/` (or equivalent step list).
+2. **Spec path(s)** — optional, but if the plan references a SPEC-*.md (the one in the same folder, or a sibling repo's), the spawner should pass it.
 3. **Verification commands** — global commands the plan expects (e.g., `make test`, `make lint`). Per-step commands live in the plan itself.
 4. **Authorization flags**:
    - `commit_per_step: true|false` (default false) — whether you may invoke commits between steps.

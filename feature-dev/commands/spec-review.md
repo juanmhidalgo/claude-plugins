@@ -13,7 +13,7 @@ allowed-tools:
   - Bash(git branch --show-current)
   - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/issue_spec.py *)
   - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/review_server.py snapshot *)
-  - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/review_server.py artifacts *)
+  - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/features.py *)
 argument-hint: "[spec-file-path, #issue, owner/repo#issue, or issue URL — optional; auto-discovers SPEC-*.md if omitted] [--pane|--no-pane]"
 description: |
   Use to validate a SPEC-*.md for gaps before planning or implementation. Outputs Blocking / Should Address / Nice to Have findings.
@@ -38,15 +38,15 @@ If you were dispatched as a subagent to execute a specific task, skip this comma
 - **Repository**: !`git remote get-url origin`
 - **Current branch**: !`git branch --show-current`
 - **Spec argument**: $ARGUMENTS
-- **Artifacts folder**: `${user_config.artifacts_dir}` (a literal `${user_config...}` here means `.feature-dev`). Where specs and plans are found: [artifact-locations.md](../skills/spec-driven-development/references/artifact-locations.md).
+- **Feature store**: each feature lives in `.feature-dev/features/<slug>/`, managed by `${CLAUDE_PLUGIN_ROOT}/scripts/features.py` (pass `--root <repo root>`). Layout: [artifact-locations.md](../skills/spec-driven-development/references/artifact-locations.md).
 
 ## Phase 0: Resolve the Spec File
 
 `--pane` / `--no-pane` are flags: drop them before reading `$ARGUMENTS` below.
 
 1. **If `$ARGUMENTS` is `#N`, `owner/repo#N`, or an issue URL** → resolve it per [issue-store.md's Argument parsing](../skills/spec-driven-development/references/issue-store.md#argument-parsing), then run [issue-store.md's Import algorithm](../skills/spec-driven-development/references/issue-store.md#import-ac-8-ac-9-ac-10-ac-11-ac-12) against it, start to finish. Do not restate Import's steps here — follow the reference. A failed `gh` preflight, or a failed `gh issue view` call, stops here and names the issue that could not be read. On success, continue as if `$ARGUMENTS` had been the resulting `SPEC-<slug>.md` path (the reference's own step 6).
-2. **If `$ARGUMENTS` is provided and is not an issue reference** → use it as the path to the spec file. If the file does not exist, STOP and report.
-3. **If `$ARGUMENTS` is empty** → auto-discover spec files. List them with `${CLAUDE_PLUGIN_ROOT}/scripts/review_server.py artifacts --dir "<artifacts folder>" --kind spec` (the folder first, then legacy specs at the root), then read each file's frontmatter. Do **not** filter by `status:` — a spec with `status: implemented` is still legitimate to re-review (e.g., for retro learning). From the candidates:
+2. **If `$ARGUMENTS` is provided and is not an issue reference** → use it as the path to the spec file. If the file does not exist, STOP and report. Refuse any path outside `.feature-dev/features/` (a root `SPEC-*.md`, or the layout older than 2.0.0) in one line, naming `.feature-dev/features/<slug>/` as the only place specs live.
+3. **If `$ARGUMENTS` is empty** → auto-discover spec files. Run `${CLAUDE_PLUGIN_ROOT}/scripts/features.py list --json --root <repo root>` and take the `artifacts` entries with `kind: "spec"` (each has a `path`), then read each file's frontmatter. Do **not** filter by `status:` — a spec with `status: implemented` is still legitimate to re-review (e.g., for retro learning). From the candidates:
    - **0 specs** → STOP and ask the user to provide a path or run `/feature-dev:spec` first.
    - **1 spec** → use it. Inform the user: "Auto-selected spec: `<spec path>` (feature: <name>, status: <status>)".
    - **2+ specs** → use AskUserQuestion to let the user pick (label = `feature:` value, description = `<filename> — status: <status>`).
@@ -69,6 +69,7 @@ has to ask which spec.
 Use the Agent tool to invoke the `spec-plan-validator` subagent with:
 - `artifact_type`: `spec`
 - `artifact_path`: the resolved path from Phase 0
+- `feature`: that feature's entry from `${CLAUDE_PLUGIN_ROOT}/scripts/features.py list --json --root <repo root>` (matched by slug), so the agent sees its state without parsing frontmatter
 
 The agent will:
 1. Read the spec file

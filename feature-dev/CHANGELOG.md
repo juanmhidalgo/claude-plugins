@@ -1,5 +1,26 @@
 # Changelog
 
+## 2.0.0 (2026-10-14)
+
+### Breaking
+- **No migration.** The old `specs/` and `plans/` folders (and root SPEC/PLAN files) are no longer read, and paths there are refused. Move or delete them by hand.
+- Options `artifacts_dir` and `review_band_window_hours` are removed. `review_band` and `spec_store` stay.
+- `review_server.py settle` and `artifacts` are removed. `purge --artifact`, `--slug` and `--dir` are removed; only `--pointer` remains.
+- `.feature-dev/band-dismissed.json` is no longer used.
+
+### Added
+- **Feature store.** `scripts/features.py` keeps one `.feature-dev/features/<slug>/feature.json` (version 1) per feature, with a script-owned state machine: draft, approved, planned, running, halted (running and halted alternate), implemented. A halt is recordable from `planned` (a run that stops at its first step) or `running`, and `step reopen <n>` un-records step n and every later one, so a resumed run can redo a step that regressed. Subcommands: `new`, `approve`, `plan [--from-spec] [--replace]`, `step done|halt|resume|reopen`, `implemented`, `link-issue`, `delete [--force] [--dry-run]`, `list [--json]`. A rejected event names the current state and the valid events. Writes are atomic, `.md` mtimes are never touched, and a folder that fails validation is listed as `invalid`.
+- **Features sidebar pane** and a one-line band (`N need review · Features`), rendered only from `features.py list --json`. Per-feature actions: Review spec, Review plan, Continue, Dismiss (session-only) and a two-press Delete, which never deletes a `running` or `halted` feature. `implemented` features are never marked as needing review. Error and empty states are shown. Requires Claude Code >= 2.1.287.
+
+### Changed
+- SPEC and PLAN live in `.feature-dev/features/<slug>/`; a plan born from a spec lives in that spec's folder. Reviews, history and the `.url` pointer move inside the feature folder. Submitting a review for a feature deleted meanwhile answers 410 and saves nothing, instead of recreating its folder.
+- Commands change state only through `features.py`. SPEC/PLAN frontmatter keeps only descriptive keys.
+- `/feature-dev:review` approve runs `features.py approve`.
+- `/feature-dev:tdd` resumes from and records into `feature.json`, and keeps the PLAN after `implemented`.
+- `/feature-dev:cleanup` deletes through `features.py delete`.
+- The issue link is recorded with `features.py link-issue`.
+- `spec-plan-validator` reads state from `feature.json` / `features.py list --json`.
+
 ## 1.35.0 (2026-10-06)
 
 ### Added

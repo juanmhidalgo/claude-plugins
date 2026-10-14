@@ -2,6 +2,7 @@
 disable-model-invocation: true
 allowed-tools:
   - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/review_server.py *)
+  - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/features.py *)
   - Bash(date +%s)
   - Read
   - Glob
@@ -31,7 +32,7 @@ triggers:
 
 ## Context
 - **Artifact argument**: $ARGUMENTS
-- **Artifacts folder**: `${user_config.artifacts_dir}` (a literal `${user_config...}` here means `.feature-dev`). Where specs and plans are found: [artifact-locations.md](../skills/spec-driven-development/references/artifact-locations.md).
+- **Feature store**: each feature lives in `.feature-dev/features/<slug>/`, managed by `${CLAUDE_PLUGIN_ROOT}/scripts/features.py` (pass `--root <repo root>`). Layout: [artifact-locations.md](../skills/spec-driven-development/references/artifact-locations.md).
 
 The review happens in a local page instead of the chat. Specs and plans of 332–1073 lines were approved 37–72 s after being written, from chat summaries, and nobody opened the files; the page puts the document, its decisions and its changes since the last version in front of the reviewer, and turns what they mark into a file this command applies.
 
@@ -40,10 +41,10 @@ The page is served by `review_server.py` on `127.0.0.1`, on a random free port. 
 ## Phase 0: Resolve the artifact
 
 1. **If `$ARGUMENTS` is `#N`, `owner/repo#N`, or an issue URL** → resolve it per [issue-store.md's Argument parsing](../skills/spec-driven-development/references/issue-store.md#argument-parsing), then run [issue-store.md's Import algorithm](../skills/spec-driven-development/references/issue-store.md#import-ac-8-ac-9-ac-10-ac-11-ac-12) against it, start to finish. Do not restate Import's steps here — follow the reference. A failed `gh` preflight, or a failed `gh issue view` call, stops here and names the issue that could not be read. On success, continue as if `$ARGUMENTS` had been the resulting spec path (the reference's own step 6). An issue argument only ever produces a SPEC — there is no PLAN equivalent.
-2. **If `$ARGUMENTS` names an existing file** → use it. If it does not exist, STOP and report.
-3. **If `$ARGUMENTS` is empty** → list them with `${CLAUDE_PLUGIN_ROOT}/scripts/review_server.py artifacts --dir "<artifacts folder>"` (specs and plans in the folder, then legacy ones at the root). 0 → STOP and point to `/feature-dev:spec`. 1 → use it. 2+ → AskUserQuestion (label = file name, description = its `feature:` and `status:`).
-4. Read its frontmatter. The kind is SPEC or PLAN, from `type:` or the file name prefix. Do not derive the slug yourself: the script sanitizes it, and every file path below comes from the script.
-5. If the project's `.gitignore` does not include `.feature-dev/`, add it. It holds review files, version history and, by default, the specs and plans: all local working artifacts.
+2. **If `$ARGUMENTS` names an existing file** → use it. If it does not exist, STOP and report. An artifact of this repo must sit in `.feature-dev/features/<slug>/`; refuse any other path (a root `SPEC-*.md`, or the layout older than 2.0.0) in one line and name `.feature-dev/features/<slug>/` as the only place artifacts live.
+3. **If `$ARGUMENTS` is empty** → run `${CLAUDE_PLUGIN_ROOT}/scripts/features.py list --json --root <repo root>` and collect the `artifacts` of every feature (each has `kind`, `path`, `needs_review`). A missing `.feature-dev/features/` is an empty list. 0 → STOP and point to `/feature-dev:spec`. 1 → use it. 2+ → AskUserQuestion (label = file name, description = the feature's slug and `status`; put artifacts with `needs_review` first).
+4. The kind is SPEC or PLAN, from the file name prefix (or the `kind` in the list). The feature slug is its folder name under `.feature-dev/features/`. Do not derive review paths yourself: every file path below comes from the scripts.
+5. If the project's `.gitignore` does not include `.feature-dev/`, add it. It holds the feature store, review files and version history: all local working artifacts.
 
 ## Phase 1: Serve and wait
 
@@ -69,17 +70,17 @@ When the background task completes:
 ## Phase 3: Apply the verdict
 
 **`approve`**
-- SPEC → set `status: approved` with Edit. This is the only verdict that sets it. Then run `${CLAUDE_PLUGIN_ROOT}/scripts/review_server.py settle <artifact path>`, so the review band above the prompt does not report your own status edit as a change nobody reviewed.
-- PLAN → plans carry no approval field; nothing to edit.
+- SPEC → run `${CLAUDE_PLUGIN_ROOT}/scripts/features.py approve <slug> --root <repo root>`. This is the only verdict that approves a feature, and the spec file is not edited. A refusal (`refused: …`) names the state; report it instead of working around it.
+- PLAN → plans carry no approval; nothing to run.
 
 **`approve-with-notes`**: the notes are context, not change requests.
 - Acknowledge each note in one line.
-- Record a note where it binds later work: a note constraining how a later step or another repo must behave goes into the spec's `## Decisions Log` (for a PLAN, its `source_spec`), in the entry format `/feature-dev:tdd` uses, with `Binds:`. A note that binds nothing stays in this reply.
+- Record a note where it binds later work: a note constraining how a later step or another repo must behave goes into the spec's `## Decisions Log` (for a PLAN, the SPEC in the plan's feature folder, or the spec at the `Source spec:` path in the PLAN body), in the entry format `/feature-dev:tdd` uses, with `Binds:`. A note that binds nothing stays in this reply.
 - Change nothing in the artifact unless a note explicitly asks for a change. A decision override is an explicit ask, so apply it as under `request-changes`.
-- For a SPEC, `status:` stays as it is. If the user wants it approved with the notes, they say so and you set it.
+- For a SPEC, the feature is not approved. If the user wants it approved with the notes, they say so and you run `features.py approve <slug> --root <repo root>`.
 
 **`request-changes`**: each item and override is a hypothesis about the artifact, not an instruction to paste in.
-1. **Snapshot first**: `${CLAUDE_PLUGIN_ROOT}/scripts/review_server.py snapshot <artifact path>`. This copies the reviewed version to `.feature-dev/history/<slug>/`, so the next round shows the diff.
+1. **Snapshot first**: `${CLAUDE_PLUGIN_ROOT}/scripts/review_server.py snapshot <artifact path>`. This copies the reviewed version to `.feature-dev/features/<slug>/history/`, so the next round shows the diff.
 2. **Verify each item** against the artifact, and against the code when the item makes a claim about the code: Read the file, Grep the symbol. Locate the quote under its `§` heading. An item that is wrong about the code, or would contradict an AC or a recorded decision, is not applied; say why in one line, with the `file:line` you checked.
 3. **Apply the rest** with Edit. Keep AC ids stable: a new criterion takes the next free number, and a removed one retires its id. In a PLAN, a decision override changes its Key Decisions row and every step that depended on the old choice. A changed or new step follows explore-plan's step contract (Accept, Verify, Covers). A changed `Verify:` has no Baseline row until it is re-baselined, so say so.
 4. **Report one line per item**: `<n>. applied — <what changed>` or `<n>. not applied — <why>`, then one line per override.
@@ -96,7 +97,7 @@ After a PLAN changed in this command, add: `/feature-dev:plan-review <plan path>
 
 ## Rules
 
-- **Only `approve` sets `status: approved`.** Notes are not approval, and a review that sets it from anything weaker marks a spec approved that nobody approved.
+- **Only `approve` runs `features.py approve`.** Notes are not approval, and a review that approves from anything weaker marks a spec approved that nobody approved.
 - **Verify before editing.** A reviewer's comment about the code can be wrong in the same way as a spec's claim. Check it the way `/feature-dev:spec-review` checks claims.
 - **A changed artifact is not auto-applied.** On a sha mismatch the comments point at text that may have moved.
 - **The artifacts stay local.** Never commit SPEC, PLAN or `.feature-dev/`, and run no git commands against them.

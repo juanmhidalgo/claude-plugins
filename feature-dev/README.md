@@ -12,7 +12,7 @@ Feature development workflows with structured phases and quality gates.
 | `/feature-dev:spec-review [file]` | Validate a `SPEC-*.md` for structural gaps and check its claims about the existing code; emits Blocking / Should Address / Nice to Have checklist |
 | `/feature-dev:plan-review [file]` | Validate a `PLAN-*.md` for structural gaps, step contract and baseline; emits Blocking / Should Address / Nice to Have checklist |
 | `/feature-dev:review <SPEC\|PLAN>` | Review a spec or plan in a local browser page: outline, AC and Key Decision cards, comments anchored to selected text, diff against the previous version, and a verdict (Approve / Approve with notes / Request changes) that the command then applies |
-| `/feature-dev:cleanup` | Bulk-delete implemented `SPEC-*.md` and stale `PLAN-*.md` artifacts; also removes the slug's local review history, and first offers to save a spec's Decisions Log and unticked QA items as a comment on the spec's PR or to `docs/decisions/`; explicit Y/N confirmation required |
+| `/feature-dev:cleanup` | Bulk-delete finished feature folders (via `features.py delete`); also removes the slug's local review history, and first offers to save a spec's Decisions Log and unticked QA items as a comment on the spec's PR or to `docs/decisions/`; explicit Y/N confirmation required |
 
 ## Agents
 
@@ -65,7 +65,7 @@ The commands are designed to chain:
 3. **`/feature-dev:explore-plan`** — Understand the codebase and create the plan. The plan is the only place implementation steps live, and it carries a **Baseline**: every `Verify` command run once on HEAD, so broken or hollow gates surface at planning time instead of mid-run. It then reviews its own plan (`plan-review` runs automatically) and fixes Blocking findings once before showing you the brief.
 4. **`/feature-dev:tdd`** — Execute the plan with test-driven development
 
-At any approval gate, **`/feature-dev:review <path>`** is the alternative to answering in the chat. It serves the artifact on `127.0.0.1` and opens it in your browser. The page uses the Python 3 standard library only and loads nothing from the network, so it is safe on proprietary code. For a plan, each Key Decision becomes a card you accept or change, and the Baseline is highlighted. For a spec, the acceptance criteria are. Select any text to comment on it. The **Changes** tab diffs against the previous version, which the commands copy to `.feature-dev/history/<slug>/` before each overwrite. Your verdict is written to `.feature-dev/reviews/` and applied by the command:
+At any approval gate, **`/feature-dev:review <path>`** is the alternative to answering in the chat. It serves the artifact on `127.0.0.1` and opens it in your browser. The page uses the Python 3 standard library only and loads nothing from the network, so it is safe on proprietary code. For a plan, each Key Decision becomes a card you accept or change, and the Baseline is highlighted. For a spec, the acceptance criteria are. Select any text to comment on it. The **Changes** tab diffs against the previous version, which the commands copy to `.feature-dev/features/<slug>/history/` before each overwrite. Your verdict is written to `.feature-dev/features/<slug>/reviews/` and applied by the command:
 
 - **Approve** marks a spec `approved`.
 - **Approve with notes** records the notes and changes nothing unless a note asks.
@@ -77,33 +77,30 @@ Both `.feature-dev/` and the artifacts are added to `.gitignore`.
 
 ```
 .feature-dev/
-├── specs/SPEC-<slug>.md     # /feature-dev:spec, issue imports
-├── plans/PLAN-<slug>.md     # /feature-dev:explore-plan
-├── reviews/                 # /feature-dev:review verdicts, .<slug>.url pointers
-└── history/<slug>/          # snapshots the review page diffs against
+└── features/<slug>/
+    ├── feature.json         # state; written only by features.py
+    ├── SPEC-<slug>.md       # /feature-dev:spec, issue imports
+    ├── PLAN-<slug>.md       # /feature-dev:explore-plan
+    ├── reviews/             # /feature-dev:review verdicts, .url pointer
+    └── history/             # snapshots the review page diffs against
 ```
 
-The plugin option **`artifacts_dir`** (default `.feature-dev`) moves `specs/` and `plans/` to another folder inside the project. `reviews/` and `history/` stay in `.feature-dev/`. Set it in `/config` or with `/plugin configure feature-dev@juanmhidalgo-plugins`.
+One folder per feature. `feature.json` holds the feature's state (`draft`, `approved`, `planned`, `running`, `halted`, `implemented`; a damaged folder lists as `invalid`) and is changed only by `scripts/features.py`; editing a SPEC or PLAN never changes it. The previous layout (separate `specs/` and `plans/` folders under `.feature-dev/`, root `SPEC-*.md` / `PLAN-*.md`) is not read and not migrated: delete those by hand. The full rules are in [artifact-locations.md](skills/spec-driven-development/references/artifact-locations.md).
 
-Specs and plans written at the project root before 1.32.0 are still found: every command lists the folder first, then the root, through `review_server.py artifacts`. A name present in both places is taken from the folder. Nothing is moved; new files are only written to the folder. The full rules are in [artifact-locations.md](skills/spec-driven-development/references/artifact-locations.md).
+### Features sidebar
 
-### Review band
+In the interactive terminal, a **Features** pane opens at session start, docked beside the transcript in fullscreen. It lists active features first, then a `Done` group with the `implemented` ones, each with its status and a needs-review mark when its SPEC or PLAN changed after its latest review. Selecting a feature offers only the actions valid for it:
 
-In the interactive terminal, a band above the prompt lists each `SPEC-*.md` / `PLAN-*.md` that changed after its latest browser review: `<name> · not reviewed since last change`, with three buttons:
+- **Review spec** / **Review plan** run `/feature-dev:review <path>`, the same as typing it.
+- **Continue** runs `/feature-dev:tdd` for a `planned`, `running` or `halted` feature.
+- **Dismiss** hides the needs-review mark and the band count for the rest of the session. It is session-only: a new session shows the feature again if it still needs review.
+- **Delete** needs two presses; the first turns the label into a confirmation (and says so when the feature is not `implemented`). The second runs `features.py delete`. A `running` or `halted` feature is never deleted from the pane: finish the run, or remove it with `/feature-dev:cleanup`.
 
-- **Open review** runs `/feature-dev:review <path>`, the same as typing it, so the verdict is applied as usual. While a review server for that artifact is running, a link to its page replaces the button.
-- **Dismiss** hides that artifact until it changes again, in this session and the next ones. Dismissals are kept per repository in `.feature-dev/band-dismissed.json` (artifact name and mtime; gitignored with the rest of `.feature-dev/`). An entry is dropped once its artifact is gone or has changed (never while an artifact folder fails to list), and `/feature-dev:cleanup` drops the entries of the artifacts it deletes.
-- **Clean up** runs `/feature-dev:cleanup`, which lists its own candidates and asks before deleting anything; the band itself never deletes a file.
+Above the prompt, a one-line band (`N need review · Features`) opens the pane. It is hidden while the pane is shown or when N is 0. With no features, nothing opens. If `features.py` fails (no `python3`, bad output), the pane shows one error line with a Retry action and the band hides.
 
-Only recent changes are listed: an artifact modified within the last **`review_band_window_hours`** (plugin option, default `24`, minimum `1`), or at any point since this session started. An older file that was never reviewed in the browser stays out of the band. It comes back the next time it is edited. A SPEC whose frontmatter says `status: approved` (what the `approve` verdict of `/feature-dev:review` writes) is not listed either.
+The mod never reads the files itself: it renders `features.py list --json` and acts through `features.py` or a command. The text fallback is the commands themselves (`/feature-dev:review`, `/feature-dev:tdd`, `/feature-dev:cleanup`) plus the "Or review it in the browser: …" line that `spec` and `explore-plan` print.
 
-With two or more pending artifacts the band shows a single row: `<N> not reviewed`, with **Open `<name>`** for the most recently modified one, **Show all**, **Dismiss all** and **Clean up**. **Show all** lists one row per artifact, as above, with **Collapse** and **Clean up** buttons. The expanded view lasts for the session. **Dismiss all** works like **Dismiss** on every listed artifact.
-
-Dismissals are a plain file write (the mods API has no rename): two sessions of the same repository dismissing at the same moment can lose one entry, and that row shows up again. A file left unreadable reads as nothing dismissed.
-
-The band is rescanned at the end of every turn of the main conversation (not of subagents) and at session start. A review counts only if its `artifact:` names that exact file, so a SPEC review never clears the PLAN of the same slug. The `status: approved` edit that `/feature-dev:review` makes itself does not count as a change.
-
-It is a hooks module (`hooks/register.tsx`), so it needs a Claude Code build that loads plugin hooks modules. **It does not appear** under `claude -p`, `--safe-mode` or `disableAllHooks`, nor in the VS Code extension. Without it, the "Or review it in the browser: …" line that `spec` and `explore-plan` print is still the way in. **To turn it off**, set the plugin option `review_band` to `false` in `/config` (or `/plugin configure feature-dev@juanmhidalgo-plugins`).
+It is a hooks module (`hooks/register.tsx`), so it needs a Claude Code build that loads plugin hooks modules (**Requires Claude Code >= 2.1.287**). **It does not appear** under `claude -p`, `--safe-mode` or `disableAllHooks`, nor in the VS Code extension. **To turn it off** (pane and band), set the plugin option `review_band` to `false` in `/config` (or `/plugin configure feature-dev@juanmhidalgo-plugins`); the commands keep working.
 
 Each command can also be used independently.
 
@@ -128,7 +125,7 @@ The plan's **Baseline** tells `/tdd` which failures were already on HEAD, so a p
 
 ### Resuming a halted run
 
-`/feature-dev:tdd` records progress in the plan's frontmatter (`run_status`, `completed_steps`) as it goes. When a step halts, the plan and spec stay on disk and the working tree keeps the finished steps.
+`/feature-dev:tdd` records progress in the feature's `feature.json` (through `features.py step`) as it goes. When a step halts, the plan and spec stay on disk and the working tree keeps the finished steps.
 
 The same resume lets you free context on a long run: at each milestone boundary (or every ~8 steps) `/tdd` prints one line saying progress is recorded and that `/clear` then `/feature-dev:tdd PLAN-<slug>.md` continues from there. It does not stop or ask.
 
@@ -147,7 +144,7 @@ Neither enforces red-green-refactor — that's `tdd-runner`'s job, and `/feature
 
 ### Decisions Log
 
-Decisions taken *during* implementation land in a `## Decisions Log` section of the `SPEC-*.md`, not in the plan — the plan is deleted when it completes, the spec is not. `/feature-dev:tdd` appends to it in Phase 3 and reads it back in Phase 1, so a run in the consuming repo starts already knowing what the contract-owning repo decided. Each entry carries a `Binds:` field naming who has to obey it.
+Decisions taken *during* implementation land in a `## Decisions Log` section of the `SPEC-*.md`, not in the plan — the plan is a working document of the run, the spec is the record. `/feature-dev:tdd` appends to it in Phase 3 and reads it back in Phase 1, so a run in the consuming repo starts already knowing what the contract-owning repo decided. Each entry carries a `Binds:` field naming who has to obey it.
 
 This is what removes the need to keep a second session open as the feature's memory across repos. For the *judgement* half of that role — a bounded question you want a second read on — spawn `cross-repo-advisor`; it produces a brief, the decision stays yours, and once you take it `/feature-dev:tdd` records it.
 
@@ -245,7 +242,7 @@ Inside [Herdr](https://herdr.dev) only; outside it, `--pane` says so and runs no
 - **python3** (standard library only) for `scripts/review_server.py` and `scripts/issue_spec.py`: the review page, artifact listing and cleanup.
 - **A browser** on the same machine for `/feature-dev:review`. Over SSH, `review_server.py url <artifact>` prints the URL to open with a port forward.
 - **`gh`**, authenticated, only for the GitHub Issue Store and for `cleanup`'s rescue to a PR comment.
-- **Claude Code 2.1.287 or later** for the review band. Everything else works without it.
+- **Claude Code 2.1.287 or later** for the Features sidebar and band. Everything else works without it.
 
 ## Installation
 

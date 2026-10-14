@@ -15,7 +15,7 @@ commit() {
   GIT_AUTHOR_DATE="$date" GIT_COMMITTER_DATE="$date" git commit -q -m "$message"
 }
 
-printf 'SPEC-*.md\n__pycache__/\n' > .gitignore
+printf '.feature-dev/\n__pycache__/\n' > .gitignore
 mkdir -p app tests
 cp "$fixture/README.md" .
 cp "$fixture/app/__init__.py" "$fixture/app/tasks.py" app/
@@ -31,5 +31,13 @@ cp "$fixture/web/src/taskList.js" web/src/
 git add web
 commit "2026-01-12T10:00:00Z" "feat(web): render the task list"
 
-# The spec is a local working artifact (gitignored), as /feature-dev:spec leaves it.
-cp "$fixture/SPEC-task-due-dates.md" .
+# The spec is a local working artifact (gitignored), staged the way
+# /feature-dev:spec leaves it: `new` creates the draft feature and prints the
+# SPEC path, the fixture is copied there, then `approve` records the approval
+# (it requires the SPEC to exist). FEATURES_ROOT lets a smoke test stage
+# into a temp dir; by default it is the current directory.
+features="$(dirname "${BASH_SOURCE[0]}")/../../scripts/features.py"
+root="${FEATURES_ROOT:-.}"
+spec_path="$(python3 "$features" new task-due-dates --kind spec --root "$root")"
+cp "$fixture/SPEC-task-due-dates.md" "$root/$spec_path"
+python3 "$features" approve task-due-dates --root "$root" >/dev/null

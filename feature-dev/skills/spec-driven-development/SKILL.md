@@ -133,7 +133,7 @@ Break into discrete, implementable tasks:
 
 ### Phase 4: Implement
 
-Execute from the `PLAN-<slug>.md` (or, when the optional phases ran, from the spec's tasks; with neither, `/feature-dev:tdd` derives criteria from the spec's AC ids) using the **`feature-dev:tdd-patterns`** skill (RED-GREEN-REFACTOR cycle, 5-cycle iteration limit, stuck-after-3 rule, coverage gate workflow). One task at a time, verify before advancing. Do not duplicate the cycle's rules here — `tdd-patterns` is the canonical reference.
+Execute from the `PLAN-<slug>.md` in the feature's folder (or, when the optional phases ran, from the spec's tasks; with neither, `/feature-dev:tdd` derives criteria from the spec's AC ids) using the **`feature-dev:tdd-patterns`** skill (RED-GREEN-REFACTOR cycle, 5-cycle iteration limit, stuck-after-3 rule, coverage gate workflow). One task at a time, verify before advancing. Do not duplicate the cycle's rules here — `tdd-patterns` is the canonical reference.
 
 ## Multi-Repo Features
 
@@ -194,7 +194,7 @@ every command that touches the store links there instead of restating it.
 
 ### Decisions Log
 
-The spec states what was decided *before* the work. The Decisions Log records what got decided *during* it — and it lives in the spec because the spec is the one artifact that outlives the run. A `PLAN-<slug>.md` is deleted when it completes; a decision written only there dies with it, and an implementation session's context dies sooner than that.
+The spec states what was decided *before* the work. The Decisions Log records what got decided *during* it — and it lives in the spec because the spec is the one artifact that outlives the run. The `PLAN-<slug>.md` is a working document of the run; a decision written only there is easy to lose, and an implementation session's context dies sooner than that.
 
 Append to a `## Decisions Log` section at the end of the spec, newest last:
 
@@ -247,6 +247,6 @@ Before proceeding to implementation:
 - [ ] Boundaries (Always / Ask First / Never) are defined with one-line rationale per Never-do item
 - [ ] P0 list passes the cut-test (≤5 items, each truly required to solve the core problem)
 - [ ] Open questions are genuinely open, owner-tagged, and marked blocking vs non-blocking
-- [ ] Spec is saved as a local working artifact (`<artifacts folder>/specs/SPEC-<slug>.md`, not committed; see [artifact-locations.md](references/artifact-locations.md))
+- [ ] Spec is saved as a local working artifact (`.feature-dev/features/<slug>/SPEC-<slug>.md`, not committed, state in `feature.json` written only by `features.py`; see [artifact-locations.md](references/artifact-locations.md))
 - [ ] **Multi-repo only**: `repos:` frontmatter and Cross-Repo Contracts section are present and confirmed by user (plus `Repo:` task tags when the optional Tasks phase ran)
 - [ ] **Multi-repo only**: a `## Decisions Log` section exists (may be empty at spec time — it is filled during implementation)

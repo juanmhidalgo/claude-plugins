@@ -20,7 +20,7 @@ Create and manage Product Requirements Documents (PRDs) with AI assistance.
 | `/prd:analyze [file \| issue-url \| text]` | Identify gaps, edge cases, and ambiguities before implementation |
 | `/prd:validate [file \| issue-url]` | Verify implementation matches PRD criteria |
 
-> Creating a new spec from scratch? Use [`/feature-dev:spec`](../feature-dev/README.md) — it produces a structured `SPEC-*.md` artifact with a gated review workflow that this toolkit's PRD validators can read.
+> Creating a new spec from scratch? Use [`/feature-dev:spec`](../feature-dev/README.md) — it produces a structured `SPEC-*.md` artifact (kept in `.feature-dev/features/<slug>/`) with a gated review workflow that this toolkit's PRD validators can read.
 
 ## Usage
 

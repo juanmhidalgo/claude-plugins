@@ -1,29 +1,31 @@
-/** A SPEC-*.md or PLAN-*.md changed after its latest browser review. */
-export type PendingArtifact = {
-  /** File name, e.g. `SPEC-billing.md`: what reviews match on. */
-  name: string
-  /** Path relative to the project root, passed to /feature-dev:review. */
-  path: string
-  /** The artifact's mtime when the band last looked. */
-  mtimeMs: number
-  /** `http://localhost:<port>/` of a live review server for it, if any. */
-  url?: string
+/** One feature as `features.py list --json` prints it. */
+export type Feature = {
+  slug: string
+  status: 'draft' | 'approved' | 'planned' | 'running' | 'halted' | 'implemented' | 'invalid'
+  plan: { steps: number; completed: number[]; halted_at: number | null; halt_reason: string | null } | null
+  /** `owner/repo#N`, when the feature is linked to an issue. */
+  issue: string | null
+  /** Spec first, then plan; `path` is relative to the project root. */
+  artifacts: { kind: 'spec' | 'plan'; path: string; needs_review: boolean }[]
+  /** Only on `invalid` features. */
+  reason?: string
 }
 
 declare module 'claude-code' {
   interface PluginState {
     'feature-dev': {
-      /** Artifacts not reviewed since their last change. */
-      pending: PendingArtifact[]
-      /**
-       * name → mtimeMs at dismissal; hidden until the mtime changes. This
-       * session's copy of `.feature-dev/band-dismissed.json`, which persists it.
-       */
-      dismissed: Record<string, number>
-      /** `$.clock.now()` at the first session.start of this session; 0 until then. */
-      sessionStart: number
-      /** Whether "Show all" expanded the 2+ artifact summary into one row each. */
-      expanded: boolean
+      /** The last `features.py list --json` result. */
+      features: Feature[]
+      /** Why the last refresh failed; null when it succeeded. */
+      error: string | null
+      /** Slugs the person dismissed from the band. */
+      dismissed: string[]
+      /** Whether the Features pane is open and placed. */
+      paneOpen: boolean
+      /** Slug awaiting delete confirmation, if any. */
+      confirmDelete: string | null
+      /** Slug whose actions the pane shows, if any. */
+      selected: string | null
     }
   }
 }

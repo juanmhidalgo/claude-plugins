@@ -119,7 +119,9 @@ class ReviewServerTest(unittest.TestCase):
     def setUp(self):
         self._tmp = tempfile.TemporaryDirectory()
         self.root = Path(self._tmp.name)
-        self.spec = self.root / "SPEC-example-feature.md"
+        self.fdir = self.root / ".feature-dev" / "features" / "example-feature"
+        self.fdir.mkdir(parents=True)
+        self.spec = self.fdir / "SPEC-example-feature.md"
         self.spec.write_text(SPEC, encoding="utf-8")
         self.servers: list[ServerProcess] = []
 
@@ -134,8 +136,8 @@ class ReviewServerTest(unittest.TestCase):
         return server
 
     def reviews(self) -> list[Path]:
-        folder = self.root / ".feature-dev" / "reviews"
-        return sorted(folder.glob("example-feature-*.md")) if folder.is_dir() else []
+        folder = self.fdir / "reviews"
+        return sorted(folder.glob("*.md")) if folder.is_dir() else []
 
     def test_page_serves_artifact_escaped_and_self_contained(self):
         server = self.start(self.spec)
@@ -182,11 +184,12 @@ class ReviewServerTest(unittest.TestCase):
         written = Path(body["path"])
         self.assertIn(f"Review written: {written}", out)
         self.assertEqual(self.reviews(), [written])
-        self.assertRegex(written.name, r"^example-feature-\d{8}T\d{6}Z\.md$")
+        self.assertRegex(written.name, r"^\d{8}T\d{6}Z\.md$")
 
         text = written.read_text(encoding="utf-8")
         front = review_server.read_frontmatter(text)
-        self.assertEqual(front["artifact"], "SPEC-example-feature.md")
+        # Pin: still the root-relative path (features.py matches on its basename).
+        self.assertEqual(front["artifact"], ".feature-dev/features/example-feature/SPEC-example-feature.md")
         self.assertEqual(front["verdict"], "request-changes")
         self.assertEqual(front["reviewed_sha256"], hashlib.sha256(SPEC.encode("utf-8")).hexdigest())
         self.assertEqual(front["changed_on_disk_since_served"], "false")
@@ -199,10 +202,10 @@ class ReviewServerTest(unittest.TestCase):
         )
         self.assertIn("2. > (no quote)\n   § (document)\n\n   General: add a rate-limit AC.\n", text)
         self.assertIn("## Decision overrides\n\nNone.", text)
-        self.assertFalse((self.root / ".feature-dev" / "reviews" / ".example-feature.url").exists())
+        self.assertFalse((self.fdir / "reviews" / ".url").exists())
 
     def test_plan_decision_overrides_and_sha_mismatch(self):
-        plan = self.root / "PLAN-example-feature.md"
+        plan = self.fdir / "PLAN-example-feature.md"
         plan.write_text(PLAN, encoding="utf-8")
         server = self.start(plan)
         token = server.token()
@@ -253,7 +256,7 @@ class ReviewServerTest(unittest.TestCase):
                 capture_output=True, text=True, check=True,
             )
             path = Path(result.stdout.strip())
-            self.assertEqual(path, self.root / ".feature-dev" / "history" / "example-feature" / f"SPEC-example-feature.{expected}.md")
+            self.assertEqual(path, self.fdir / "history" / f"SPEC-example-feature.{expected}.md")
             self.assertEqual(path.read_text(encoding="utf-8"), SPEC)
         self.spec.write_text(SPEC.replace("AC-2** — an unknown id returns 404", "AC-2** — an unknown id returns 410"), encoding="utf-8")
 
@@ -308,40 +311,25 @@ class ReviewServerTest(unittest.TestCase):
         self.assertEqual(self.run_cli("latest", str(self.spec), "--since", "99999999999").returncode, 1)
         self.assertEqual(self.run_cli("url", str(self.spec)).returncode, 1)
         # A plan with the same slug does not pick up the spec's review.
-        plan = self.root / "PLAN-example-feature.md"
+        plan = self.fdir / "PLAN-example-feature.md"
         plan.write_text(PLAN, encoding="utf-8")
         self.assertEqual(self.run_cli("latest", str(plan)).returncode, 1)
-
-    def test_settle_makes_the_latest_review_newer_than_the_artifact(self):
-        self.assertEqual(self.run_cli("settle", str(self.spec)).returncode, 1)
-        server = self.start(self.spec)
-        status, body = server.post({"verdict": "approve"}, server.token())
-        self.assertEqual(status, 200)
-        server.finish()
-        review = Path(body["path"])
-        past = time.time() - 100
-        os.utime(review, (past, past))
-        self.spec.write_text(SPEC.replace("status: draft", "status: approved"), encoding="utf-8")
-        self.assertLess(review.stat().st_mtime, self.spec.stat().st_mtime)
-        settled = self.run_cli("settle", str(self.spec))
-        self.assertEqual(settled.returncode, 0)
-        self.assertEqual(self.abs(settled.stdout), review.resolve())
-        self.assertGreaterEqual(review.stat().st_mtime, self.spec.stat().st_mtime)
 
     def test_slug_is_sanitized_everywhere(self):
         self.assertEqual(review_server.artifact_slug(Path("SPEC-x.md"), {"slug": "../../evil dir/x"}), "evil-dir-x")
         self.assertEqual(review_server.artifact_slug(Path("SPEC-a b.md"), {}), "a-b")
         self.assertEqual(review_server.artifact_slug(Path("SPEC-x.md"), {"slug": "../.."}), "artifact")
-        odd = self.root / "SPEC-odd.md"
+        oddir = self.root / ".feature-dev" / "features" / "Odd-Slug"
+        oddir.mkdir(parents=True)
+        odd = oddir / "SPEC-odd.md"
         odd.write_text(SPEC.replace("slug: example-feature", "slug: ../../Odd Slug!"), encoding="utf-8")
         snap = self.abs(self.run_cli("snapshot", str(odd)).stdout)
-        self.assertEqual(snap.parent, (self.root / ".feature-dev" / "history" / "Odd-Slug").resolve())
+        self.assertEqual(snap.parent, (oddir / "history").resolve())
         server = self.start(odd)
         status, body = server.post({"verdict": "approve"}, server.token())
         self.assertEqual(status, 200)
         server.finish()
-        self.assertEqual(Path(body["path"]).parent, self.root / ".feature-dev" / "reviews")
-        self.assertTrue(Path(body["path"]).name.startswith("Odd-Slug-"))
+        self.assertEqual(Path(body["path"]).parent, oddir / "reviews")
         self.assertEqual(self.abs(self.run_cli("latest", str(odd)).stdout), Path(body["path"]).resolve())
 
     def test_diff_requires_token(self):
@@ -474,76 +462,187 @@ class ReviewServerTest(unittest.TestCase):
         self.assertEqual(result.returncode, review_server.EXIT_USAGE)
 
 
-class ArtifactsTest(unittest.TestCase):
+class FeatureLayoutTest(unittest.TestCase):
+    """AC-14: everything for a feature resolves inside features/<slug>/."""
+
     def setUp(self):
         self._tmp = tempfile.TemporaryDirectory()
         self.root = Path(self._tmp.name)
-        for rel in (
-            ".feature-dev/specs/SPEC-new.md",
-            ".feature-dev/specs/SPEC-both.md",
-            ".feature-dev/plans/PLAN-new.md",
-            ".feature-dev/specs/PLAN-misfiled.md",
-            "SPEC-both.md",
-            "SPEC-legacy.md",
-            "PLAN-legacy.md",
-            "README.md",
-        ):
-            (self.root / rel).parent.mkdir(parents=True, exist_ok=True)
-            (self.root / rel).write_text(SPEC, encoding="utf-8")
+        self.fdir = self.root / ".feature-dev" / "features" / "my-feat"
+        self.fdir.mkdir(parents=True)
+        self.spec = self.fdir / "SPEC-my-feat.md"
+        self.spec.write_text(SPEC, encoding="utf-8")  # frontmatter slug differs on purpose
+        self.servers: list[ServerProcess] = []
 
     def tearDown(self):
+        for server in self.servers:
+            server.kill()
         self._tmp.cleanup()
 
     def run_cli(self, *args: str) -> subprocess.CompletedProcess:
         return subprocess.run(
-            [sys.executable, "-B", str(SCRIPT), "artifacts", "--root", str(self.root), *args],
-            capture_output=True, text=True,
+            [sys.executable, "-B", str(SCRIPT), *args], cwd=self.root, capture_output=True, text=True
         )
 
-    def test_lists_the_folder_first_then_legacy_root_files_once(self):
-        result = self.run_cli()
+    def test_ac14_serve_writes_review_and_pointer_inside_the_feature_folder(self):
+        server = ServerProcess(self.root, self.spec, 30)
+        self.servers.append(server)
+        pointer = self.fdir / "reviews" / ".url"
+        self.assertEqual(pointer.read_text(encoding="utf-8").strip(), server.url.rstrip("/") + "/")
+        status, body = server.post({"verdict": "approve"}, server.token())
+        self.assertEqual(status, 200, body)
+        server.finish()
+        written = Path(body["path"])
+        self.assertEqual(written.parent, self.fdir / "reviews")
+        self.assertRegex(written.name, r"^\d{8}T\d{6}Z(-\d+)?\.md$")
+        self.assertFalse(pointer.exists())
+        self.assertFalse((self.root / ".feature-dev" / "reviews").exists())
+
+    def test_submit_after_the_feature_was_deleted_is_gone_and_recreates_nothing(self):
+        server = ServerProcess(self.root, self.spec, 30)
+        self.servers.append(server)
+        token = server.token()
+        shutil.rmtree(self.fdir)
+        status, body = server.post({"verdict": "approve"}, token)
+        self.assertEqual(status, 410, body)
+        self.assertEqual(body["error"], "the feature was deleted; the review was not saved")
+        code, _out = server.finish()
+        self.assertEqual(code, review_server.EXIT_NO_REVIEW)
+        self.assertFalse(self.fdir.exists())
+
+    def test_submit_creates_a_missing_reviews_folder(self):
+        server = ServerProcess(self.root, self.spec, 30)
+        self.servers.append(server)
+        token = server.token()
+        shutil.rmtree(self.fdir / "reviews")
+        status, body = server.post({"verdict": "approve"}, token)
+        self.assertEqual(status, 200, body)
+        server.finish()
+        self.assertTrue(Path(body["path"]).is_file())
+
+    def test_ac14_snapshot_writes_to_the_feature_history(self):
+        result = self.run_cli("snapshot", str(self.spec), "--root", str(self.root))
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(result.stdout.split(), [
-            ".feature-dev/specs/SPEC-both.md",
-            ".feature-dev/specs/SPEC-new.md",
-            ".feature-dev/plans/PLAN-new.md",
-            "SPEC-legacy.md",
-            "PLAN-legacy.md",
-        ])
-        self.assertEqual(self.run_cli("--kind", "plan").stdout.split(), [".feature-dev/plans/PLAN-new.md", "PLAN-legacy.md"])
+        self.assertEqual(Path(result.stdout.strip()), self.fdir / "history" / "SPEC-my-feat.1.md")
+        self.assertFalse((self.root / ".feature-dev" / "history").exists())
 
-    def test_unset_option_placeholder_means_the_default(self):
-        placeholder = "${user_config.artifacts_dir}"
-        self.assertEqual(self.run_cli("--dir", placeholder).stdout, self.run_cli().stdout)
-        self.assertEqual(self.run_cli("--dir", "", "--new", "SPEC-x.md").stdout.strip(), ".feature-dev/specs/SPEC-x.md")
+    def test_ac14_latest_and_url_read_the_feature_folder(self):
+        reviews = self.fdir / "reviews"
+        reviews.mkdir()
+        review = reviews / "20260101T000000Z.md"
+        review.write_text("---\nartifact: SPEC-my-feat.md\n---\n", encoding="utf-8")
+        (reviews / ".url").write_text("http://127.0.0.1:1/\n", encoding="utf-8")
+        latest = self.run_cli("latest", str(self.spec), "--root", str(self.root))
+        self.assertEqual((latest.returncode, Path(latest.stdout.strip())), (0, review))
+        url = self.run_cli("url", str(self.spec), "--root", str(self.root))
+        self.assertEqual((url.returncode, url.stdout.strip()), (0, "http://127.0.0.1:1/"))
 
-    def test_new_names_the_kind_folder_under_a_custom_dir(self):
-        self.assertEqual(self.run_cli("--dir", "docs/fd/", "--new", "PLAN-x.md").stdout.strip(), "docs/fd/plans/PLAN-x.md")
-        self.assertEqual(self.run_cli("--new", "README.md").returncode, review_server.EXIT_USAGE)
-
-    def test_dir_outside_the_project_is_refused(self):
-        for bad in ("../elsewhere", "/tmp/x", "a/../../b"):
-            self.assertEqual(self.run_cli("--dir", bad).returncode, review_server.EXIT_USAGE, bad)
+    def test_ac14_the_slug_is_the_folder_name(self):
+        self.assertEqual(review_server.slug_of(self.spec), "my-feat")
 
 
-class PurgeTest(unittest.TestCase):
-    TS = "20260101T000000Z"
+class LegacyLayoutTest(unittest.TestCase):
+    """AC-12: artifacts outside features/<slug>/ are refused before any read or write."""
 
     def setUp(self):
         self._tmp = tempfile.TemporaryDirectory()
         self.root = Path(self._tmp.name)
-        self.history = self.root / ".feature-dev" / "history"
-        self.reviews = self.root / ".feature-dev" / "reviews"
-        self.reviews.mkdir(parents=True)
+        (self.root / ".feature-dev" / "specs").mkdir(parents=True)
+        (self.root / ".feature-dev" / "plans").mkdir(parents=True)
+        (self.root / ".feature-dev" / "features" / "feat" / "deeper").mkdir(parents=True)
+        elsewhere = self.root / "elsewhere"
+        elsewhere.mkdir()
+        (elsewhere / "SPEC-linked.md").write_text(SPEC, encoding="utf-8")
+        link = self.root / ".feature-dev" / "features" / "feat" / "SPEC-linked.md"
+        link.symlink_to(elsewhere / "SPEC-linked.md")
+        self.legacy = {
+            "root": self.root / "SPEC-old.md",
+            "specs": self.root / ".feature-dev" / "specs" / "SPEC-old.md",
+            "plans": self.root / ".feature-dev" / "plans" / "PLAN-old.md",
+            "nested": self.root / ".feature-dev" / "features" / "feat" / "deeper" / "SPEC-old.md",
+            "symlink": link,
+        }
+        for key, path in self.legacy.items():
+            if key != "symlink":
+                path.write_text(SPEC, encoding="utf-8")
+        os.utime(elsewhere / "SPEC-linked.md", (1_000_000_000, 1_000_000_000))
+        for key, path in self.legacy.items():
+            if key != "symlink":
+                os.utime(path, (1_000_000_000, 1_000_000_000))
+
+    def tearDown(self):
+        self._tmp.cleanup()
+
+    def listing(self) -> list[str]:
+        return sorted(str(p.relative_to(self.root)) for p in (self.root / ".feature-dev").rglob("*"))
+
+    def test_ac12_every_artifact_command_refuses_the_old_layout(self):
+        for key, path in self.legacy.items():
+            for command in ("serve", "snapshot", "latest", "url"):
+                with self.subTest(layout=key, command=command):
+                    target = path.resolve()
+                    before = (target.read_bytes(), target.stat().st_mtime, self.listing())
+                    args = [command, str(path), "--root", str(self.root)]
+                    if command == "serve":
+                        args += ["--no-browser", "--timeout", "5"]
+                    result = subprocess.run(
+                        [sys.executable, "-B", str(SCRIPT), *args],
+                        cwd=self.root, capture_output=True, text=True, timeout=20,
+                    )
+                    self.assertEqual(result.returncode, review_server.EXIT_USAGE, result.stderr)
+                    self.assertEqual(len(result.stderr.strip().splitlines()), 1, result.stderr)
+                    self.assertIn("old layout", result.stderr)
+                    self.assertEqual(result.stdout, "")
+                    after = (target.read_bytes(), target.stat().st_mtime, self.listing())
+                    self.assertEqual(before, after)
+
+
+class RemovedSubcommandsTest(unittest.TestCase):
+    """AC-10: settle and artifacts are gone; purge keeps only --pointer."""
+
+    def run_cli(self, *args: str) -> subprocess.CompletedProcess:
+        return subprocess.run(
+            [sys.executable, "-B", str(SCRIPT), *args], capture_output=True, text=True, timeout=20,
+        )
+
+    def test_ac10_settle_is_an_unknown_subcommand(self):
+        result = self.run_cli("settle", "SPEC-x.md")
+        self.assertEqual(result.returncode, review_server.EXIT_USAGE)
+        self.assertIn("invalid choice", result.stderr)
+
+    def test_ac10_artifacts_is_an_unknown_subcommand(self):
+        result = self.run_cli("artifacts")
+        self.assertEqual(result.returncode, review_server.EXIT_USAGE)
+        self.assertIn("invalid choice", result.stderr)
+
+    def test_ac10_purge_no_longer_takes_artifact_slug_or_dir(self):
+        for option in ("--artifact", "--slug", "--dir"):
+            with self.subTest(option=option):
+                result = self.run_cli("purge", option, "x")
+                self.assertEqual(result.returncode, review_server.EXIT_USAGE)
+                self.assertIn("unrecognized arguments", result.stderr)
+
+    def test_ac10_the_removed_helpers_are_gone(self):
+        for name in (
+            "artifacts_dir", "kind_dir", "find_artifacts", "KIND_DIRS", "DEFAULT_ARTIFACTS_DIR",
+            "BAND_DISMISSED", "band_dismissed_file", "forget_dismissed",
+            "legacy_reviews_dir", "legacy_url_file", "legacy_history_dir",
+        ):
+            self.assertFalse(hasattr(review_server, name), name)
+
+
+class PurgeTest(unittest.TestCase):
+    """Purge keeps only --pointer: a stale features/<slug>/reviews/.url."""
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self._tmp.name)
+        self.features = self.root / ".feature-dev" / "features"
         for slug in ("foo", "foo-bar"):
-            (self.history / slug).mkdir(parents=True)
-            (self.history / slug / f"SPEC-{slug}.1.md").write_text("v1", encoding="utf-8")
-            (self.reviews / f"{slug}-{self.TS}.md").write_text("r", encoding="utf-8")
-        (self.reviews / f"foo-{self.TS}-2.md").write_text("r", encoding="utf-8")
-        (self.reviews / "foo-notes.md").write_text("not a review file", encoding="utf-8")
-        (self.reviews / ".foo.url").write_text("http://127.0.0.1:1/\n", encoding="utf-8")
-        (self.root / "SPEC-foo.md").write_text(SPEC, encoding="utf-8")
-        (self.root / "PLAN-foo.md").write_text(PLAN, encoding="utf-8")
+            (self.features / slug / "reviews").mkdir(parents=True)
+            (self.features / slug / f"SPEC-{slug}.md").write_text(SPEC, encoding="utf-8")
+            (self.features / slug / "reviews" / ".url").write_text("http://127.0.0.1:1/\n", encoding="utf-8")
+        self.pointer = self.features / "foo" / "reviews" / ".url"
 
     def tearDown(self):
         self._tmp.cleanup()
@@ -557,164 +656,76 @@ class PurgeTest(unittest.TestCase):
     def listing(self) -> list[str]:
         return sorted(str(p.relative_to(self.root)) for p in self.root.rglob("*") if ".git" not in p.parts)
 
-    def test_happy_path_deletes_exactly_the_named_data(self):
-        result = self.purge("--artifact", "SPEC-foo.md", "--slug", "foo", "--pointer", "foo")
+    def test_pointer_deletes_only_that_slugs_url(self):
+        result = self.purge("--pointer", "foo")
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("deleted SPEC-foo.md", result.stdout)
-        self.assertIn(f"deleted .feature-dev/reviews/foo-{self.TS}-2.md", result.stdout)
-        self.assertIn("deleted .feature-dev/history/foo/", result.stdout)
-        self.assertIn("deleted .feature-dev/reviews/.foo.url", result.stdout)
-        self.assertFalse((self.root / "SPEC-foo.md").exists())
-        self.assertFalse((self.history / "foo").exists())
-        self.assertFalse((self.reviews / ".foo.url").exists())
-        self.assertFalse((self.reviews / f"foo-{self.TS}.md").exists())
-        # PLAN not named, a non-review file, and the longer slug all survive.
-        self.assertTrue((self.root / "PLAN-foo.md").exists())
-        self.assertTrue((self.reviews / "foo-notes.md").exists())
+        self.assertIn("deleted .feature-dev/features/foo/reviews/.url", result.stdout)
+        self.assertFalse(self.pointer.exists())
+        self.assertTrue((self.features / "foo" / "SPEC-foo.md").exists())
+        self.assertTrue((self.features / "foo-bar" / "reviews" / ".url").exists())
 
-    def test_slug_never_matches_a_longer_slug_by_prefix(self):
-        result = self.purge("--slug", "foo")
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertTrue((self.reviews / f"foo-bar-{self.TS}.md").exists())
-        self.assertTrue((self.history / "foo-bar" / "SPEC-foo-bar.1.md").exists())
-        self.assertNotIn("foo-bar", result.stdout)
-        self.assertFalse(review_server.review_pattern("foo").match(f"foo-bar-{self.TS}.md"))
-        self.assertTrue(review_server.review_pattern("foo-bar").match(f"foo-bar-{self.TS}.md"))
-
-    def test_invalid_arguments_delete_nothing(self):
+    def test_invalid_pointers_delete_nothing(self):
         before = self.listing()
-        for args in (
-            ("--slug", ".."), ("--slug", "../foo"), ("--slug", "foo/bar"), ("--slug", ".foo"),
-            ("--slug", "foo bar"), ("--slug", "~"), ("--slug", "a..b"), ("--slug", ""),
-            ("--pointer", "../x"), ("--pointer", ".foo"),
-            ("--artifact", "SPEC-foo.md ~/x"), ("--artifact", "../SPEC-foo.md"), ("--artifact", "sub/SPEC-foo.md"),
-            ("--artifact", "SPEC-~.md"), ("--artifact", "README.md"), ("--artifact", "SPEC-missing.md"),
-        ):
-            # A valid argument alongside the invalid one is not deleted either.
-            result = self.purge("--slug", "foo", "--artifact", "PLAN-foo.md", *args)
-            self.assertEqual(result.returncode, review_server.EXIT_USAGE, args)
+        for bad in ("..", "../foo", "foo/bar", ".foo", "foo bar", "~", "a..b", ""):
+            result = self.purge("--pointer", "foo", "--pointer", bad)
+            self.assertEqual(result.returncode, review_server.EXIT_USAGE, bad)
             self.assertIn("nothing was deleted", result.stderr)
             self.assertEqual(result.stdout, "")
-            self.assertEqual(self.listing(), before, args)
+            self.assertEqual(self.listing(), before, bad)
 
-    def test_artifact_in_the_configured_folder_is_purged(self):
-        specs = self.root / ".feature-dev" / "specs"
-        specs.mkdir(parents=True)
-        (specs / "SPEC-bar.md").write_text(SPEC, encoding="utf-8")
-        result = self.purge("--artifact", ".feature-dev/specs/SPEC-bar.md")
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertFalse((specs / "SPEC-bar.md").exists())
-        # A custom folder is honored, and a SPEC in the plans folder is refused.
-        custom = self.root / "docs" / "fd" / "plans"
-        custom.mkdir(parents=True)
-        (custom / "PLAN-bar.md").write_text(PLAN, encoding="utf-8")
-        (custom / "SPEC-bar.md").write_text(SPEC, encoding="utf-8")
-        wrong = self.purge("--dir", "docs/fd", "--artifact", "docs/fd/plans/SPEC-bar.md")
-        self.assertEqual(wrong.returncode, review_server.EXIT_USAGE)
-        ok = self.purge("--dir", "docs/fd", "--artifact", "docs/fd/plans/PLAN-bar.md")
-        self.assertEqual(ok.returncode, 0, ok.stderr)
-        self.assertFalse((custom / "PLAN-bar.md").exists())
-        self.assertTrue((custom / "SPEC-bar.md").exists())
-
-    def test_symlinks_are_refused(self):
+    def test_symlinked_pointer_is_refused(self):
         outside = Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, outside)
-        (outside / "keep.md").write_text("keep", encoding="utf-8")
-        (self.root / "SPEC-link.md").symlink_to(outside / "keep.md")
-        (self.history / "linked").symlink_to(outside, target_is_directory=True)
-        (self.history / "foo" / "escape.md").symlink_to(outside / "keep.md")
-        for args in (("--artifact", "SPEC-link.md"), ("--slug", "linked"), ("--slug", "foo")):
-            result = self.purge(*args)
-            self.assertEqual(result.returncode, review_server.EXIT_USAGE, args)
-        self.assertTrue((outside / "keep.md").exists())
-        self.assertTrue((self.history / "foo" / "SPEC-foo.1.md").exists())
+        (outside / "keep").write_text("keep", encoding="utf-8")
+        link = self.features / "foo-bar" / "reviews" / ".url"
+        link.unlink()
+        link.symlink_to(outside / "keep")
+        result = self.purge("--pointer", "foo-bar")
+        self.assertEqual(result.returncode, review_server.EXIT_USAGE)
+        self.assertTrue((outside / "keep").exists())
+
+    def test_symlinked_feature_data_is_refused(self):
+        outside = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, outside)
+        (outside / ".url").write_text("keep", encoding="utf-8")
+        shutil.rmtree(self.features / "foo-bar" / "reviews")
+        (self.features / "foo-bar" / "reviews").symlink_to(outside, target_is_directory=True)
+        result = self.purge("--pointer", "foo-bar")
+        self.assertEqual(result.returncode, review_server.EXIT_USAGE)
+        self.assertTrue((outside / ".url").exists())
 
     def test_dry_run_deletes_nothing(self):
         before = self.listing()
-        result = self.purge("--artifact", "SPEC-foo.md", "--slug", "foo", "--pointer", "foo", "--dry-run")
+        result = self.purge("--pointer", "foo", "--dry-run")
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("would delete SPEC-foo.md", result.stdout)
-        self.assertIn(f"would delete .feature-dev/reviews/foo-{self.TS}.md", result.stdout)
-        self.assertNotIn("deleted", result.stdout.replace("would delete", ""))
+        self.assertIn("would delete .feature-dev/features/foo/reviews/.url", result.stdout)
         self.assertEqual(self.listing(), before)
 
     @unittest.skipUnless(shutil.which("git"), "git not installed")
-    def test_tracked_files_are_skipped_and_reported(self):
-        def git(*args):
-            subprocess.run(["git", "-C", str(self.root), *args], check=True, capture_output=True)
-
-        git("init", "-q")
-        git("add", "-f", "SPEC-foo.md", f".feature-dev/reviews/foo-{self.TS}.md")
-        result = self.purge("--artifact", "SPEC-foo.md", "--artifact", "PLAN-foo.md", "--slug", "foo")
+    def test_tracked_pointer_is_skipped_and_reported(self):
+        subprocess.run(["git", "-C", str(self.root), "init", "-q"], check=True, capture_output=True)
+        subprocess.run(
+            ["git", "-C", str(self.root), "add", "-f", ".feature-dev/features/foo/reviews/.url"],
+            check=True, capture_output=True,
+        )
+        result = self.purge("--pointer", "foo")
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("skipped SPEC-foo.md: tracked by git", result.stdout)
-        self.assertIn(f"skipped .feature-dev/reviews/foo-{self.TS}.md: tracked by git", result.stdout)
-        self.assertTrue((self.root / "SPEC-foo.md").exists())
-        self.assertTrue((self.reviews / f"foo-{self.TS}.md").exists())
-        self.assertFalse((self.root / "PLAN-foo.md").exists())
-        self.assertFalse((self.reviews / f"foo-{self.TS}-2.md").exists())
+        self.assertIn("skipped .feature-dev/features/foo/reviews/.url: tracked by git", result.stdout)
+        self.assertTrue(self.pointer.exists())
 
-    def write_dismissed(self, dismissed: dict) -> Path:
-        path = self.root / ".feature-dev" / "band-dismissed.json"
-        path.write_text(json.dumps({"version": 1, "dismissed": dismissed}), encoding="utf-8")
-        return path
-
-    def test_purged_artifact_leaves_the_band_dismiss_file(self):
-        path = self.write_dismissed({"SPEC-foo.md": 1000, "PLAN-foo.md": 2000})
-        result = self.purge("--artifact", "SPEC-foo.md")
+    def test_missing_pointer_is_reported_not_an_error(self):
+        result = self.purge("--pointer", "nothing-here")
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("updated .feature-dev/band-dismissed.json (forgot 1 dismissed)", result.stdout)
-        self.assertEqual(json.loads(path.read_text(encoding="utf-8"))["dismissed"], {"PLAN-foo.md": 2000})
-        self.assertEqual([p.name for p in path.parent.iterdir() if p.name.endswith(".tmp")], [])
-
-    def test_band_dismiss_file_goes_when_every_entry_is_purged(self):
-        path = self.write_dismissed({"SPEC-foo.md": 1000, "PLAN-foo.md": 2000})
-        dry = self.purge("--artifact", "SPEC-foo.md", "--artifact", "PLAN-foo.md", "--dry-run")
-        self.assertIn("would delete .feature-dev/band-dismissed.json (forget 2 dismissed)", dry.stdout)
-        self.assertTrue(path.exists())
-        result = self.purge("--artifact", "SPEC-foo.md", "--artifact", "PLAN-foo.md")
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("deleted .feature-dev/band-dismissed.json", result.stdout)
-        self.assertFalse(path.exists())
-
-    def test_band_dismiss_entry_stays_while_a_copy_of_the_name_remains(self):
-        specs = self.root / ".feature-dev" / "specs"
-        specs.mkdir(parents=True)
-        (specs / "SPEC-foo.md").write_text(SPEC, encoding="utf-8")
-        path = self.write_dismissed({"SPEC-foo.md": 1000})
-        result = self.purge("--artifact", "SPEC-foo.md")
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertNotIn("band-dismissed", result.stdout)
-        self.assertEqual(json.loads(path.read_text(encoding="utf-8"))["dismissed"], {"SPEC-foo.md": 1000})
-
-    def test_band_dismiss_file_untouched_without_artifacts_or_when_unreadable(self):
-        path = self.write_dismissed({"SPEC-foo.md": 1000})
-        before = path.read_text(encoding="utf-8")
-        result = self.purge("--slug", "foo")
-        self.assertNotIn("band-dismissed", result.stdout)
-        self.assertEqual(path.read_text(encoding="utf-8"), before)
-        path.write_text("{not json", encoding="utf-8")
-        result = self.purge("--artifact", "SPEC-foo.md")
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("skipped .feature-dev/band-dismissed.json: unreadable", result.stdout)
-        self.assertEqual(path.read_text(encoding="utf-8"), "{not json")
-
-    def test_symlinked_band_dismiss_file_is_left_alone(self):
-        outside = Path(tempfile.mkdtemp())
-        self.addCleanup(shutil.rmtree, outside)
-        target = outside / "keep.json"
-        target.write_text(json.dumps({"version": 1, "dismissed": {"SPEC-foo.md": 1}}), encoding="utf-8")
-        (self.root / ".feature-dev" / "band-dismissed.json").symlink_to(target)
-        result = self.purge("--artifact", "SPEC-foo.md")
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("skipped .feature-dev/band-dismissed.json: is a symlink", result.stdout)
-        self.assertIn("SPEC-foo.md", target.read_text(encoding="utf-8"))
-
-    def test_missing_slug_data_is_reported_not_an_error(self):
-        result = self.purge("--slug", "nothing-here", "--pointer", "nothing-here")
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("no review data for slug nothing-here", result.stdout)
         self.assertIn("no such pointer", result.stdout)
+
+    def test_band_dismissed_json_is_never_read_or_written(self):
+        path = self.root / ".feature-dev" / "band-dismissed.json"
+        path.write_text("{not json", encoding="utf-8")
+        result = self.purge("--pointer", "foo")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn("band-dismissed", result.stdout + result.stderr)
+        self.assertEqual(path.read_text(encoding="utf-8"), "{not json")
+        self.assertFalse(path.with_name(".band-dismissed.json.tmp").exists())
 
 
 if __name__ == "__main__":

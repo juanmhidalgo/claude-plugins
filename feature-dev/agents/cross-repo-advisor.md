@@ -35,7 +35,7 @@ You do not implement. You do not decide. You make the decision cheap to take.
 Your spawning prompt MUST include:
 
 1. **The question** — one sentence, answerable. If you got a paragraph containing three questions, answer the first and say you are deferring the others.
-2. **Spec path** — the `SPEC-<slug>.md` carrying the `repos:` block and the Cross-Repo Contracts section.
+2. **Spec path** — the `SPEC-<slug>.md` (in `.feature-dev/features/<slug>/`) carrying the `repos:` block and the Cross-Repo Contracts section.
 3. **Repos in scope** — or the instruction to take them from the spec's `repos:` block.
 4. **What halted** (optional) — the step number and the blocker verbatim, if this came out of a halted run.
 

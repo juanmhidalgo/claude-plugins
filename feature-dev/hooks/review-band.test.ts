@@ -1,540 +1,490 @@
-import { describe, expect, mock, test } from 'claude-code/testing'
-import type { Engine, MockClock } from 'claude-code/testing'
+import { describe, expect, test } from 'claude-code/testing'
+import type { Engine } from 'claude-code/testing'
 import type { On } from 'claude-code'
 
-const ROOT = '/work/repo'
-const REVIEWS = `${ROOT}/.feature-dev/reviews`
-const HOUR = 60 * 60 * 1000
+import { needsReviewCount } from './register'
 
-type File = { text: string; mtimeMs: number }
+const ROOT = '/work/repo'
+
+type Feature = {
+  slug: string
+  status: string
+  plan: null
+  issue: null
+  artifacts: { kind: 'spec' | 'plan'; path: string; needs_review: boolean }[]
+}
+
 type World = {
-  files: Record<string, File>
-  alive?: Set<string>
-  runs: { command: string; args: string }[]
-  /** Where the mocked clock starts; 0 keeps every test mtime inside the window. */
-  now?: number
-  /** Folders that exist but fail to list (unreadable, I/O error). */
-  listFails?: Set<string>
+  /** What `features.py list --json` prints. */
+  features: Feature[]
+  /** Every process.run the mod made. */
+  runs: { argv: readonly string[] }[]
+  /** Every ui.open the mod made. */
+  opens: { id: string; title?: string; focus?: boolean }[]
+  /** What ui.open answers: false when the terminal is too narrow to place the pane. */
+  isPlaced?: boolean
+  /** Every command.run the mod made. */
+  commands: { command: string; args: string }[]
+  /** How `list --json` fails: rejects, exits non-zero, or prints invalid JSON. */
+  listFails?: 'reject' | 'exit' | 'json'
+  /** Make `delete` exit non-zero with this stderr. */
+  deleteStderr?: string
+  /** Every toast the mod raised. */
+  toasts?: string[]
 }
 
 const BAND = {
   plugin: 'feature-dev',
   surface: 'terminal',
   component: 'AbovePrompt',
+  props: { hasSurvey: false, isWorking: false, maxRows: 12, bodyColumns: 120, scroll: { offset: 0, bodyRows: 11 }, view: {} },
+} as const
+
+const PANE = {
+  plugin: 'feature-dev',
+  surface: 'terminal',
+  component: 'Pane',
+  requestId: 'features',
   props: {
-    hasSurvey: false,
-    isWorking: false,
-    maxRows: 12,
-    bodyColumns: 120,
-    scroll: { offset: 0, bodyRows: 11 },
+    title: 'Features',
+    isFocused: false,
+    bodyColumns: 60,
+    placement: 'dock',
+    scroll: { offset: 0, bodyRows: 20 },
     view: {},
   },
 } as const
 
-function review(artifact: string): string {
-  return `---\nartifact: ${artifact}\nverdict: approve\n---\n\n# Review\n`
+function feature(slug: string, status: string, needsReview = false): Feature {
+  return {
+    slug,
+    status,
+    plan: null,
+    issue: null,
+    artifacts: [{ kind: 'spec', path: `.feature-dev/features/${slug}/SPEC-${slug}.md`, needs_review: needsReview }],
+  }
 }
 
-function spec(slug?: string): string {
-  return slug ? `---\ntype: specification\nslug: ${slug}\n---\n# Spec\n` : '# Spec\n'
-}
-
-const DISMISSED = `${ROOT}/.feature-dev/band-dismissed.json`
-
-/** What a previous session's Dismiss of SPEC-billing.md at mtime 1000 leaves on disk. */
-const PERSISTED = { version: 1, dismissed: { 'SPEC-billing.md': 1000 } }
-
-function dismissedOnDisk(w: World): unknown {
-  const f = w.files[DISMISSED]
-  return f === undefined ? undefined : JSON.parse(f.text)
-}
-
-/** The world beneath the plugin: a file system in memory, the network, commands. */
-function world(on: On, w: World): MockClock {
-  const clock = mock.clock(on, { now: w.now ?? 0 })
-  const dirOf = (p: string) => p.slice(0, p.lastIndexOf('/'))
+/**
+ * The world beneath the mod: a fake features.py and a pane placement answer.
+ * No fs.read handler is registered, so any read the mod makes throws.
+ */
+function world(on: On, w: World): void {
   on('session.root', () => ({ value: ROOT }))
   on('session.start', ($, e) => ({ cwd: e.cwd }))
   on('turn.complete', () => ({ text: '' }))
-  on('fs.exists', ($, e) => ({
-    value: w.listFails?.has(e.path) === true || Object.keys(w.files).some(p => p === e.path || p.startsWith(`${e.path}/`)),
-  }))
-  on('fs.list', ($, e) => {
-    if (w.listFails?.has(e.path)) return { deny: `EACCES ${e.path}` }
-    return {
-      value: Object.entries(w.files)
-        .filter(([p]) => dirOf(p) === e.path)
-        .map(([p, f]) => ({ name: p.slice(p.lastIndexOf('/') + 1), kind: 'file' as const, size: f.text.length, mtimeMs: f.mtimeMs, isLink: false })),
-    }
+  on('ui.open', (_$, e) => {
+    w.opens.push(e)
+    return { value: w.isPlaced === false ? { isPlaced: false as const, reason: 'too-narrow' as never } : { isPlaced: true as const } }
   })
-  on('fs.write', ($, e) => {
-    w.files[e.path] = { text: e.text, mtimeMs: 0 }
-    return { value: undefined }
-  })
-  on('fs.read', ($, e) => {
-    const f = w.files[e.path]
-    return f === undefined ? { deny: `ENOENT ${e.path}` } : { value: f.text }
-  })
-  on('http.fetch', ($, e) =>
-    w.alive?.has(e.url) ? { value: { status: 204, ok: true, headers: {}, text: '' } } : { deny: 'ECONNREFUSED' },
-  )
   on('command.list', () => ({
     value: [
-      { name: 'feature-dev:spec', description: '', source: 'plugin' as const, plugin: 'feature-dev' },
       { name: 'feature-dev:review', description: '', source: 'plugin' as const, plugin: 'feature-dev' },
-      { name: 'feature-dev:cleanup', description: '', source: 'plugin' as const, plugin: 'feature-dev' },
+      { name: 'feature-dev:tdd', description: '', source: 'plugin' as const, plugin: 'feature-dev' },
     ],
   }))
-  on('command.run', ($, e) => {
-    w.runs.push({ command: e.command, args: e.args })
+  on('command.run', (_$, e) => {
+    w.commands.push({ command: e.command, args: e.args })
     return { text: '' }
   })
-  on('ui.render', { component: 'AbovePrompt' }, () => ({ type: 'Box', props: { key: 'engine-band' } }) as never)
-  return clock
+  on('ui.toast', (_$, e) => {
+    ;(w.toasts ??= []).push(e.text)
+    return { value: undefined } as never
+  })
+  on('ui.render', { component: 'Pane' }, () => ({ type: 'Box', props: {} }) as never)
+  on('ui.render', { component: 'AbovePrompt' }, () => ({ type: 'Box', props: {} }) as never)
+  on('process.run', (_$, e) => {
+    w.runs.push({ argv: e.argv })
+    if (e.argv[2] === 'list' && w.listFails === 'reject') throw new Error('python3: not found')
+    if (e.argv[2] === 'list' && w.listFails === 'exit')
+      return { value: { exitCode: 2, stdout: '', stderr: 'boom', isStdoutTruncated: false, isStderrTruncated: false } }
+    if (e.argv[2] === 'list' && w.listFails === 'json')
+      return { value: { exitCode: 0, stdout: 'not json', stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
+    if (e.argv[2] === 'delete' && w.deleteStderr !== undefined)
+      return { value: { exitCode: 1, stdout: '', stderr: w.deleteStderr, isStdoutTruncated: false, isStderrTruncated: false } }
+    if (e.argv[2] === 'delete') w.features = w.features.filter(f => f.slug !== e.argv[3])
+    return {
+      value: { exitCode: 0, stdout: JSON.stringify(w.features), stderr: '', isStdoutTruncated: false, isStderrTruncated: false },
+    }
+  })
+}
+
+function threeFeatures(): World {
+  return {
+    runs: [],
+    opens: [],
+    commands: [],
+    features: [feature('billing', 'running', true), feature('auth', 'implemented'), feature('search', 'draft')],
+  }
+}
+
+async function start($: Engine): Promise<void> {
+  await $.session.start({ cwd: ROOT, surface: 'terminal', isInteractive: true })
 }
 
 async function endTurn($: Engine, agentId?: string): Promise<void> {
   await $.turn.complete({ answer: '', durationMs: 1, isAborted: false, turnId: 't', reason: 'answer', ...(agentId ? { agentId } : {}) })
 }
 
-describe('review band', () => {
-  test('flags an artifact changed after its latest review', async ($, on) => {
-    const w: World = {
-      runs: [],
-      files: {
-        [`${ROOT}/SPEC-billing.md`]: { text: spec(), mtimeMs: 2000 },
-        [`${REVIEWS}/billing-20260101T000000Z.md`]: { text: review('SPEC-billing.md'), mtimeMs: 1000 },
-      },
-    }
+function withPlan(f: Feature): Feature {
+  return {
+    ...f,
+    artifacts: [
+      ...f.artifacts,
+      { kind: 'plan', path: `.feature-dev/features/${f.slug}/PLAN-${f.slug}.md`, needs_review: false },
+    ],
+  }
+}
+
+async function buttons(ui: Awaited<ReturnType<Engine['ui']['mount']>>): Promise<string[]> {
+  return (await ui.findAll({ type: 'Button' })).map(b => String(b.key ?? ''))
+}
+
+async function rows(ui: Awaited<ReturnType<Engine['ui']['mount']>>): Promise<string[]> {
+  return (await ui.findAll({ type: 'Text' })).map(t => t.text ?? '')
+}
+
+describe('feature sidebar', () => {
+  test('session.start opens the Features pane and lists active features, then Done', async ($, on) => {
+    const w = threeFeatures()
     world(on, w)
-    await endTurn($)
-    const ui = await $.ui.mount(BAND)
-    expect((await ui.find({ type: 'Text', text: 'not reviewed since last change' }))?.text).toContain('SPEC-billing.md')
-    expect(await ui.find({ key: 'open:SPEC-billing.md' })).toBeDefined()
-    expect(await ui.find({ key: 'dismiss:SPEC-billing.md' })).toBeDefined()
-    // A single pending artifact still offers the cleanup.
-    await ui.press({ key: 'cleanup' })
-    expect(w.runs).toEqual([{ command: 'feature-dev:cleanup', args: '' }])
+    await start($)
+    expect(w.opens).toEqual([{ id: 'features', title: 'Features' }])
+    expect(w.runs).toHaveLength(1)
+    const argv = w.runs[0]!.argv
+    expect(argv[0]).toBe('python3')
+    expect(argv.slice(2)).toEqual(['list', '--json', '--root', ROOT])
+    expect(argv[1]).toMatch(/\/scripts\/features\.py$/)
+
+    const ui = await $.ui.mount(PANE)
+    const text = await rows(ui)
+    const at = (needle: string) => text.findIndex(t => t.includes(needle))
+    expect(at('billing')).toBeGreaterThanOrEqual(0)
+    expect(text[at('billing')]).toContain('running')
+    expect(text[at('billing')]).toContain('needs review')
+    expect(text[at('search')]).toContain('draft')
+    expect(text[at('search')]).not.toContain('needs review')
+    expect(text[at('Done')]).toBeDefined()
+    expect(at('billing')).toBeLessThan(at('Done'))
+    expect(at('search')).toBeLessThan(at('Done'))
+    expect(at('Done')).toBeLessThan(at('auth'))
+    expect(text[at('auth')]).toContain('implemented')
   })
 
-  test('draws nothing when the latest review is newer than the artifact', async ($, on) => {
-    const w: World = {
-      runs: [],
-      files: {
-        [`${ROOT}/SPEC-billing.md`]: { text: spec(), mtimeMs: 1000 },
-        [`${REVIEWS}/billing-20260101T000000Z.md`]: { text: review('SPEC-billing.md'), mtimeMs: 2000 },
-      },
-    }
+  test('ac22: an empty list opens no pane; a hand-mounted Pane names /feature-dev:spec', async ($, on) => {
+    const w = threeFeatures()
+    w.features = []
     world(on, w)
-    await endTurn($)
-    const ui = await $.ui.mount(BAND)
-    expect(await ui.find({ key: 'engine-band' })).toBeDefined()
-    expect(await ui.find({ type: 'Button' })).toBeUndefined()
+    await start($)
+    expect(w.runs).toHaveLength(1)
+    expect(w.opens).toEqual([])
+
+    const ui = await $.ui.mount(PANE)
+    const text = await rows(ui)
+    expect(text).toHaveLength(1)
+    expect(text[0]).toMatch(/no features/i)
+    expect(text[0]).toContain('/feature-dev:spec')
   })
 
-  test('matches reviews on the full artifact name, not the shared slug', async ($, on) => {
-    const w: World = {
-      runs: [],
-      files: {
-        [`${ROOT}/SPEC-billing.md`]: { text: spec(), mtimeMs: 1000 },
-        [`${ROOT}/PLAN-billing.md`]: { text: spec(), mtimeMs: 1000 },
-        // A newer review of the SPEC says nothing about the PLAN.
-        [`${REVIEWS}/billing-20260101T000000Z.md`]: { text: review('SPEC-billing.md'), mtimeMs: 2000 },
-      },
-    }
+  test('turn.complete refreshes the list for the main agent only', async ($, on) => {
+    const w = threeFeatures()
     world(on, w)
-    await endTurn($)
-    const ui = await $.ui.mount(BAND)
-    expect(await ui.find({ key: 'open:PLAN-billing.md' })).toBeDefined()
-    expect(await ui.find({ key: 'open:SPEC-billing.md' })).toBeUndefined()
-  })
+    await start($)
+    const ui = await $.ui.mount(PANE)
+    w.features = [feature('newcomer', 'draft')]
 
-  test('ignores history copies and files that are not artifacts', async ($, on) => {
-    const w: World = {
-      runs: [],
-      files: {
-        [`${ROOT}/SPEC-billing.3.md`]: { text: spec(), mtimeMs: 1000 },
-        [`${ROOT}/SPEC notes.md`]: { text: spec(), mtimeMs: 1000 },
-        [`${ROOT}/README.md`]: { text: spec(), mtimeMs: 1000 },
-      },
-    }
-    world(on, w)
-    await endTurn($)
-    const ui = await $.ui.mount(BAND)
-    expect(await ui.find({ type: 'Button' })).toBeUndefined()
-  })
-
-  test('Dismiss hides the row until the artifact changes again', async ($, on) => {
-    const w: World = { runs: [], files: { [`${ROOT}/SPEC-billing.md`]: { text: spec(), mtimeMs: 1000 } } }
-    world(on, w)
-    await endTurn($)
-    const ui = await $.ui.mount(BAND)
-    await ui.press({ key: 'dismiss:SPEC-billing.md' })
-    expect(await ui.find({ key: 'open:SPEC-billing.md' })).toBeUndefined()
-    await endTurn($)
-    expect(await ui.find({ key: 'open:SPEC-billing.md' })).toBeUndefined()
-    w.files[`${ROOT}/SPEC-billing.md`] = { text: spec(), mtimeMs: 3000 }
-    await endTurn($)
-    expect(await ui.find({ key: 'open:SPEC-billing.md' })).toBeDefined()
-  })
-
-  test('Open review runs /feature-dev:review on the artifact', async ($, on) => {
-    const w: World = { runs: [], files: { [`${ROOT}/PLAN-billing.md`]: { text: spec(), mtimeMs: 1000 } } }
-    world(on, w)
-    await endTurn($)
-    const ui = await $.ui.mount(BAND)
-    await ui.press({ key: 'open:PLAN-billing.md' })
-    expect(w.runs).toEqual([{ command: 'feature-dev:review', args: 'PLAN-billing.md' }])
-  })
-
-  test('finds artifacts in .feature-dev/specs and /plans, and a name in both places once', async ($, on) => {
-    const w: World = {
-      runs: [],
-      files: {
-        [`${ROOT}/.feature-dev/specs/SPEC-billing.md`]: { text: spec(), mtimeMs: 1000 },
-        [`${ROOT}/.feature-dev/plans/PLAN-billing.md`]: { text: spec(), mtimeMs: 1000 },
-        [`${ROOT}/SPEC-billing.md`]: { text: spec(), mtimeMs: 5000 },
-      },
-    }
-    world(on, w)
-    await endTurn($)
-    const ui = await $.ui.mount(BAND)
-    await ui.press({ key: 'show-all' })
-    expect(await ui.findAll({ type: 'Button', text: 'Open review' })).toHaveLength(2)
-    await ui.press({ key: 'open:SPEC-billing.md' })
-    await ui.press({ key: 'open:PLAN-billing.md' })
-    expect(w.runs.map(r => r.args)).toEqual(['.feature-dev/specs/SPEC-billing.md', '.feature-dev/plans/PLAN-billing.md'])
-  })
-
-  test('artifacts_dir moves the folder the band reads', { options: { artifacts_dir: 'docs/fd' } }, async ($, on) => {
-    const w: World = {
-      runs: [],
-      files: {
-        [`${ROOT}/docs/fd/specs/SPEC-billing.md`]: { text: spec(), mtimeMs: 1000 },
-        [`${ROOT}/.feature-dev/specs/SPEC-other.md`]: { text: spec(), mtimeMs: 1000 },
-      },
-    }
-    world(on, w)
-    await endTurn($)
-    const ui = await $.ui.mount(BAND)
-    expect(await ui.find({ key: 'open:SPEC-billing.md' })).toBeDefined()
-    expect(await ui.find({ key: 'open:SPEC-other.md' })).toBeUndefined()
-  })
-
-  test('a live review server turns Open into a link to its page', async ($, on) => {
-    const w: World = {
-      runs: [],
-      alive: new Set(['http://127.0.0.1:43123/alive']),
-      files: {
-        [`${ROOT}/SPEC-billing.md`]: { text: spec('billing-v2'), mtimeMs: 1000 },
-        [`${REVIEWS}/.billing-v2.url`]: { text: 'http://127.0.0.1:43123/\n', mtimeMs: 1000 },
-      },
-    }
-    world(on, w)
-    await endTurn($)
-    const ui = await $.ui.mount(BAND)
-    const link = await ui.find({ type: 'Link' })
-    expect(link?.props.href).toBe('http://localhost:43123/')
-    expect(await ui.find({ key: 'open:SPEC-billing.md' })).toBeUndefined()
-  })
-
-  test('a stale pointer whose server is gone keeps the Open button', async ($, on) => {
-    const w: World = {
-      runs: [],
-      files: {
-        [`${ROOT}/SPEC-billing.md`]: { text: spec(), mtimeMs: 1000 },
-        [`${REVIEWS}/.billing.url`]: { text: 'http://127.0.0.1:43123/\n', mtimeMs: 1000 },
-      },
-    }
-    world(on, w)
-    await endTurn($)
-    const ui = await $.ui.mount(BAND)
-    expect(await ui.find({ type: 'Link' })).toBeUndefined()
-    expect(await ui.find({ key: 'open:SPEC-billing.md' })).toBeDefined()
-  })
-
-  test("a subagent's turn does not rescan", async ($, on) => {
-    const w: World = { runs: [], files: { [`${ROOT}/SPEC-billing.md`]: { text: spec(), mtimeMs: 1000 } } }
-    world(on, w)
     await endTurn($, 'agent-1')
-    const ui = await $.ui.mount(BAND)
-    expect(await ui.find({ type: 'Button' })).toBeUndefined()
+    expect(w.runs).toHaveLength(1)
+    expect((await rows(ui)).some(t => t.includes('newcomer'))).toBe(false)
+
+    await endTurn($)
+    expect(w.runs).toHaveLength(2)
+    expect((await rows(ui)).some(t => t.includes('newcomer'))).toBe(true)
   })
 
-  test('review_band: false turns the band off', { options: { review_band: false } }, async ($, on) => {
-    const w: World = { runs: [], files: { [`${ROOT}/SPEC-billing.md`]: { text: spec(), mtimeMs: 1000 } } }
+  test('ac16: selecting a feature shows exactly its valid actions', async ($, on) => {
+    const w = threeFeatures()
+    w.features = [
+      withPlan(feature('billing', 'running')),
+      feature('search', 'draft'),
+      withPlan(feature('auth', 'implemented')),
+    ]
     world(on, w)
-    await endTurn($)
-    const ui = await $.ui.mount(BAND)
-    expect(await ui.find({ type: 'Button' })).toBeUndefined()
+    await start($)
+    const ui = await $.ui.mount(PANE)
+    expect(await buttons(ui)).toEqual(['select:billing', 'select:search', 'select:auth'])
+
+    await ui.press({ key: 'select:billing' })
+    expect(await buttons(ui)).toEqual(
+      expect.arrayContaining(['review-spec', 'review-plan', 'continue', 'dismiss', 'delete']),
+    )
+
+    await ui.press({ key: 'select:search' })
+    const draft = await buttons(ui)
+    expect(draft).toEqual(expect.arrayContaining(['review-spec', 'dismiss', 'delete']))
+    expect(draft).not.toContain('review-plan')
+    expect(draft).not.toContain('continue')
+
+    await ui.press({ key: 'select:auth' })
+    const done = await buttons(ui)
+    expect(done).toContain('review-plan')
+    expect(done).not.toContain('continue')
   })
 
-  test('yields to a survey', async ($, on) => {
-    const w: World = { runs: [], files: { [`${ROOT}/SPEC-billing.md`]: { text: spec(), mtimeMs: 1000 } } }
+  test('ac16: Review spec, Review plan and Continue run through command.run', async ($, on) => {
+    const w = threeFeatures()
+    w.features = [withPlan(feature('billing', 'planned')), feature('search', 'running')]
     world(on, w)
-    await endTurn($)
-    const ui = await $.ui.mount({ ...BAND, props: { ...BAND.props, hasSurvey: true } })
-    expect(await ui.find({ type: 'Button' })).toBeUndefined()
-  })
+    await start($)
+    const ui = await $.ui.mount(PANE)
 
-  test('hides an unreviewed artifact older than the window, shows a recent one', async ($, on) => {
-    const now = 100 * HOUR
-    const w: World = {
-      runs: [],
-      now,
-      files: {
-        [`${ROOT}/SPEC-old.md`]: { text: spec(), mtimeMs: now - 48 * HOUR },
-        [`${ROOT}/SPEC-new.md`]: { text: spec(), mtimeMs: now - 1 * HOUR },
-      },
-    }
-    world(on, w)
-    await endTurn($)
-    const ui = await $.ui.mount(BAND)
-    expect(await ui.find({ key: 'open:SPEC-new.md' })).toBeDefined()
-    expect(await ui.find({ key: 'open:SPEC-old.md' })).toBeUndefined()
-    expect(await ui.find({ key: 'show-all' })).toBeUndefined()
-  })
-
-  test('review_band_window_hours widens the window', { options: { review_band_window_hours: 72 } }, async ($, on) => {
-    const now = 100 * HOUR
-    const w: World = { runs: [], now, files: { [`${ROOT}/SPEC-old.md`]: { text: spec(), mtimeMs: now - 48 * HOUR } } }
-    world(on, w)
-    await endTurn($)
-    const ui = await $.ui.mount(BAND)
-    expect(await ui.find({ key: 'open:SPEC-old.md' })).toBeDefined()
-  })
-
-  test('shows an artifact modified this session even past the window', async ($, on) => {
-    const w: World = {
-      runs: [],
-      now: 10 * HOUR,
-      files: {
-        [`${ROOT}/SPEC-before.md`]: { text: spec(), mtimeMs: 5 * HOUR },
-        [`${ROOT}/SPEC-during.md`]: { text: spec(), mtimeMs: 20 * HOUR },
-      },
-    }
-    const clock = world(on, w)
-    await $.session.start({ cwd: ROOT, surface: 'terminal', isInteractive: true })
-    await clock.set(100 * HOUR)
-    await endTurn($)
-    const ui = await $.ui.mount(BAND)
-    expect(await ui.find({ key: 'open:SPEC-during.md' })).toBeDefined()
-    expect(await ui.find({ key: 'open:SPEC-before.md' })).toBeUndefined()
-  })
-
-  test('two or more pending collapse into one row that opens the latest', async ($, on) => {
-    const w: World = {
-      runs: [],
-      files: {
-        [`${ROOT}/SPEC-a.md`]: { text: spec(), mtimeMs: 1000 },
-        [`${ROOT}/.feature-dev/plans/PLAN-b.md`]: { text: spec(), mtimeMs: 3000 },
-        [`${ROOT}/SPEC-c.md`]: { text: spec(), mtimeMs: 2000 },
-      },
-    }
-    world(on, w)
-    await endTurn($)
-    const ui = await $.ui.mount(BAND)
-    expect((await ui.find({ type: 'Text', text: 'not reviewed' }))?.text).toContain('3 not reviewed')
-    expect((await ui.find({ key: 'open:latest' }))?.props.label).toBe('Open PLAN-b.md')
-    expect(await ui.find({ key: 'open:SPEC-a.md' })).toBeUndefined()
-    await ui.press({ key: 'open:latest' })
-    expect(w.runs).toEqual([{ command: 'feature-dev:review', args: '.feature-dev/plans/PLAN-b.md' }])
-  })
-
-  test('Show all expands to one row each, Collapse folds it back', async ($, on) => {
-    const w: World = {
-      runs: [],
-      files: {
-        [`${ROOT}/SPEC-a.md`]: { text: spec(), mtimeMs: 1000 },
-        [`${ROOT}/SPEC-b.md`]: { text: spec(), mtimeMs: 2000 },
-      },
-    }
-    world(on, w)
-    await endTurn($)
-    const ui = await $.ui.mount(BAND)
-    await ui.press({ key: 'show-all' })
-    expect(await ui.find({ key: 'open:SPEC-a.md' })).toBeDefined()
-    expect(await ui.find({ key: 'dismiss:SPEC-b.md' })).toBeDefined()
-    expect(await ui.find({ key: 'show-all' })).toBeUndefined()
-    await ui.press({ key: 'collapse' })
-    expect(await ui.find({ key: 'open:SPEC-a.md' })).toBeUndefined()
-    expect(await ui.find({ key: 'show-all' })).toBeDefined()
-  })
-
-  test('Dismiss all hides every pending artifact until one changes again', async ($, on) => {
-    const w: World = {
-      runs: [],
-      files: {
-        [`${ROOT}/SPEC-a.md`]: { text: spec(), mtimeMs: 1000 },
-        [`${ROOT}/SPEC-b.md`]: { text: spec(), mtimeMs: 2000 },
-      },
-    }
-    world(on, w)
-    await endTurn($)
-    const ui = await $.ui.mount(BAND)
-    await ui.press({ key: 'dismiss-all' })
-    expect(await ui.find({ type: 'Button' })).toBeUndefined()
-    w.files[`${ROOT}/SPEC-a.md`] = { text: spec(), mtimeMs: 4000 }
-    await endTurn($)
-    expect(await ui.find({ key: 'open:SPEC-a.md' })).toBeDefined()
-    expect(await ui.find({ key: 'open:SPEC-b.md' })).toBeUndefined()
-  })
-
-  test('Dismiss writes the artifact and its mtime to .feature-dev/band-dismissed.json', async ($, on) => {
-    const w: World = { runs: [], files: { [`${ROOT}/SPEC-billing.md`]: { text: spec(), mtimeMs: 1000 } } }
-    world(on, w)
-    await endTurn($)
-    const ui = await $.ui.mount(BAND)
-    await ui.press({ key: 'dismiss:SPEC-billing.md' })
-    // The exact state the next test starts a fresh session from.
-    expect(dismissedOnDisk(w)).toEqual(PERSISTED)
-  })
-
-  test('a dismissal persisted by an earlier session hides the row in a fresh one', async ($, on) => {
-    // A fresh engine and module: only the file on disk carries the dismissal over.
-    const w: World = {
-      runs: [],
-      files: {
-        [`${ROOT}/SPEC-billing.md`]: { text: spec(), mtimeMs: 1000 },
-        [DISMISSED]: { text: JSON.stringify(PERSISTED), mtimeMs: 0 },
-      },
-    }
-    world(on, w)
-    await $.session.start({ cwd: ROOT, surface: 'terminal', isInteractive: true })
-    const ui = await $.ui.mount(BAND)
-    expect(await ui.find({ key: 'open:SPEC-billing.md' })).toBeUndefined()
-    // Changed since: it comes back, and the stale entry is pruned from disk.
-    w.files[`${ROOT}/SPEC-billing.md`] = { text: spec(), mtimeMs: 3000 }
-    await endTurn($)
-    expect(await ui.find({ key: 'open:SPEC-billing.md' })).toBeDefined()
-    expect(dismissedOnDisk(w)).toEqual({ version: 1, dismissed: {} })
-  })
-
-  test('prunes dismissals whose artifact no longer exists, keeps the rest', async ($, on) => {
-    const stored = { version: 1, dismissed: { 'SPEC-billing.md': 1000, 'SPEC-gone.md': 500 } }
-    const w: World = {
-      runs: [],
-      files: {
-        [`${ROOT}/SPEC-billing.md`]: { text: spec(), mtimeMs: 1000 },
-        [DISMISSED]: { text: JSON.stringify(stored), mtimeMs: 0 },
-      },
-    }
-    world(on, w)
-    await endTurn($)
-    expect(dismissedOnDisk(w)).toEqual(PERSISTED)
-    const ui = await $.ui.mount(BAND)
-    expect(await ui.find({ type: 'Button' })).toBeUndefined()
-  })
-
-  test('keeps dismissals when an artifact folder fails to list', async ($, on) => {
-    const specs = `${ROOT}/.feature-dev/specs`
-    const stored = { version: 1, dismissed: { 'SPEC-billing.md': 1000, 'SPEC-gone.md': 500 } }
-    const w: World = {
-      runs: [],
-      listFails: new Set([specs]),
-      files: {
-        [`${specs}/SPEC-billing.md`]: { text: spec(), mtimeMs: 1000 },
-        [DISMISSED]: { text: JSON.stringify(stored), mtimeMs: 0 },
-      },
-    }
-    world(on, w)
-    await endTurn($)
-    // The folder's contents are unknown, so nothing is pruned, not even SPEC-gone.md.
-    expect(dismissedOnDisk(w)).toEqual(stored)
-    // Once it lists again, the missing artifact's entry goes and the present one stays hidden.
-    w.listFails = new Set()
-    await endTurn($)
-    expect(dismissedOnDisk(w)).toEqual(PERSISTED)
-    const ui = await $.ui.mount(BAND)
-    expect(await ui.find({ key: 'open:SPEC-billing.md' })).toBeUndefined()
-  })
-
-  test('a malformed dismiss file reads as nothing dismissed', async ($, on) => {
-    const w: World = {
-      runs: [],
-      files: {
-        [`${ROOT}/SPEC-billing.md`]: { text: spec(), mtimeMs: 1000 },
-        [DISMISSED]: { text: '{"version": 1, "dismis', mtimeMs: 0 },
-      },
-    }
-    world(on, w)
-    await endTurn($)
-    const ui = await $.ui.mount(BAND)
-    expect(await ui.find({ key: 'open:SPEC-billing.md' })).toBeDefined()
-  })
-
-  test('Dismiss merges with what another session wrote meanwhile', async ($, on) => {
-    const w: World = {
-      runs: [],
-      files: {
-        [`${ROOT}/SPEC-billing.md`]: { text: spec(), mtimeMs: 1000 },
-        [`${ROOT}/SPEC-other.md`]: { text: spec(), mtimeMs: 700 },
-      },
-    }
-    world(on, w)
-    await endTurn($)
-    const ui = await $.ui.mount(BAND)
-    await ui.press({ key: 'show-all' })
-    w.files[DISMISSED] = { text: JSON.stringify({ version: 1, dismissed: { 'SPEC-other.md': 700 } }), mtimeMs: 0 }
-    await ui.press({ key: 'dismiss:SPEC-billing.md' })
-    expect(dismissedOnDisk(w)).toEqual({ version: 1, dismissed: { 'SPEC-other.md': 700, 'SPEC-billing.md': 1000 } })
-  })
-
-  test('Dismiss all persists every listed artifact', async ($, on) => {
-    const w: World = {
-      runs: [],
-      files: {
-        [`${ROOT}/SPEC-a.md`]: { text: spec(), mtimeMs: 1000 },
-        [`${ROOT}/.feature-dev/plans/PLAN-b.md`]: { text: spec(), mtimeMs: 2000 },
-      },
-    }
-    world(on, w)
-    await endTurn($)
-    const ui = await $.ui.mount(BAND)
-    await ui.press({ key: 'dismiss-all' })
-    expect(dismissedOnDisk(w)).toEqual({ version: 1, dismissed: { 'SPEC-a.md': 1000, 'PLAN-b.md': 2000 } })
-  })
-
-  test('Clean up runs /feature-dev:cleanup from the collapsed row and the expanded view', async ($, on) => {
-    const w: World = {
-      runs: [],
-      files: {
-        [`${ROOT}/SPEC-a.md`]: { text: spec(), mtimeMs: 1000 },
-        [`${ROOT}/SPEC-b.md`]: { text: spec(), mtimeMs: 2000 },
-      },
-    }
-    world(on, w)
-    await endTurn($)
-    const ui = await $.ui.mount(BAND)
-    await ui.press({ key: 'cleanup' })
-    await ui.press({ key: 'show-all' })
-    await ui.press({ key: 'cleanup' })
-    expect(w.runs).toEqual([
-      { command: 'feature-dev:cleanup', args: '' },
-      { command: 'feature-dev:cleanup', args: '' },
+    await ui.press({ key: 'select:billing' })
+    await ui.press({ key: 'review-spec' })
+    await ui.press({ key: 'review-plan' })
+    await ui.press({ key: 'continue' })
+    // No PLAN artifact: Continue falls back to the spec path.
+    await ui.press({ key: 'select:search' })
+    await ui.press({ key: 'continue' })
+    expect(w.commands).toEqual([
+      { command: 'feature-dev:review', args: '.feature-dev/features/billing/SPEC-billing.md' },
+      { command: 'feature-dev:review', args: '.feature-dev/features/billing/PLAN-billing.md' },
+      { command: 'feature-dev:tdd', args: '.feature-dev/features/billing/PLAN-billing.md' },
+      { command: 'feature-dev:tdd', args: '.feature-dev/features/search/SPEC-search.md' },
     ])
-    // Nothing is deleted by the band itself.
-    expect(Object.keys(w.files)).toEqual([`${ROOT}/SPEC-a.md`, `${ROOT}/SPEC-b.md`])
+  })
+  test('ac17: Dismiss hides the mark and the band count until a fresh session', async ($, on) => {
+    const w = threeFeatures()
+    w.features = [feature('a', 'running', true), feature('b', 'draft', true)]
+    // No fs.write handler is registered: any write the mod made would throw.
+    world(on, w)
+    await start($)
+    const ui = await $.ui.mount(PANE)
+    const marked = async () => (await rows(ui)).filter(t => t.includes('needs review')).length
+    expect(await marked()).toBe(2)
+
+    await ui.press({ key: 'select:a' })
+    await ui.press({ key: 'dismiss' })
+    expect(await marked()).toBe(1)
+
+    // A later turn reports `a` with a newer artifact, still needing review.
+    w.features = [
+      {
+        ...feature('a', 'running', true),
+        artifacts: [{ kind: 'spec', path: '.feature-dev/features/a/SPEC-a-v2.md', needs_review: true }],
+      },
+      feature('b', 'draft', true),
+    ]
+    await endTurn($)
+    const text = await rows(ui)
+    expect(text.find(t => t.startsWith('a '))).not.toContain('needs review')
+    expect(await marked()).toBe(1)
+    expect(needsReviewCount(w.features as never, ['a'])).toBe(1)
+    expect(needsReviewCount(w.features as never, [])).toBe(2)
   })
 
-  test('hides a spec whose frontmatter says status: approved', async ($, on) => {
-    const approved = '---\ntype: specification\nstatus: approved\n---\n# Spec\n'
-    const draft = '---\ntype: specification\nstatus: draft\n---\n# Spec\n'
-    const w: World = {
-      runs: [],
-      files: {
-        [`${ROOT}/SPEC-done.md`]: { text: approved, mtimeMs: 2000 },
-        [`${ROOT}/SPEC-wip.md`]: { text: draft, mtimeMs: 1000 },
-        // `status: approved` past the frontmatter is body text, not an approval.
-        [`${ROOT}/SPEC-body.md`]: { text: `${draft}\nstatus: approved\n`, mtimeMs: 1000 },
-      },
-    }
+  test('ac17: a fresh session (new engine) shows the dismissed mark again', async ($, on) => {
+    const w = threeFeatures()
+    w.features = [feature('a', 'running', true)]
     world(on, w)
-    await endTurn($)
+    await start($)
+    const ui = await $.ui.mount(PANE)
+    expect((await rows(ui)).find(t => t.startsWith('a '))).toContain('needs review')
+  })
+
+  test('ac18: Delete asks first, then runs features.py delete (--force unless implemented)', async ($, on) => {
+    const w = threeFeatures()
+    world(on, w)
+    await start($)
+    const ui = await $.ui.mount(PANE)
+    const deletes = () => w.runs.filter(r => r.argv[2] === 'delete').map(r => r.argv)
+    const deleteLabel = async () => String((await ui.findAll({ type: 'Button' })).find(b => b.key === 'delete')?.props?.label)
+
+    await ui.press({ key: 'select:search' })
+    expect(await deleteLabel()).toBe('Delete')
+    await ui.press({ key: 'delete' })
+    expect(deletes()).toEqual([])
+    expect(await deleteLabel()).toMatch(/not implemented/i)
+    await ui.press({ key: 'delete' })
+    expect(deletes()).toHaveLength(1)
+    expect(deletes()[0]!.slice(2)).toEqual(['delete', 'search', '--root', ROOT, '--force'])
+    expect((await rows(ui)).some(t => t.startsWith('search '))).toBe(false)
+
+    await ui.press({ key: 'select:auth' })
+    await ui.press({ key: 'delete' })
+    expect(await deleteLabel()).not.toMatch(/not implemented/i)
+    expect(await deleteLabel()).not.toBe('Delete')
+    await ui.press({ key: 'delete' })
+    expect(deletes()[1]!.slice(2)).toEqual(['delete', 'auth', '--root', ROOT])
+  })
+
+  test('ac18: Delete never deletes a running or halted feature; it toasts the cleanup pointer', async ($, on) => {
+    const w = threeFeatures()
+    w.features.push(feature('stuck', 'halted'))
+    world(on, w)
+    await start($)
+    const ui = await $.ui.mount(PANE)
+    for (const slug of ['billing', 'stuck']) {
+      await ui.press({ key: `select:${slug}` })
+      await ui.press({ key: 'delete' })
+      await ui.press({ key: 'delete' })
+      expect((await rows(ui)).some(t => t.startsWith(`${slug} `))).toBe(true)
+    }
+    expect(w.runs.filter(r => r.argv[2] === 'delete')).toEqual([])
+    expect(w.toasts?.length).toBeGreaterThanOrEqual(2)
+    expect(w.toasts!.every(t => t.includes('/feature-dev:cleanup'))).toBe(true)
+  })
+
+  test('ac18: changing the selection resets the delete confirmation', async ($, on) => {
+    const w = threeFeatures()
+    world(on, w)
+    await start($)
+    const ui = await $.ui.mount(PANE)
+    await ui.press({ key: 'select:search' })
+    await ui.press({ key: 'delete' })
+    await ui.press({ key: 'select:billing' })
+    await ui.press({ key: 'select:search' })
+    await ui.press({ key: 'delete' })
+    expect(w.runs.filter(r => r.argv[2] === 'delete')).toEqual([])
+  })
+
+  test('ac19: with the pane not shown, the band is one row that opens the pane', async ($, on) => {
+    const w = threeFeatures()
+    w.isPlaced = false
+    w.features = [feature('a', 'running', true), feature('b', 'draft', true), feature('c', 'draft')]
+    world(on, w)
+    await start($)
     const ui = await $.ui.mount(BAND)
-    await ui.press({ key: 'show-all' })
-    expect(await ui.find({ key: 'open:SPEC-wip.md' })).toBeDefined()
-    expect(await ui.find({ key: 'open:SPEC-body.md' })).toBeDefined()
-    expect(await ui.find({ key: 'open:SPEC-done.md' })).toBeUndefined()
+    const found = await ui.findAll({ type: 'Button' })
+    expect(found).toHaveLength(1)
+    expect(String(found[0]!.props?.label)).toBe('2 need review · Features')
+
+    w.opens.length = 0
+    await ui.press({ key: String(found[0]!.key) })
+    expect(w.opens).toEqual([{ id: 'features', focus: true }])
+  })
+
+  test('an implemented feature is never marked: no band, no row mark, not counted', async ($, on) => {
+    const w = threeFeatures()
+    w.isPlaced = false
+    w.features = [feature('shipped', 'implemented', true)]
+    world(on, w)
+    await start($)
+    const band = await $.ui.mount(BAND)
+    expect(await band.find({ type: 'Button' })).toBeUndefined()
+    const pane = await $.ui.mount(PANE)
+    const row = (await rows(pane)).find(t => t.startsWith('shipped '))
+    expect(row).toContain('implemented')
+    expect(row).not.toContain('needs review')
+    const mixed = [feature('shipped', 'implemented', true), feature('active', 'running', true)]
+    expect(needsReviewCount(mixed as never, [])).toBe(1)
+  })
+
+  test('ac19: the band hides while the pane is open', async ($, on) => {
+    const w = threeFeatures()
+    w.features = [feature('a', 'running', true)]
+    world(on, w)
+    await start($)
+    expect(w.opens).toHaveLength(1)
+    const ui = await $.ui.mount(BAND)
+    expect(await ui.find({ type: 'Button' })).toBeUndefined()
+  })
+
+  test('ac19: no band when nothing needs review', async ($, on) => {
+    const w = threeFeatures()
+    w.isPlaced = false
+    w.features = [feature('a', 'running'), feature('b', 'draft')]
+    world(on, w)
+    await start($)
+    const ui = await $.ui.mount(BAND)
+    expect(await ui.find({ type: 'Button' })).toBeUndefined()
+  })
+
+  test('ac22: an empty list renders no band', async ($, on) => {
+    const w = threeFeatures()
+    w.features = []
+    world(on, w)
+    await start($)
+    const ui = await $.ui.mount(BAND)
+    expect(await ui.find({ type: 'Button' })).toBeUndefined()
+  })
+
+  test('ac23: review_band false registers neither the pane nor the band', { options: { review_band: false } }, async ($, on) => {
+    const w = threeFeatures()
+    w.isPlaced = false
+    w.features = [feature('a', 'running', true)]
+    world(on, w)
+    await start($)
+    expect(w.runs).toEqual([])
+    expect(w.opens).toEqual([])
+    const band = await $.ui.mount(BAND)
+    expect(await band.find({ type: 'Button' })).toBeUndefined()
+    const pane = await $.ui.mount(PANE)
+    expect(await pane.find({ type: 'Text' })).toBeUndefined()
+  })
+
+  test('the band yields to a survey and to an agent view', async ($, on) => {
+    const w = threeFeatures()
+    w.isPlaced = false
+    w.features = [feature('a', 'running', true)]
+    world(on, w)
+    await start($)
+    const shown = await $.ui.mount(BAND)
+    expect(await shown.find({ type: 'Button' })).toBeDefined()
+    const survey = await $.ui.mount({ ...BAND, props: { ...BAND.props, hasSurvey: true } })
+    expect(await survey.find({ type: 'Button' })).toBeUndefined()
+    const agent = await $.ui.mount({ ...BAND, props: { ...BAND.props, view: { agentId: 'agent-1' } } })
+    expect(await agent.find({ type: 'Button' })).toBeUndefined()
+  })
+
+  for (const mode of ['reject', 'exit', 'json'] as const) {
+    test(`ac21: a list that ${mode === 'reject' ? 'rejects' : mode === 'exit' ? 'exits non-zero' : 'prints invalid JSON'} shows one error line and Retry, no band`, async ($, on) => {
+      const w = threeFeatures()
+      w.features = [feature('a', 'running', true)]
+      w.listFails = mode
+      w.isPlaced = false
+      world(on, w)
+      await start($)
+      expect(w.opens).toEqual([{ id: 'features', title: 'Features' }])
+      const ui = await $.ui.mount(PANE)
+      expect(await rows(ui)).toHaveLength(1)
+      expect(await buttons(ui)).toEqual(['retry'])
+      const band = await $.ui.mount(BAND)
+      expect(await band.find({ type: 'Button' })).toBeUndefined()
+
+      w.listFails = undefined
+      await ui.press({ key: 'retry' })
+      expect(w.runs.at(-1)!.argv.slice(2)).toEqual(['list', '--json', '--root', ROOT])
+      expect((await rows(ui)).some(t => t.startsWith('a '))).toBe(true)
+      expect(await buttons(ui)).not.toContain('retry')
+    })
+  }
+
+  test('ac21: a failed delete toasts the stderr and leaves the list unchanged', async ($, on) => {
+    const w = threeFeatures()
+    w.deleteStderr = 'cannot delete: locked'
+    world(on, w)
+    await start($)
+    const ui = await $.ui.mount(PANE)
+    await ui.press({ key: 'select:search' })
+    await ui.press({ key: 'delete' })
+    await ui.press({ key: 'delete' })
+    expect(w.toasts).toEqual(['cannot delete: locked'])
+    expect((await rows(ui)).some(t => t.startsWith('search '))).toBe(true)
+  })
+
+  test('ac21: a refresh that fails after a good list hides the band and shows the error', async ($, on) => {
+    const w = threeFeatures()
+    w.isPlaced = false
+    w.features = [feature('a', 'running', true)]
+    world(on, w)
+    await start($)
+    const band = await $.ui.mount(BAND)
+    expect(await band.find({ type: 'Button' })).toBeDefined()
+    w.listFails = 'exit'
+    await endTurn($)
+    expect(await band.find({ type: 'Button' })).toBeUndefined()
+    const ui = await $.ui.mount(PANE)
+    expect(await rows(ui)).toHaveLength(1)
+    expect(await buttons(ui)).toEqual(['retry'])
   })
 })

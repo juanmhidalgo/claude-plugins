@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.1.5] - 2026-10-14
+
+### Changed
+- README names the feature-dev 2.0.0 `.feature-dev/features/<slug>/` layout.
+
 ## [2.1.4] - 2026-10-02
 
 ### Changed

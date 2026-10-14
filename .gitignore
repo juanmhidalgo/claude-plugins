@@ -8,3 +8,11 @@
 
 # Claude Code local settings
 .claude/settings.local.json
+
+# feature-dev local working artifacts (root only: evals/ fixtures track their own SPEC files)
+/SPEC-*.md
+/PLAN-*.md
+/.feature-dev/
+
+# Python bytecode
+__pycache__/

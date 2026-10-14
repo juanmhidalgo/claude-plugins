@@ -4,7 +4,6 @@ feature: Task due dates
 slug: task-due-dates
 date: 2026-01-15
 branch: master
-status: approved
 ---
 
 # Task due dates

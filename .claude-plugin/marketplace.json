@@ -23,7 +23,7 @@
       "name": "prd-toolkit",
       "source": "./prd-toolkit",
       "description": "Refine, analyze, and validate Product Requirements Documents (PRDs). Publish to GitHub Issues or ClickUp.",
-      "version": "2.1.4",
+      "version": "2.1.5",
       "author": {
         "name": "Juan M. Hidalgo"
       },
@@ -89,7 +89,7 @@
       "name": "feature-dev",
       "source": "./feature-dev",
       "description": "Feature development workflows: test-driven development with coverage gates and parallel codebase exploration before planning",
-      "version": "1.35.0",
+      "version": "2.0.0",
       "author": {
         "name": "Juan M. Hidalgo"
       },

@@ -3,7 +3,7 @@
 
 Serves one self-contained page on 127.0.0.1 (random free port), opens the
 browser, and waits. On submit it writes the reviewer's feedback to
-``.feature-dev/reviews/<slug>-<UTC timestamp>.md``, prints that path and exits 0.
+``.feature-dev/features/<slug>/reviews/<UTC timestamp>.md``, prints that path and exits 0.
 With no request for ``--timeout`` seconds it prints a "no review submitted"
 line, writes nothing, and exits 3. An open, visible tab pings the server every
 60 s, so reading for longer than the timeout does not end the review.
@@ -18,11 +18,9 @@ Usage:
     review_server.py sha <artifact>
     review_server.py latest <artifact> [--root DIR] [--since EPOCH]
     review_server.py url <artifact> [--root DIR]
-    review_server.py settle <artifact> [--root DIR]
-    review_server.py artifacts [--root DIR] [--dir ARTIFACTS_DIR] [--kind spec|plan] [--new NAME]
-    review_server.py purge [--root DIR] [--dir ARTIFACTS_DIR] [--artifact PATH]... [--slug SLUG]... [--pointer SLUG]... [--dry-run]
+    review_server.py purge [--root DIR] --pointer SLUG... [--dry-run]
 
-``snapshot`` copies the artifact to ``.feature-dev/history/<slug>/<name>.<n>.md``
+``snapshot`` copies the artifact to ``.feature-dev/features/<slug>/history/<name>.<n>.md``
 (n increments) and prints the copy's path. The review page diffs against the
 most recent snapshot whose content differs from the artifact.
 
@@ -31,29 +29,11 @@ or after ``--since``, in epoch seconds) and exits 1 when there is none. ``url``
 prints the running server's URL and exits 1 when no server is running. Both
 derive the slug exactly as ``serve`` does, so callers never re-derive it.
 
-``settle`` marks the artifact's latest review as current again (bumps its
-mtime to now) after /feature-dev:review's own ``status: approved`` edit, so the
-review band does not report that edit as an unreviewed change. Exit 1 when the
-artifact has no review.
-
-``artifacts`` lists every SPEC/PLAN the commands can use, one path per line
-relative to the root: ``<dir>/specs/SPEC-*.md`` and ``<dir>/plans/PLAN-*.md``
-first, then legacy ``SPEC-*.md``/``PLAN-*.md`` at the root. A name found in
-both places is listed once, from ``<dir>``. ``<dir>`` is ``--dir`` (the plugin's
-``artifacts_dir`` option), ``.feature-dev`` when it is empty or still an
-unsubstituted ``${...}`` placeholder. With ``--new NAME`` it prints where a new
-artifact of that name is written instead, and lists nothing.
-
-``purge`` is the only deletion path for /feature-dev:cleanup. ``--artifact``
-removes a ``SPEC-*.md``/``PLAN-*.md`` at the root or in its ``--dir`` folder; ``--slug`` removes that slug's
-history folder and its review files (exact slug, never a prefix); ``--pointer``
-removes that slug's server pointer. Every argument is validated before anything
-is deleted: one invalid argument deletes nothing and exits 2. Git-tracked files
-are skipped and reported. ``--dry-run`` prints the plan without deleting.
-Once an artifact is deleted, its entry in the review band's Dismiss file
-(``.feature-dev/band-dismissed.json``) goes too, and the file itself when no
-entry is left; a symlinked, tracked or unreadable Dismiss file is left alone
-and reported.
+``purge`` is the deletion path for /feature-dev:cleanup. ``--pointer`` removes
+a slug's stale server pointer, ``.feature-dev/features/<slug>/reviews/.url``.
+Every argument is validated before anything is deleted: one invalid argument
+deletes nothing and exits 2. Git-tracked files and symlinks are skipped or
+refused. ``--dry-run`` prints the plan without deleting.
 
 A running server answers a token-free ``GET /alive`` with 204 without resetting
 its idle timer, so a liveness probe never keeps a review open.
@@ -88,10 +68,7 @@ EXIT_SUBMITTED = 0
 EXIT_USAGE = 2
 EXIT_NO_REVIEW = 3
 ARTIFACT_NAME = re.compile(r"^(SPEC|PLAN)-[A-Za-z0-9._-]+\.md$")
-DEFAULT_ARTIFACTS_DIR = ".feature-dev"
-KIND_DIRS = {"SPEC": "specs", "PLAN": "plans"}
 SAFE_SLUG = re.compile(r"^[A-Za-z0-9._-]+$")
-BAND_DISMISSED = "band-dismissed.json"
 REVIEW_SUFFIX = r"-\d{8}T\d{6}Z(?:-\d+)?\.md"
 
 
@@ -131,22 +108,33 @@ def artifact_slug(path: Path, front: dict[str, str]) -> str:
     return slug or "artifact"
 
 
-def reviews_dir(root: Path) -> Path:
-    return root / ".feature-dev" / "reviews"
+class FeatureGone(Exception):
+    """The feature folder was deleted while its review server was open."""
+
+
+def feature_dir(root: Path, slug: str) -> Path:
+    return root / ".feature-dev" / "features" / slug
+
+
+def reviews_dir(root: Path, slug: str) -> Path:
+    return feature_dir(root, slug) / "reviews"
 
 
 def url_file(root: Path, slug: str) -> Path:
-    return reviews_dir(root) / f".{slug}.url"
+    return reviews_dir(root, slug) / ".url"
 
 
 def slug_of(artifact: Path) -> str:
-    text = artifact.read_text(encoding="utf-8", errors="replace")
-    return artifact_slug(artifact, read_frontmatter(text))
+    """The slug of a feature artifact is the name of the folder that holds it."""
+    return artifact.resolve().parent.name
 
 
 def review_pattern(slug: str) -> re.Pattern:
     """Review files of exactly ``slug`` — ``foo`` never matches ``foo-bar-<ts>.md``."""
     return re.compile(r"^" + re.escape(slug) + REVIEW_SUFFIX + r"$")
+
+
+REVIEW_FILE = re.compile(r"^\d{8}T\d{6}Z(?:-\d+)?\.md$")
 
 
 def latest_review(artifact: Path, root: Path, since: float = 0.0) -> Path | None:
@@ -155,11 +143,10 @@ def latest_review(artifact: Path, root: Path, since: float = 0.0) -> Path | None
     A SPEC and a PLAN share a slug, so the file's ``artifact:`` frontmatter must
     name this artifact too.
     """
-    folder = reviews_dir(root)
+    folder = reviews_dir(root, slug_of(artifact))
     if not folder.is_dir():
         return None
-    slug = slug_of(artifact)
-    pattern = review_pattern(slug)
+    pattern = REVIEW_FILE
     best: tuple[float, str, Path] | None = None
     for entry in folder.iterdir():
         if not pattern.match(entry.name) or not entry.is_file():
@@ -176,7 +163,7 @@ def latest_review(artifact: Path, root: Path, since: float = 0.0) -> Path | None
 
 
 def history_dir(root: Path, slug: str) -> Path:
-    return root / ".feature-dev" / "history" / slug
+    return feature_dir(root, slug) / "history"
 
 
 def history_versions(root: Path, slug: str, name: str) -> list[tuple[int, Path]]:
@@ -196,8 +183,7 @@ def history_versions(root: Path, slug: str, name: str) -> list[tuple[int, Path]]
 def snapshot(artifact: Path, root: Path) -> Path:
     """Copy ``artifact`` into its history folder as the next version."""
     text = artifact.read_bytes()
-    front = read_frontmatter(text.decode("utf-8", errors="replace"))
-    slug = artifact_slug(artifact, front)
+    slug = slug_of(artifact)
     versions = history_versions(root, slug, artifact.stem)
     number = versions[-1][0] + 1 if versions else 1
     target = history_dir(root, slug) / f"{artifact.stem}.{number}.md"
@@ -228,55 +214,6 @@ def line_diff(old: str, new: str) -> list[list[str]]:
         rows.extend(["-", line] for line in old_lines[i1:i2])
         rows.extend(["+", line] for line in new_lines[j1:j2])
     return rows
-
-
-# --------------------------------------------------------------------------
-# Artifact locations
-# --------------------------------------------------------------------------
-
-def artifacts_dir(raw: str | None) -> str:
-    """The configured artifacts folder, relative to the root.
-
-    Empty, or a ``${user_config...}`` placeholder the host left unsubstituted
-    because the option was never saved, means the default. An absolute path or
-    one with ``..`` is refused: artifacts stay inside the project.
-    """
-    value = (raw or "").strip()
-    if not value or "${" in value:
-        return DEFAULT_ARTIFACTS_DIR
-    path = Path(value)
-    if path.is_absolute() or ".." in path.parts:
-        raise ValueError(f"artifacts dir {value!r} must be a relative path inside the project")
-    return str(Path(*path.parts)) if path.parts else DEFAULT_ARTIFACTS_DIR
-
-
-def kind_dir(root: Path, folder: str, name: str) -> Path:
-    """Where an artifact named ``name`` is written: ``<folder>/specs`` or ``<folder>/plans``."""
-    match = ARTIFACT_NAME.fullmatch(name)
-    if not match:
-        raise ValueError(f"{name!r} is not SPEC-<name>.md or PLAN-<name>.md")
-    return root / folder / KIND_DIRS[match.group(1)]
-
-
-def find_artifacts(root: Path, folder: str, kind: str | None = None) -> list[Path]:
-    """Every artifact, the configured folder first, then legacy ones at the root.
-
-    A name present in both is returned once, from the configured folder.
-    """
-    prefixes = [kind.upper()] if kind else list(KIND_DIRS)
-    places = [(root / folder / KIND_DIRS[p], p) for p in prefixes] + [(root, p) for p in prefixes]
-    seen: set[str] = set()
-    found: list[Path] = []
-    for place, prefix in places:
-        if not place.is_dir():
-            continue
-        for entry in sorted(place.iterdir()):
-            if entry.name in seen or not entry.name.startswith(prefix + "-"):
-                continue
-            if ARTIFACT_NAME.fullmatch(entry.name) and entry.is_file() and not entry.is_symlink():
-                seen.add(entry.name)
-                found.append(entry)
-    return found
 
 
 # --------------------------------------------------------------------------
@@ -402,10 +339,11 @@ class ReviewState:
         self.sha256 = hashlib.sha256(self.raw).hexdigest()
         self.front = read_frontmatter(self.text)
         self.kind = artifact_kind(artifact, self.front)
-        self.slug = artifact_slug(artifact, self.front)
+        self.slug = slug_of(artifact)
         self.token = secrets.token_urlsafe(24)
         self.last_activity = time.monotonic()
         self.result_path: Path | None = None
+        self.feature_gone = False
         self.timed_out = False
         self.lock = threading.Lock()
         try:
@@ -442,14 +380,16 @@ class ReviewState:
 
     def write_feedback(self, verdict: str, items: list[dict], decisions: list[dict]) -> Path:
         now = _dt.datetime.now(_dt.timezone.utc)
-        folder = reviews_dir(self.root)
-        folder.mkdir(parents=True, exist_ok=True)
+        folder = reviews_dir(self.root, self.slug)
+        if not feature_dir(self.root, self.slug).is_dir():
+            raise FeatureGone(self.slug)
+        folder.mkdir(parents=False, exist_ok=True)
         stamp = now.strftime("%Y%m%dT%H%M%SZ")
-        target = folder / f"{self.slug}-{stamp}.md"
+        target = folder / f"{stamp}.md"
         counter = 1
         while target.exists():
             counter += 1
-            target = folder / f"{self.slug}-{stamp}-{counter}.md"
+            target = folder / f"{stamp}-{counter}.md"
         try:
             on_disk = hashlib.sha256(self.artifact.read_bytes()).hexdigest()
         except OSError:
@@ -550,7 +490,15 @@ def make_handler(state: ReviewState, server_ref: dict):
                 if state.result_path is not None:
                     self._json(HTTPStatus.CONFLICT, {"error": "already submitted", "path": str(state.result_path)})
                     return
-                state.result_path = state.write_feedback(verdict, items, decisions)
+                try:
+                    state.result_path = state.write_feedback(verdict, items, decisions)
+                except FeatureGone:
+                    state.feature_gone = True
+                    self._json(
+                        HTTPStatus.GONE, {"error": "the feature was deleted; the review was not saved"}
+                    )
+                    threading.Thread(target=server_ref["server"].shutdown, daemon=True).start()
+                    return
             self._json(HTTPStatus.OK, {"path": str(state.result_path)})
             threading.Thread(target=server_ref["server"].shutdown, daemon=True).start()
 
@@ -595,6 +543,9 @@ def serve(artifact: Path, root: Path, timeout: float, open_browser: bool) -> int
     if state.result_path is not None:
         print(f"Review written: {state.result_path}", flush=True)
         return EXIT_SUBMITTED
+    if state.feature_gone:
+        print("The feature was deleted; the review was not saved.", flush=True)
+        return EXIT_NO_REVIEW
     reason = f"idle for {int(timeout)}s" if state.timed_out else "interrupted"
     print(f"No review submitted ({reason}); nothing was written.", flush=True)
     return EXIT_NO_REVIEW
@@ -632,197 +583,72 @@ def _inside(path: Path, base: Path) -> bool:
     return True
 
 
-def plan_purge(
-    root: Path, artifacts: list[str], slugs: list[str], pointers: list[str], folder: str = DEFAULT_ARTIFACTS_DIR
-) -> tuple[list[Path], list[tuple[Path, str]]]:
-    """Validate every argument and return ``(delete, skip)``.
+def plan_purge(root: Path, pointers: list[str]) -> tuple[list[Path], list[tuple[Path, str]]]:
+    """Validate every pointer slug and return ``(delete, skip)``.
 
-    ``delete`` is ordered so a directory follows its contents. Raises
-    PurgeError on the first invalid argument, before anything is touched.
-    An ``--artifact`` is a path relative to the root whose file name is
-    SPEC-/PLAN-*.md, sitting at the root (legacy) or in its kind's folder
-    under ``folder``; nothing else is accepted.
+    Raises PurgeError on the first invalid argument, before anything is touched.
     """
     delete: list[Path] = []
     skip: list[tuple[Path, str]] = []
-    for given in artifacts:
-        name = Path(given).name
-        if not ARTIFACT_NAME.fullmatch(name) or Path(given).is_absolute() or ".." in Path(given).parts:
-            raise PurgeError(f"--artifact {given!r}: must be SPEC-<name>.md or PLAN-<name>.md, relative to the root")
-        path = root / given
-        if path.is_symlink() or not path.is_file():
-            raise PurgeError(f"--artifact {given!r}: not a regular file under {root}")
-        allowed = (root.resolve(), kind_dir(root, folder, name).resolve())
-        if path.parent.resolve() not in allowed:
-            raise PurgeError(f"--artifact {given!r}: neither at the root nor in {kind_dir(root, folder, name).relative_to(root)}/")
-        if is_tracked(root, str(path.relative_to(root))):
-            skip.append((path, "tracked by git"))
-        else:
-            delete.append(path)
-    for option, values in (("--slug", slugs), ("--pointer", pointers)):
-        for slug in values:
-            if not valid_slug(slug):
-                raise PurgeError(f"{option} {slug!r}: a slug is [A-Za-z0-9._-]+, with no leading '.' and no '..'")
+    for slug in pointers:
+        if not valid_slug(slug):
+            raise PurgeError(f"--pointer {slug!r}: a slug is [A-Za-z0-9._-]+, with no leading '.' and no '..'")
     base = root / ".feature-dev"
-    if (slugs or pointers) and base.is_symlink():
-        raise PurgeError(f"{base} is a symlink")
-    for data_dir in (base / "history", base / "reviews"):
-        if (slugs or pointers) and data_dir.is_symlink():
-            raise PurgeError(f"{data_dir} is a symlink")
-
-    def claim(path: Path) -> None:
-        if path.is_symlink():
-            raise PurgeError(f"{path} is a symlink")
-        if not _inside(path, base):
-            raise PurgeError(f"{path} resolves outside {base}")
-        rel = str(path.relative_to(root))
-        if is_tracked(root, rel):
-            skip.append((path, "tracked by git"))
-        else:
-            delete.append(path)
-
-    for slug in slugs:
-        history = history_dir(root, slug)
-        found = False
-        if history.is_symlink():
-            raise PurgeError(f"{history} is a symlink")
-        if history.is_dir():
-            found = True
-            for current, dirs, files in os.walk(history, topdown=False, followlinks=False):
-                here = Path(current)
-                for entry in sorted(files) + sorted(d for d in dirs if (here / d).is_symlink()):
-                    claim(here / entry)
-                if not _inside(here, base):
-                    raise PurgeError(f"{here} resolves outside {base}")
-                delete.append(here)  # removed only if empty once its files are gone
-        pattern = review_pattern(slug)
-        reviews = reviews_dir(root)
-        if reviews.is_dir():
-            for entry in sorted(reviews.iterdir()):
-                if pattern.match(entry.name):
-                    found = True
-                    claim(entry)
-        if not found:
-            skip.append((history, f"no review data for slug {slug}"))
+    for guarded in (base, base / "features"):
+        if pointers and guarded.is_symlink():
+            raise PurgeError(f"{guarded} is a symlink")
+    for slug in pointers:
+        for guarded in (feature_dir(root, slug), reviews_dir(root, slug)):
+            if guarded.is_symlink():
+                raise PurgeError(f"{guarded} is a symlink")
     for slug in pointers:
         path = url_file(root, slug)
-        if path.is_symlink() or path.exists():
-            claim(path)
-        else:
+        if path.is_symlink():
+            raise PurgeError(f"{path} is a symlink")
+        if not path.exists():
             skip.append((path, "no such pointer"))
+        elif not _inside(path, base):
+            raise PurgeError(f"{path} resolves outside {base}")
+        elif is_tracked(root, str(path.relative_to(root))):
+            skip.append((path, "tracked by git"))
+        else:
+            delete.append(path)
     return delete, skip
 
 
-def purge(
-    root: Path, artifacts: list[str], slugs: list[str], pointers: list[str], dry_run: bool,
-    folder: str = DEFAULT_ARTIFACTS_DIR,
-) -> int:
+def purge(root: Path, pointers: list[str], dry_run: bool) -> int:
     try:
-        delete, skip = plan_purge(root, artifacts, slugs, pointers, folder)
+        delete, skip = plan_purge(root, pointers)
     except PurgeError as exc:
         print(f"error: {exc}; nothing was deleted", file=sys.stderr)
         return EXIT_USAGE
     delete = list(dict.fromkeys(delete))  # a repeated argument names a path once
     skip = list(dict.fromkeys(skip))
-
-    def show(path: Path) -> str:
-        try:
-            rel = str(path.relative_to(root))
-        except ValueError:
-            rel = str(path)
-        return rel + "/" if path.is_dir() and not path.is_symlink() else rel
-
     failed = False
-    named = {root / given for given in artifacts}
-    gone: set[Path] = set()
     for path in delete:
-        label = show(path)
-        is_dir = path.is_dir() and not path.is_symlink()
+        label = str(path.relative_to(root))
         if dry_run:
             print(f"would delete {label}")
-            if path in named:
-                gone.add(path)
             continue
         try:
-            if is_dir:
-                if any(path.iterdir()):
-                    print(f"skipped {label}: not empty (tracked files kept)")
-                    continue
-                path.rmdir()
-            else:
-                path.unlink()
+            path.unlink()
         except OSError as exc:
             print(f"failed {label}: {exc}")
             failed = True
             continue
         print(f"deleted {label}")
-        if path in named:
-            gone.add(path)
     for path, reason in skip:
-        print(f"skipped {show(path)}: {reason}")
-    line = forget_dismissed(root, folder, gone, dry_run)
-    if line is not None:
-        print(line)
-        failed = failed or line.startswith("failed ")
+        print(f"skipped {path.relative_to(root)}: {reason}")
     return 1 if failed else 0
 
 
-def band_dismissed_file(root: Path) -> Path:
-    """The review band's persistent Dismiss state: ``{"version": 1, "dismissed": {name: mtimeMs}}``."""
-    return root / ".feature-dev" / BAND_DISMISSED
-
-
-def forget_dismissed(root: Path, folder: str, deleted: set[Path], dry_run: bool) -> str | None:
-    """Drop the band's Dismiss entries of the artifacts ``purge`` deleted.
-
-    An entry stays while another artifact of the same name remains (a legacy
-    copy at the root, say). The file is removed once no entry is left, and
-    replaced atomically (temp file, then rename) otherwise. Returns the line
-    to print, or None when there is nothing to do. Never raises: the
-    deletions already happened.
-    """
-    if not deleted:
-        return None
-    path = band_dismissed_file(root)
-    label = str(path.relative_to(root))
-    if path.is_symlink():
-        return f"skipped {label}: is a symlink"
-    if not path.is_file():
-        return None
-    if not _inside(path, root / ".feature-dev"):
-        return f"skipped {label}: resolves outside .feature-dev"
-    if is_tracked(root, label):
-        return f"skipped {label}: tracked by git"
+def in_feature_layout(artifact: Path, root: Path) -> bool:
+    """True only for <root>/.feature-dev/features/<slug>/<SPEC|PLAN>-*.md, symlinks resolved."""
     try:
-        dismissed = json.loads(path.read_text(encoding="utf-8"))["dismissed"]
-        if not isinstance(dismissed, dict):
-            raise TypeError("'dismissed' is not an object")
-    except (OSError, ValueError, KeyError, TypeError) as exc:
-        return f"skipped {label}: unreadable ({exc})"
-    places = [root / folder / d for d in KIND_DIRS.values()] + [root]
-    remaining = {
-        entry.name
-        for place in places if place.is_dir()
-        for entry in place.iterdir()
-        if ARTIFACT_NAME.fullmatch(entry.name) and entry.is_file() and entry not in deleted
-    }
-    names = {p.name for p in deleted}
-    drop = sorted(n for n in dismissed if n in names and n not in remaining)
-    if not drop:
-        return None
-    kept = {n: v for n, v in dismissed.items() if n not in drop}
-    if dry_run:
-        return f"would {'update' if kept else 'delete'} {label} (forget {len(drop)} dismissed)"
-    try:
-        if not kept:
-            path.unlink()
-            return f"deleted {label}"
-        temp = path.with_name(f".{BAND_DISMISSED}.{os.getpid()}.tmp")
-        temp.write_text(json.dumps({"version": 1, "dismissed": kept}, indent=2) + "\n", encoding="utf-8")
-        os.replace(temp, path)
-    except OSError as exc:
-        return f"failed {label}: {exc}"
-    return f"updated {label} (forgot {len(drop)} dismissed)"
+        rel = artifact.resolve().relative_to((root / ".feature-dev" / "features").resolve())
+    except ValueError:
+        return False
+    return len(rel.parts) == 2 and re.fullmatch(r"(SPEC|PLAN)-.*\.md", rel.parts[1]) is not None
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -833,7 +659,7 @@ def main(argv: list[str] | None = None) -> int:
     serve_p.add_argument("--root", default=".", help="project root (default: cwd)")
     serve_p.add_argument("--timeout", type=float, default=DEFAULT_TIMEOUT, help="idle seconds before giving up")
     serve_p.add_argument("--no-browser", action="store_true", help="do not open a browser")
-    snap_p = sub.add_parser("snapshot", help="copy the artifact into .feature-dev/history/")
+    snap_p = sub.add_parser("snapshot", help="copy the artifact into its feature's history/ folder")
     snap_p.add_argument("artifact")
     snap_p.add_argument("--root", default=".", help="project root (default: cwd)")
     sha_p = sub.add_parser("sha", help="print the artifact's sha256 (compare with reviewed_sha256)")
@@ -845,47 +671,25 @@ def main(argv: list[str] | None = None) -> int:
     url_p = sub.add_parser("url", help="print the running review server's URL")
     url_p.add_argument("artifact")
     url_p.add_argument("--root", default=".", help="project root (default: cwd)")
-    art_p = sub.add_parser("artifacts", help="list SPEC/PLAN artifacts, or where a new one goes")
-    art_p.add_argument("--root", default=".", help="project root (default: cwd)")
-    art_p.add_argument("--dir", default="", help="the artifacts_dir option (default .feature-dev)")
-    art_p.add_argument("--kind", choices=("spec", "plan"), help="only specs or only plans")
-    art_p.add_argument("--new", metavar="NAME", help="print where a new artifact NAME is written")
-    settle_p = sub.add_parser("settle", help="mark the latest review current after the approve edit")
-    settle_p.add_argument("artifact")
-    settle_p.add_argument("--root", default=".", help="project root (default: cwd)")
-    purge_p = sub.add_parser("purge", help="delete cleanup candidates: artifacts, a slug's review data, pointers")
+    purge_p = sub.add_parser("purge", help="delete stale review-server pointers")
     purge_p.add_argument("--root", default=".", help="project root (default: cwd)")
-    purge_p.add_argument("--artifact", action="append", default=[], help="a SPEC/PLAN path relative to the root")
-    purge_p.add_argument("--dir", default="", help="the artifacts_dir option (default .feature-dev)")
-    purge_p.add_argument("--slug", action="append", default=[], help="delete the slug's history and review files")
-    purge_p.add_argument("--pointer", action="append", default=[], help="delete the slug's .<slug>.url pointer")
+    purge_p.add_argument("--pointer", action="append", default=[], help="delete features/<slug>/reviews/.url")
     purge_p.add_argument("--dry-run", action="store_true", help="print what would be deleted, delete nothing")
     args = parser.parse_args(argv)
 
-    if args.command in ("purge", "artifacts"):
-        try:
-            folder = artifacts_dir(args.dir)
-        except ValueError as exc:
-            print(f"error: {exc}", file=sys.stderr)
-            return EXIT_USAGE
-        if args.command == "purge":
-            return purge(Path(args.root), args.artifact, args.slug, args.pointer, args.dry_run, folder)
-        root = Path(args.root)
-        if args.new is not None:
-            try:
-                print((kind_dir(root, folder, args.new) / args.new).relative_to(root))
-            except ValueError as exc:
-                print(f"error: {exc}", file=sys.stderr)
-                return EXIT_USAGE
-            return 0
-        for path in find_artifacts(root, folder, args.kind):
-            print(path.relative_to(root))
-        return 0
+    if args.command == "purge":
+        return purge(Path(args.root), args.pointer, args.dry_run)
 
     artifact = Path(args.artifact)
     root = Path(getattr(args, "root", "."))
     if not artifact.is_file():
         print(f"error: {artifact} is not a file", file=sys.stderr)
+        return EXIT_USAGE
+    if args.command in ("serve", "snapshot", "latest", "url") and not in_feature_layout(artifact, root):
+        print(
+            f"error: {artifact} is outside .feature-dev/features/<slug>/; the old layout is no longer read",
+            file=sys.stderr,
+        )
         return EXIT_USAGE
     if args.command == "sha":
         print(hashlib.sha256(artifact.read_bytes()).hexdigest())
@@ -901,14 +705,6 @@ def main(argv: list[str] | None = None) -> int:
         if not path.is_file():
             return 1
         print(path.read_text(encoding="utf-8").strip())
-        return 0
-    if args.command == "settle":
-        found = latest_review(artifact, root)
-        if found is None:
-            return 1
-        now = max(time.time(), artifact.stat().st_mtime)
-        os.utime(found, (now, now))
-        print(found)
         return 0
     if args.command == "snapshot":
         print(snapshot(artifact, root))
