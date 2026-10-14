@@ -21,14 +21,6 @@ triggers:
   - "write a postmortem"
   - "run incident response"
   - "incident commander"
-hooks:
-  - event: Stop
-    once: true
-    command: |
-      echo "Incident step complete."
-      echo "Next-step suggestions:"
-      echo "  - For investigation: /debug:debug to dig into root cause"
-      echo "  - For follow-up postmortem: /debug:incident postmortem"
 ---
 
 <best_practices>
@@ -54,4 +46,14 @@ Then follow the workflow in the **incident-response** skill above. The skill car
 
 ## Cross-Skill Handoff
 
-For root-cause investigation during the incident, delegate to **`debug:debugging-strategies`** (Stop-the-line rule, triage checklist, error-output safety). This command is the coordination layer; debugging-strategies is the investigation layer.
+For root-cause investigation during the incident, delegate to **`debug:debugging-strategies`** (Stop-the-line rule, triage checklist, error-output safety). This command is the coordination layer; debugging-strategies is the investigation layer. During an incident, mitigation comes before its feedback-loop gate: stop the bleeding first, then build the loop.
+
+## Next step
+
+When this phase's output is complete (not when you stop to ask which phase), end your final message with:
+
+```
+Incident step complete. Next-step suggestions:
+  - For investigation: /debug:debug to dig into root cause
+  - For follow-up postmortem: /debug:incident postmortem
+```

@@ -80,7 +80,7 @@ Runtime error:
 ├── Permission / Auth error
 │   → Check tokens, session, middleware, role checks
 └── Unexpected behavior (no error thrown)
-    → Add logging at key points, verify data at each step
+    → Add logging at key points, tagged with one prefix such as `[DEBUG-a4f2]` so it can be grepped out later; verify data at each step
 ```
 
 ### Output

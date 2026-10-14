@@ -72,7 +72,7 @@ Most common runtime error. Trace the data flow:
 ## Non-Reproducible Bug Patterns
 
 ### Timing-dependent
-- Add timestamps to logs around the suspected area
+- Add timestamps to logs around the suspected area (tag them `[DEBUG-xxxx]` so they can be removed)
 - Insert artificial delays to widen race windows
 - Run under load or concurrency to increase collision probability
 - Check for missing `await` on async operations
@@ -90,7 +90,7 @@ Most common runtime error. Trace the data flow:
 - Check if database state affects the outcome
 
 ### Truly random
-- Add defensive logging at the suspected location
+- Add logging at the suspected location, tagged `[DEBUG-xxxx]` so it can be removed
 - Set up an alert for the specific error signature
 - Document the conditions observed and revisit when it recurs
 - Check for uninitialized variables or undefined behavior

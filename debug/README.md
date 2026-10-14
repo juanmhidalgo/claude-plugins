@@ -12,14 +12,14 @@ Systematic debugging workflow with structured triage, root cause analysis, regre
 
 | Command | Description |
 |---------|-------------|
-| `/debug:debug <error>` | Systematic 6-step debugging: reproduce, localize, reduce, root cause, guard, verify |
+| `/debug:debug <error>` | Systematic 6-step debugging: feedback loop, localize, reduce, hypothesise and root cause, guard, verify. No theorising until one command, already run, goes red on the exact symptom |
 | `/debug:triage <error>` | Quick error classification with targeted investigation steps |
 
 ## Skills
 
 | Skill | Purpose |
 |-------|---------|
-| `debugging-strategies` | Stop-the-Line Rule, triage checklist, error output safety, anti-rationalizations |
+| `debugging-strategies` | Stop-the-Line Rule, triage checklist, error output safety, anti-rationalizations; `references/feedback-loops.md` lists ten ways to build a feedback loop |
 
 ## The Stop-the-Line Rule
 
@@ -36,4 +36,5 @@ When anything unexpected happens:
 
 - A git repository (for bisect and history analysis)
 - The project's test runner (npm test, pytest, etc.)
-- No `gh`, MCP servers, or browser
+- Optional: `curl`, or Playwright for a headless-browser loop
+- No `gh` or MCP servers

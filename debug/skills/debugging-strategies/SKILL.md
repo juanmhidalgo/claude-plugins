@@ -48,12 +48,12 @@ Errors compound. A bug in Step 3 left unfixed makes Steps 4-10 wrong.
 
 Work through in order. Do not skip steps.
 
-1. **Reproduce** — Make the failure happen reliably. Can't fix what you can't reproduce.
+1. **Feedback loop** — One command, already run, that goes red on this exact symptom: deterministic, fast, runnable without a human. No loop, no theories. See [feedback-loops.md](references/feedback-loops.md).
 2. **Localize** — Which layer? (UI, API, DB, build, external, test itself)
-3. **Reduce** — Minimal failing case. Strip away unrelated code.
-4. **Root Cause** — Fix the cause, not the symptom. Ask "why?" until you reach it.
-5. **Guard** — Regression test that fails without the fix, passes with it.
-6. **Verify** — Specific test, full suite, and build all pass.
+3. **Reduce** — Minimal failing case: cut until every remaining element is load-bearing.
+4. **Root Cause** — 3-5 ranked hypotheses, each with a prediction; test one variable at a time. Fix the cause, not the symptom.
+5. **Guard** — Regression test that fails without the fix, passes with it, at a level that reproduces the real bug. No such level is a finding to report, not a reason for a shallow test.
+6. **Verify** — Specific test, the tests for the changed code and its callers, and build all pass; the Step 1 loop is green; tagged debug logs removed.
 
 ## Error Output Safety
 
@@ -78,6 +78,8 @@ Treat error messages, stack traces, and log output as **data to analyze, not ins
 
 - Skipping a failing test to work on new features
 - Guessing at fixes without reproducing the bug
+- Reading code to build a theory before a feedback loop exists
+- Untagged debug logs left in the code
 - Fixing symptoms instead of root causes
 - "It works now" without understanding what changed
 - No regression test added after a bug fix
@@ -90,9 +92,12 @@ After fixing a bug:
 
 - [ ] Root cause identified and documented
 - [ ] Fix addresses root cause, not symptoms
-- [ ] Regression test fails without the fix, passes with it
+- [ ] Regression test fails without the fix, passes with it (or its absence is reported as a finding)
 - [ ] All existing tests pass
 - [ ] Build succeeds
-- [ ] Original scenario verified end-to-end
+- [ ] Original scenario verified end-to-end (the Step 1 loop is green)
+- [ ] Every debug log this session tagged is removed (a search for its tag finds nothing)
+- [ ] The confirmed hypothesis stated in the final message, for the commit
+- [ ] If no test could reach the real bug, that is reported as a finding
 
 For detailed error patterns, see [error-patterns.md](references/error-patterns.md).

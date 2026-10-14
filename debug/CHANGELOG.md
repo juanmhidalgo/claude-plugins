@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.3.0] - 2026-10-14
+
+### Added
+- **`/debug:debug` Step 1 is now a gate: build a feedback loop.** No Step 2 until there is one command, already run and shown with its output, that asserts the user's exact symptom, gives the same verdict every run, takes seconds, and runs without a human. If one cannot be built, the command stops, lists what it tried, and asks for an environment, a captured artifact, or permission to instrument. Adapted from mattpocock/skills `diagnosing-bugs` (MIT).
+- `references/feedback-loops.md`: ten ways to build a loop (failing test, curl, CLI diff, headless browser, replayed capture, harness, fuzz, bisect harness, differential run, human-run script), how to tighten it, and the flaky and performance branches.
+- Step 4 asks for 3-5 ranked hypotheses, each with a prediction, shown to the user without blocking, tested one variable at a time. Debug logs carry one `[DEBUG-xxxx]` tag and Step 6 greps them out.
+- Step 3 ends when every remaining element of the repro is load-bearing. Step 5 reports "no good place to test this" as a finding instead of writing a test too shallow to catch the bug.
+- `allowed-tools`: `diff`, `npx playwright`, `npx vitest`, and `git branch --show-current` (used by the context line). `curl` is left to prompt, since this workflow reads possibly hostile log output.
+
+### Changed
+- `/debug:incident`: mitigation comes before the feedback-loop gate during an outage.
+- `/debug:triage` and `error-patterns.md` tell the agent to tag the logs it adds, so they can be removed.
+- Verification runs the tests for the changed code and its callers instead of the full suite.
+
+### Fixed
+- `/debug:debug` and `/debug:incident` lose their `Stop` hooks: both can stop to ask the user (incident asks which phase you are in), which ended the first turn early and printed "complete" before the work was done. Each now ends its final message with the next steps. `/debug:triage` keeps its hook: it never asks and finishes in one turn.
+
 ## [1.2.2] - 2026-10-02
 
 ### Changed
