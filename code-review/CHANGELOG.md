@@ -1,5 +1,18 @@
 # Changelog
 
+## 3.9.0 (2026-10-14)
+
+### Added
+- **Spec axis** on `branch`, `staged`, `pr` and `staged-pipeline` (effort `medium`+): a new opus agent, `spec-conformance-reviewer`, checks the change against the spec it was built from and reports requirements `missing`, `partial` or `wrong`, and `unrequested` behaviour, each quoting the spec line. Adapted from the two-axis review in mattpocock/skills (MIT).
+- `scripts/find-spec.sh` finds the spec mechanically, so the session that wrote the code never chooses or summarizes it: `--spec <path|#N>`, the PR's closing issues, `Closes/Fixes/Resolves #N` (and `Refs #N`, as partial work) in the commits (for a PR too, since GitHub lists closing issues only for PRs into the default branch), and feature-dev `SPEC-*`/`PLAN-*` files whose `branch:` frontmatter matches, in both the `.feature-dev/features/<slug>/` and the `.feature-dev/specs|plans/` layouts, also from a linked worktree, compared as an exact string. No spec → the axis is skipped and the report says where it looked; a source `gh` could not reach is reported as not checked, never as looked at.
+- `--spec <path|#N>` argument on `branch`, `staged` and `pr`.
+- `finding-verifier` takes an optional `SPEC:` line. For a spec finding it checks the quoted line in the source, searches the whole tree before confirming `missing`, and requires the spec line plus `path:line` instead of a failure scenario.
+- `branch-reviewer` Testing checks: tautological assertions (expected value recomputed the way the code does it) and mocks or call-count asserts on the project's own modules.
+- `tech-debt-reviewer` smells: speculative generality, shotgun surgery, divergent change and feature envy, as judgement calls the repo's conventions override.
+
+### Changed
+- Spec findings are never fixes. They are reported in their own `### Spec` section, not deduplicated against defect findings, presented as questions in `staged-pipeline` at any verdict, and skipped by `fixes-plan`: "fixing" unrequested behaviour means deleting it.
+
 ## 3.8.0 (2026-10-06)
 
 ### Added

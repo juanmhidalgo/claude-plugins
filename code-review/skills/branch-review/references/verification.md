@@ -41,8 +41,11 @@ Then launch one `code-review:finding-verifier` per finding, **in parallel**
 ```
 FINDING: <the finding, verbatim, including its claimed file:line>
 SCOPE: <branch <x> vs base <y> | staged | PR #<n>>
+SPEC: <spec findings only: the source the finding quotes>
 OUTPUT_PATH: <scratchpad dir>/verdict-<n>.md
 ```
+
+Do not deduplicate spec findings against defect findings (`spec-axis.md`).
 
 **Read each `OUTPUT_PATH`. That is the primary channel.** Use anything returned
 inline only to fill a missing or empty file.
