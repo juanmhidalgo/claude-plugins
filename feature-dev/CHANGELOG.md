@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.1.1 (2026-10-14)
+
+### Fixed
+- **`tdd-runner` mutation proofs no longer fail silently.** The backup is made with `mktemp` instead of `$TMPDIR/<name>` (unset `$TMPDIR` pointed it at `/`, so the copy failed and the mutation never ran), and the restore is checked with `cmp` against that backup in the same command, which also works for files git does not track yet.
+
+### Changed
+- **`spec-plan-validator` checks a spec's state machine for recovery paths:** a stop allowed from every state a run can be in (including before the first recorded step), a way back from every stop, and a way to un-record a step. A missing path is Blocking.
+- **`/feature-dev:explore-plan`:** a `Verify` that proves removed paths or options are gone must grep for every one the change retires, not a sample.
+
 ## 2.1.0 (2026-10-14)
 
 ### Added

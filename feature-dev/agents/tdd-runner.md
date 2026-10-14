@@ -101,7 +101,8 @@ Pins apply in either mode. After the main Accept is GREEN or passed early (tdd) 
 Prove a passing test is falsifiable by a minimal temporary mutation of the impl (flip a condition, change a returned value) or of the test's input, running the test to see it fail, and restoring.
 
 - **Mutate, run, and restore in one Bash command** — copy the file to a scratch backup, apply the mutation, run the test, copy the backup back — so a turn limit can never land between the mutation and its restore.
-- **Confirm the restore with `git diff`.** Capture `git diff -- <file>` before the mutation (the file may already carry this run's or earlier steps' uncommitted changes, so "no diff" is not the target) and check it is identical after.
+- **Make the backup with `mktemp`, never `$TMPDIR/<name>`.** `$TMPDIR` is often unset, and `$TMPDIR/x` then points at `/x`: the copy fails, and a `&&` chain skips the mutation silently, so the proof never ran. Write `bak=$(mktemp) && cp <file> "$bak" && <mutate> && { <run test>; cp "$bak" <file>; }; cmp "$bak" <file> && echo RESTORED`. Only a mutated run whose test actually failed counts as proof.
+- **Confirm the restore by its `RESTORED` line.** `cmp` against the backup works for a file git does not track yet, where `git diff` shows nothing either way. Keep it in the same command: shell variables do not survive between Bash calls, so a later `cmp "$bak"` would compare against nothing.
 - Never leave a mutation in place, and never use `git stash`, `git checkout` or `git restore` to undo one.
 - A mutation proof shows the test can fail, not that its expected value is independent of the code. A tautological test fails under a mutation too. The expected-value check in RED still applies.
 

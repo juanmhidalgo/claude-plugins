@@ -55,6 +55,7 @@ Check each item below. Flag the severity if missing or malformed.
 | Each acceptance criterion carries a stable id (`**AC-1**`, `**AC-2**`, …) | Nice to Have (specs written before ids existed lack them; plans and `/feature-dev:tdd` cite criteria by id) |
 | Acceptance criteria include at least one failure-path / error-state criterion | Should Address |
 | Body has a **QA Checklist** covering happy path + edge cases + empty states + error states | Should Address |
+| **If the body defines a state machine or transition table**: every state that records progress has a recovery path — a stop (halt, cancel) is allowed from every state a run can be in, including the first step before any progress is recorded; every stop has a way back; and recorded progress can be corrected (a step can be un-recorded and redone) | Blocking, one finding per missing path, naming the state and the event the table lacks (a gap here leaves a run that cannot be recorded or resumed, and it only surfaces once the code exists) |
 | Body has a `## Non-Goals` section | Nice to Have (older specs lack it; the review brief's Out of scope group is read from it) |
 | **If frontmatter `repos:` has 2+ entries**: body has a `## Cross-Repo Contracts` section with endpoint(s), request/response shape, error codes, and breaking-change flag | Blocking |
 | **If tasks are present and frontmatter `repos:` has 2+ entries**: every task is tagged with `Repo:` | Should Address |
