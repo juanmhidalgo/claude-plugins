@@ -399,6 +399,17 @@ aside section { margin-bottom: 16px; }
       h += '<a class="l' + x.level + '" href="#' + x.id + '">' + esc(x.text) + "</a>";
     });
     nav.innerHTML = h || '<span class="hint">No headings</span>';
+    // A followed #anchor adds a history entry, and with more than one entry the
+    // browser ignores window.close() after submit. Scroll and replace instead.
+    nav.addEventListener("click", function (e) {
+      var a = e.target.closest("a[href^='#']");
+      if (!a) return;
+      var target = document.getElementById(a.getAttribute("href").slice(1));
+      if (!target) return;
+      e.preventDefault();
+      target.scrollIntoView();
+      history.replaceState(null, "", a.getAttribute("href"));
+    });
   }
 
   function findTableAfter(pattern) {

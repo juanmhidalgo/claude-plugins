@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.2.1 (2026-10-23)
+
+### Fixed
+- **The `/feature-dev:review` tab closes after submit even when you used the outline.** Each outline link was a followed `#anchor`, which adds a history entry, and browsers ignore `window.close()` on a tab the script did not open once its history has more than one entry. Plans, long enough to navigate by outline, stayed open while short specs closed. Outline clicks now scroll and replace the URL hash instead of adding an entry.
+
 ## 2.2.0 (2026-10-23)
 
 ### Added
