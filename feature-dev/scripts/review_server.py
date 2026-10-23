@@ -237,6 +237,7 @@ def render_feedback(
     changed_on_disk: bool,
     items: list[dict],
     decisions: list[dict],
+    accepted: list[dict],
     reviewed_at: str,
 ) -> str:
     out = [
@@ -248,6 +249,7 @@ def render_feedback(
         f"changed_on_disk_since_served: {'true' if changed_on_disk else 'false'}",
         f"items: {len(items)}",
         f"decision_overrides: {len(decisions)}",
+        f"decisions_accepted: {len(accepted)}",
         "---",
         "",
         f"# Review of {artifact}",
@@ -280,10 +282,17 @@ def render_feedback(
         if label:
             out.append(f"  (was: {label})")
     out.append("")
+    out += ["## Accepted decisions", ""]
+    if not accepted:
+        out += ["None.", ""]
+    for decision in accepted:
+        label = _one_line(decision.get("label", ""))
+        out.append(f"{decision['id']}: accepted" + (f" — {label}" if label else ""))
+    out.append("")
     return "\n".join(out)
 
 
-def validate_submission(payload: object) -> tuple[str, list[dict], list[dict]]:
+def validate_submission(payload: object) -> tuple[str, list[dict], list[dict], list[dict]]:
     if not isinstance(payload, dict):
         raise ValueError("body must be a JSON object")
     verdict = payload.get("verdict")
@@ -291,8 +300,9 @@ def validate_submission(payload: object) -> tuple[str, list[dict], list[dict]]:
         raise ValueError(f"verdict must be one of {', '.join(VERDICTS)}")
     raw_items = payload.get("items") or []
     raw_decisions = payload.get("decisions") or []
-    if not isinstance(raw_items, list) or not isinstance(raw_decisions, list):
-        raise ValueError("items and decisions must be lists")
+    raw_accepted = payload.get("accepted") or []
+    if not all(isinstance(v, list) for v in (raw_items, raw_decisions, raw_accepted)):
+        raise ValueError("items, decisions and accepted must be lists")
     items = []
     for raw in raw_items:
         if not isinstance(raw, dict):
@@ -318,11 +328,24 @@ def validate_submission(payload: object) -> tuple[str, list[dict], list[dict]]:
         if not change_to:
             raise ValueError(f"{ident}: 'change to' needs text")
         decisions.append({"id": ident, "change_to": change_to[:4000], "label": str(raw.get("label", ""))[:500]})
+    # Accepted decisions are recorded so the review says what was confirmed, not
+    # only what changed: an approve with every row accepted is still a decision.
+    accepted = []
+    overridden = {d["id"] for d in decisions}
+    for raw in raw_accepted:
+        if not isinstance(raw, dict):
+            raise ValueError("each accepted decision must be an object")
+        ident = str(raw.get("id", ""))
+        if not re.fullmatch(r"D\d{1,3}", ident):
+            raise ValueError(f"bad decision id {ident!r}")
+        if ident in overridden:
+            raise ValueError(f"{ident} is both accepted and changed")
+        accepted.append({"id": ident, "label": str(raw.get("label", ""))[:500]})
     if verdict == "request-changes" and not items and not decisions:
         raise ValueError("request-changes needs at least one comment or decision override")
     if verdict == "approve" and (items or decisions):
         raise ValueError("approve carries no comments or overrides: use approve-with-notes or request-changes")
-    return verdict, items, decisions
+    return verdict, items, decisions, accepted
 
 
 # --------------------------------------------------------------------------
@@ -378,7 +401,9 @@ class ReviewState:
         html = template.replace("__NONCE__", nonce).replace("__DATA__", encoded)
         return html.encode("utf-8")
 
-    def write_feedback(self, verdict: str, items: list[dict], decisions: list[dict]) -> Path:
+    def write_feedback(
+        self, verdict: str, items: list[dict], decisions: list[dict], accepted: list[dict]
+    ) -> Path:
         now = _dt.datetime.now(_dt.timezone.utc)
         folder = reviews_dir(self.root, self.slug)
         if not feature_dir(self.root, self.slug).is_dir():
@@ -401,6 +426,7 @@ class ReviewState:
             changed_on_disk=on_disk != self.sha256,
             items=items,
             decisions=decisions,
+            accepted=accepted,
             reviewed_at=now.strftime("%Y-%m-%dT%H:%M:%SZ"),
         )
         target.write_text(body, encoding="utf-8")
@@ -482,7 +508,7 @@ def make_handler(state: ReviewState, server_ref: dict):
                 return
             try:
                 payload = json.loads(self.rfile.read(length).decode("utf-8"))
-                verdict, items, decisions = validate_submission(payload)
+                verdict, items, decisions, accepted = validate_submission(payload)
             except (ValueError, UnicodeDecodeError) as exc:
                 self._json(HTTPStatus.BAD_REQUEST, {"error": str(exc)})
                 return
@@ -491,7 +517,7 @@ def make_handler(state: ReviewState, server_ref: dict):
                     self._json(HTTPStatus.CONFLICT, {"error": "already submitted", "path": str(state.result_path)})
                     return
                 try:
-                    state.result_path = state.write_feedback(verdict, items, decisions)
+                    state.result_path = state.write_feedback(verdict, items, decisions, accepted)
                 except FeatureGone:
                     state.feature_gone = True
                     self._json(

@@ -71,6 +71,8 @@ At any approval gate, **`/feature-dev:review <path>`** is the alternative to ans
 - **Approve with notes** records the notes and changes nothing unless a note asks.
 - **Request changes** checks each comment against the artifact and the code before editing, then offers another round that shows the diff.
 
+For a plan, every verdict also records the Key Decisions you left on Accept: the review file lists them, and the command adds a `Reviewed <date>: D1, D3 accepted as recommended` line under the table.
+
 Both `.feature-dev/` and the artifacts are added to `.gitignore`.
 
 ### Where the files go

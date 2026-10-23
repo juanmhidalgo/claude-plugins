@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.2.0 (2026-10-23)
+
+### Added
+- **`/feature-dev:review` records the Key Decisions you accept, not only the ones you change.** The page sent only the decisions marked "Change to", so approving a plan with every decision left on Accept wrote an empty overrides section, and the command replied that there was nothing to do: the reviewer's choice left no trace. Now the page also submits the accepted ones, the review file gets an `## Accepted decisions` section (and `decisions_accepted` in the frontmatter), and for a PLAN every verdict snapshots the plan and writes a `Reviewed <date>: D1, D3 accepted as recommended; D2 changed.` line under the Key Decisions table, then reports which decisions were accepted. The decision summary on the page counts the accepted ones too. Review files written before 2.2.0 have no such section, and the command records nothing for them.
+
 ## 2.1.2 (2026-10-14)
 
 ### Fixed

@@ -573,6 +573,12 @@ aside section { margin-bottom: 16px; }
       return s && s.mode === "change";
     }).map(function (d) { return { id: d.id, change_to: state.decisions[d.id].text.trim(), label: d.label }; });
   }
+  function accepted() {
+    return decisionRows.filter(function (d) {
+      var s = state.decisions[d.id];
+      return !s || s.mode !== "change";
+    }).map(function (d) { return { id: d.id, label: d.label }; });
+  }
   function setVerdict(v) {
     state.verdict = v;
     document.querySelectorAll("input[name=verdict]").forEach(function (r) { r.checked = r.value === v; });
@@ -591,8 +597,9 @@ aside section { margin-bottom: 16px; }
     if (emptyChange) hint = "A decision marked 'Change to' needs text.";
     $("verdict-hint").textContent = hint;
     $("submit").disabled = state.submitted || !state.verdict || emptyChange || (state.verdict === "request-changes" && !notes);
-    if (decisionRows.length) $("dec-text").textContent = decisionRows.length + " decisions — " + ov.length + " to change (" +
-      (ov.map(function (d) { return d.id; }).join(", ") || "none") + ").";
+    if (decisionRows.length) $("dec-text").textContent = decisionRows.length + " decisions — " +
+      (decisionRows.length - ov.length) + " accepted as recommended, " + ov.length + " to change (" +
+      (ov.map(function (d) { return d.id; }).join(", ") || "none") + "). Accepted ones are recorded too.";
     saveDraft();
   }
   function saveDraft() {
@@ -621,7 +628,8 @@ aside section { margin-bottom: 16px; }
     var payload = {
       verdict: state.verdict,
       items: state.items.map(function (it) { return { quote: it.quote, heading: it.heading, comment: it.comment }; }),
-      decisions: overrides()
+      decisions: overrides(),
+      accepted: accepted()
     };
     $("submit").disabled = true;
     var st = $("status");

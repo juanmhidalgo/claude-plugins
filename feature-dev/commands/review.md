@@ -64,19 +64,20 @@ Do not poll, `sleep`, or read the background task's output. The harness re-invok
 When the background task completes:
 
 1. Run `${CLAUDE_PLUGIN_ROOT}/scripts/review_server.py latest <artifact path> --since <start time>`. It prints the path of the review written for this artifact since the start time. Use it rather than Glob, which can skip the gitignored `.feature-dev/`. **Exit 1, nothing printed** → the server stopped without a review (idle timeout or interrupted). Say "No review submitted", give the command to reopen it, and stop.
-2. Read the new file. Frontmatter: `artifact`, `verdict` (`approve` | `approve-with-notes` | `request-changes`), `reviewed_sha256`. Body: numbered items, each `> quoted text` + `§ heading` then the comment; then `## Decision overrides` with lines `D<n>: change to <text>`. `D<n>` is row n of the plan's Key Decisions table.
+2. Read the new file. Frontmatter: `artifact`, `verdict` (`approve` | `approve-with-notes` | `request-changes`), `reviewed_sha256`. Body: numbered items, each `> quoted text` + `§ heading` then the comment; then `## Decision overrides` with lines `D<n>: change to <text>`, then `## Accepted decisions` with lines `D<n>: accepted — <label>`. `D<n>` is row n of the plan's Key Decisions table. A file without `## Accepted decisions` predates 2.2.0: which rows were accepted is unknown, so record nothing for them.
 3. **Check for drift.** Run `${CLAUDE_PLUGIN_ROOT}/scripts/review_server.py sha <artifact path>`. If it differs from `reviewed_sha256`, or the frontmatter says `changed_on_disk_since_served: true`, the reviewer commented on a version that is no longer on disk. Say so, list the items, and apply nothing. Offer another round on the current version. Quotes anchored to text that has since moved are how a correct comment gets applied to the wrong place.
 
 ## Phase 3: Apply the verdict
 
 **`approve`**
 - SPEC → run `${CLAUDE_PLUGIN_ROOT}/scripts/features.py approve <slug> --root <repo root>`. This is the only verdict that approves a feature, and the spec file is not edited. A refusal (`refused: …`) names the state; report it instead of working around it.
-- PLAN → plans carry no approval; nothing to run.
+- PLAN → plans carry no approval, but the reviewer's decisions are recorded: run **Record the accepted decisions** below.
 
 **`approve-with-notes`**: the notes are context, not change requests.
 - Acknowledge each note in one line.
 - Record a note where it binds later work: a note constraining how a later step or another repo must behave goes into the spec's `## Decisions Log` (for a PLAN, the SPEC in the plan's feature folder, or the spec at the `Source spec:` path in the PLAN body), in the entry format `/feature-dev:tdd` uses, with `Binds:`. A note that binds nothing stays in this reply.
 - Change nothing in the artifact unless a note explicitly asks for a change. A decision override is an explicit ask, so apply it as under `request-changes`.
+- For a PLAN, run **Record the accepted decisions** below.
 - For a SPEC, the feature is not approved. If the user wants it approved with the notes, they say so and you run `features.py approve <slug> --root <repo root>`.
 
 **`request-changes`**: each item and override is a hypothesis about the artifact, not an instruction to paste in.
@@ -84,7 +85,13 @@ When the background task completes:
 2. **Verify each item** against the artifact, and against the code when the item makes a claim about the code: Read the file, Grep the symbol. Locate the quote under its `§` heading. An item that is wrong about the code, or would contradict an AC or a recorded decision, is not applied; say why in one line, with the `file:line` you checked.
 3. **Apply the rest** with Edit. Keep AC ids stable: a new criterion takes the next free number, and a removed one retires its id. In a PLAN, a decision override changes its Key Decisions row and every step that depended on the old choice. A changed or new step follows explore-plan's step contract (Accept, Verify, Covers). A changed `Verify:` has no Baseline row until it is re-baselined, so say so.
 4. **Report one line per item**: `<n>. applied — <what changed>` or `<n>. not applied — <why>`, then one line per override.
+   For a PLAN, then run **Record the accepted decisions** (the snapshot from step 1 already covers it).
 5. **Offer another round** with AskUserQuestion: **Review again** (recommended; the page will show what changed) / **Done**. On **Review again**, go back to Phase 1.
+
+**Record the accepted decisions** (PLAN only; skip when `## Accepted decisions` is `None.` or absent). Leaving a decision on Accept is a choice, and a reply that says "nothing to change" makes it look like none was made.
+1. Unless this round already snapshotted, run `${CLAUDE_PLUGIN_ROOT}/scripts/review_server.py snapshot <artifact path>`.
+2. Directly under the Key Decisions table, write one line, replacing any earlier `Reviewed` line there: `Reviewed <date of reviewed_at>: D1, D3 accepted as recommended; D2 changed.` (omit the `changed` part when there are no overrides). Do not edit the table rows: the page parses them, and the row text is the recommendation that was accepted.
+3. Report one line: `Decisions accepted as recommended: D1 — <label>; D3 — <label>.`
 
 ## Phase 4: Next
 

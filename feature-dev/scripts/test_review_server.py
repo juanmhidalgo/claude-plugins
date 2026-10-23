@@ -202,6 +202,8 @@ class ReviewServerTest(unittest.TestCase):
         )
         self.assertIn("2. > (no quote)\n   § (document)\n\n   General: add a rate-limit AC.\n", text)
         self.assertIn("## Decision overrides\n\nNone.", text)
+        self.assertIn("## Accepted decisions\n\nNone.", text)
+        self.assertEqual(front["decisions_accepted"], "0")
         self.assertFalse((self.fdir / "reviews" / ".url").exists())
 
     def test_plan_decision_overrides_and_sha_mismatch(self):
@@ -214,6 +216,7 @@ class ReviewServerTest(unittest.TestCase):
             "verdict": "approve-with-notes",
             "items": [],
             "decisions": [{"id": "D2", "change_to": "410 for\ndeleted ids", "label": "Error code → 404"}],
+            "accepted": [{"id": "D1", "label": "Storage → Postgres"}],
         }
         status, body = server.post(payload, token)
         self.assertEqual(status, 200, body)
@@ -222,6 +225,21 @@ class ReviewServerTest(unittest.TestCase):
         self.assertIn("verdict: approve-with-notes", text)
         self.assertIn("changed_on_disk_since_served: true", text)
         self.assertIn("D2: change to 410 for deleted ids\n  (was: Error code → 404)", text)
+        self.assertIn("decisions_accepted: 1\n", text)
+        self.assertIn("## Accepted decisions\n\nD1: accepted — Storage → Postgres\n", text)
+
+    def test_approve_records_accepted_decisions(self):
+        plan = self.fdir / "PLAN-example-feature.md"
+        plan.write_text(PLAN, encoding="utf-8")
+        server = self.start(plan)
+        payload = {"verdict": "approve", "accepted": [{"id": "D1", "label": "A → B"}, {"id": "D2", "label": "C → D"}]}
+        status, body = server.post(payload, server.token())
+        self.assertEqual(status, 200, body)
+        self.assertEqual(server.finish()[0], 0)
+        text = Path(body["path"]).read_text(encoding="utf-8")
+        self.assertIn("verdict: approve\n", text)
+        self.assertIn("decision_overrides: 0\ndecisions_accepted: 2\n", text)
+        self.assertIn("D1: accepted — A → B\nD2: accepted — C → D\n", text)
 
     def test_invalid_submissions_keep_server_running(self):
         server = self.start(self.spec)
@@ -231,6 +249,9 @@ class ReviewServerTest(unittest.TestCase):
             {"verdict": "request-changes", "items": []},
             {"verdict": "approve", "items": [{"quote": "x", "heading": "y", "comment": "z"}]},
             {"verdict": "approve-with-notes", "decisions": [{"id": "X1", "change_to": "a"}]},
+            {"verdict": "approve", "accepted": [{"id": "X1"}]},
+            {"verdict": "approve", "accepted": "D1"},
+            {"verdict": "approve-with-notes", "decisions": [{"id": "D1", "change_to": "a"}], "accepted": [{"id": "D1"}]},
             {"verdict": "approve-with-notes", "items": [{"quote": "x", "comment": "  "}]},
         ):
             status, _body = server.post(payload, token)
