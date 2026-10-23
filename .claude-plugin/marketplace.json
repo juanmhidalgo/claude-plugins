@@ -187,12 +187,12 @@
     {
       "name": "deps",
       "source": "./deps",
-      "description": "Dependency and runtime upgrade risk assessment: usage scan, breaking changes cross-referenced against actual code, resolver-verified transitive impact, and a go / no-go verdict",
-      "version": "0.1.1",
+      "description": "Dependency, runtime and Dependabot PR upgrade risk assessment for Python and Node/JS: usage scan, breaking changes cross-referenced against actual code, resolver-verified transitive impact, and a go / no-go verdict",
+      "version": "0.2.0",
       "author": {
         "name": "Juan M. Hidalgo"
       },
-      "keywords": ["dependencies", "upgrade", "python", "breaking-changes", "risk-assessment", "changelog", "cve"],
+      "keywords": ["dependencies", "upgrade", "python", "node", "npm", "dependabot", "breaking-changes", "risk-assessment", "changelog", "cve"],
       "category": "development"
     },
     {

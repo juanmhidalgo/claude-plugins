@@ -4,12 +4,27 @@
 
 ```markdown
 # Upgrade risk: <pkg> <current> → <target>
-<!-- or: Python <current> → <target> -->
+<!-- or: Python <current> → <target> · Node <current> → <target>
+     or: PR #<N>: <title> -->
 
 **Verdict: GO | NO-GO | GO WITH CAVEATS**
 <one sentence: the single fact that drove it>
+<!-- PR mode only: -->
+**PR action: merge | merge after caveats | @dependabot rebase | fix the branch | close and wait | close**
 
-Manager: <uv|poetry|pip-tools|pipenv|pip> · Current from: <uv.lock | installed locally | unpinned>
+Manager: <uv|poetry|pip-tools|pipenv|pip|npm|pnpm|yarn> · Current from: <lock file | installed locally | unpinned>
+
+## 0. The PR  <!-- PR mode only; omit otherwise -->
+
+Type: <version update | security update> · <direct | transitive> · <grouped: `<group>` | single>
+CI: <job → result, with the resolver's error verbatim if the install step failed>
+
+| Package | From → To (from the diff) | Family complete? | Runtime floor |
+|---------|---------------------------|------------------|---------------|
+| `<pkg>` | `<from>` → `<to>` | <yes, or which member stayed behind and whether its target exists> | <target floor> vs <each runtime declaration> |
+
+Alerts closed: <GHSA ids + severity> · Alerts left open on the packages this PR moves: <ids, or none> · <or: alerts API unavailable — UNKNOWN>
+Bot review claims: <each one, CONFIRMED / REFUTED with evidence>
 
 ## 1. What this repo touches
 
@@ -72,8 +87,11 @@ The verdict is **capped by the evidence**, not chosen on impression:
 | Any section UNVERIFIED (resolver could not run, changelog unreachable) | GO WITH CAVEATS |
 | An APPLIES item with no migration path in the release notes | NO-GO |
 | A dependency with no target-compatible release | NO-GO |
-| Target version yanked | NO-GO |
-| Everything DOES NOT APPLY, resolver clean, affected paths covered | GO |
+| Target version yanked (PyPI) or deprecated with a security reason (npm) | NO-GO |
+| A lockstep family member has no release at the target (PR mode) | NO-GO for this PR |
+| The PR's CI install step fails on a resolver error | NO-GO for this PR as it stands |
+| A raised runtime floor that a declared runtime (deploy, Dockerfile, `.nvmrc`) does not meet | NO-GO until that declaration moves |
+| Everything DOES NOT APPLY, resolver clean, every APPLIES path covered (vacuously true with none) | GO |
 
 "GO WITH CAVEATS" without a numbered, actionable caveat list is just GO wearing a hedge — each
 caveat names a file and what to do to it.
@@ -83,8 +101,8 @@ caveat names a file and what to do to it.
 Pick one and say why, rather than listing all four:
 
 - **Pin and revert** — the default. The lock file is the rollback; name the exact revert
-  command and whether a DB migration ran in between (if it did, pin-and-revert is *not* enough
-  and the report must say so).
+  command (for a merged bot PR: `git revert <merge-sha>`) and whether a DB migration ran in
+  between (if it did, pin-and-revert is *not* enough and the report must say so).
 - **Compatibility shim** — a thin wrapper over the renamed API, merged *before* the bump, so
   the upgrade itself becomes a one-line diff.
 - **Feature flag** — only when the library is behind a service boundary the flag can switch.

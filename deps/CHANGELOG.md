@@ -1,5 +1,74 @@
 # Changelog
 
+## [0.2.0] - 2026-10-23
+
+### Added
+- **Node/JS ecosystem** (`references/node.md`): npm, pnpm and yarn (classic and berry) detection,
+  every locked copy of a package rather than one version, `npm view` metadata (`engines`,
+  exact vs range `peerDependencies`, ESM-only and `exports` changes, deprecation), the config
+  files and `overrides`/patches a plain import grep misses, `npm install --dry-run` resolution,
+  and the audit commands. Write-capable look-alikes (`npm audit fix`, `--package-lock-only`,
+  `pnpm audit --fix`) are named as forbidden and kept out of `allowed-tools`.
+- **NODE mode** (`node N`, `references/node-version.md`): runtime declaration sites that drift
+  apart (`engines`, `.nvmrc`, `setup-node`, `FROM node`, hosting config, `@types/node`),
+  dependency engine floors, native addons and per-ABI prebuilds vs Node-API, deprecations and
+  OpenSSL/global changes to grep for, and LTS/odd-major deployment status.
+- **PR mode** (`<PR number or URL>`, `references/dependabot-pr.md`) for Dependabot and Renovate
+  PRs: packages read from the diff instead of the PR body; version vs security update and
+  direct vs transitive classification; the repo's `dependabot.yml` rules run as checks; lockstep
+  family completeness (a grouped PR can leave a member behind when it has no release at the
+  target, and exact peers then fail the install); the PR's CI install step read as resolver
+  output; runtime floors raised in a minor compared against every runtime declaration;
+  security PRs checked against open alerts for every locked copy; bot-reviewer claims verified.
+  The capped verdict is translated into a PR action (merge, rebase, fix the branch, close and
+  wait).
+- PR mode checks found by a test run on a real grouped bump: the local tree is compared with
+  the PR's base commit (Phase 1 reads the base via `git grep`/`git show` when they differ, and
+  tree-reading commands are marked not representative); open PRs that supersede the bot PR are
+  searched; a member left behind is checked for upstream deprecation (a deprecated member
+  never catches up, so "close and wait" becomes "close; remove the member"); a bot review is
+  matched to the head commit before its claims are used; a failed CI install leaves every
+  "CI would catch it" item UNKNOWN; alerts carry their vulnerable range.
+- Verdict caps for PR mode: incomplete lockstep family, failing CI install, and an unmet raised
+  runtime floor are each NO-GO.
+
+### Changed
+- `upgrade-risk` is no longer Python-only; Phases 0–5 are ecosystem-neutral and defer to the
+  matching resolver reference.
+- `allowed-tools` gains read-only Node commands and read-only `gh` (`pr view/diff/checks`,
+  `run view`, `api` on contents and Dependabot alerts); the no-mutation rule now covers the PR
+  and forbids `gh api` with a method or fields.
+- README **Needs** now lists `gh` for PR mode.
+- `allowed-tools` also admits read-only helpers a real run needed (`ls`, `stat`, `head`,
+  `tail`, `grep`, `rg`, `jq`, `sed -n`, `wc`, `diff`, `cd`), `git -C` / `npm --prefix` forms for
+  a repo outside the cwd, version probes, `npm config get` / `npm pkg get`, and
+  `gh run list` / `gh release view|list`. Look-alikes that can write (`find`, plain `sed`,
+  `sort`, `tee`, `node -e`, `python -c`) stay out, listed in a comment.
+- A second test run, on a transitive security bump, tightened PR mode: staleness is defined
+  (base lock changed since `baseRefOid`) with the command that measures it, and a stale-but-green
+  PR needs a clean dry run on the current base lock or a rebase; a local tree whose lock equals
+  the current base branch's lock is used as merge-result evidence instead of being discarded;
+  alerts are reported only for the packages the PR moves.
+- Transitive dependencies: Phase 1 reads how the direct parent calls the package in its
+  installed code, so DOES NOT APPLY rests on the real call sites, not on "no first-party usage".
+- Node changelog fallback to per-commit diffs when a project publishes no releases, and a
+  `gh api /advisories?affects=` query for advisories in the target version.
+- `allowed-tools` closed patterns that admitted writes: `gh api` now requires a leading
+  `--method GET` (parameters as `-f`, sent as a query string); audit forms are exact (no
+  trailing `*` that admitted `audit fix` / `--fix`); `sed`, `rg` (`--pre` executes) and
+  `coverage json` (writes `coverage.json`, present since 0.1.0) were removed. Added
+  `git merge-base`.
+- GO rule unified between SKILL.md and the report template: coverage gates GO only for APPLIES
+  paths. Phase 5 skips the "run the tests?" question when nothing APPLIES.
+- Phase 5: a coverage artifact that lacks the affected files counts as no artifact for them.
+- The Stop hook no longer asks to close UNKNOWNs that cannot change a verdict.
+
+### Why
+Two bot PRs showed what the Python-only skill could not judge: a grouped SDK bump whose family
+had one member with no release at the target — the exact peer made `npm ci` fail with
+`ERESOLVE`, and the minor also raised the Node floor — and a transitive lock-only security
+bump where the question is whether it closes the open alerts, not what the changelog says.
+
 ## [0.1.1] - 2026-10-02
 
 ### Changed
