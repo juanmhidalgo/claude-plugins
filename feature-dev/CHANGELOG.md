@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.3.0 (2026-10-28)
+
+### Added
+- **`/feature-dev:harden` and the `harden-loop` workflow.** Before, finishing a feature took several manual steps: stage, run `/code-review:staged high` in a separate session, paste the report into `/code-review:receive`, repeat with `/code-review:tech-debt`. `harden` runs all of that as one loop. It stages the modified files, asks which untracked files to add, and launches the workflow, which reviews defects, spec conformance and tech debt in parallel in fresh context and verifies each finding on opus. The command asks once which findings to fix, then runs the fixes one at a time and re-reviews only what they changed, two rounds at most. The approval stays in the command because a workflow cannot take input mid-run. Findings are not merged by line proximity: in testing that dropped five distinct findings, so every finding is verified and duplicates are grouped when presented. A reviewer that reports it could not finish (`completed: false`, as when an API refusal cut one off in testing) is retried once and then shown as a failed axis, never as a clean one. A before/after hash of the tree around every review run stops the loop if a reviewer changed anything, because the reviewers' Bash restrictions were not enforced inside a workflow in testing.
+- `dependencies: ["code-review"]` in `plugin.json`: `harden` runs code-review's agents.
+
+### Changed
+- `/feature-dev:tdd` ends with `Next: /feature-dev:harden …, then /ship` instead of `/code-review:branch`.
+
 ## 2.2.1 (2026-10-23)
 
 ### Fixed

@@ -389,7 +389,7 @@ If every criterion was met and the suite is green (apart from failures listed in
 4. End with the next commands:
 
    ```
-   Next: /code-review:branch to review before merge, then /commit
+   Next: /feature-dev:harden to review, verify and fix in fresh context, then /ship
    ```
 
 If any criterion halted, do **none** of the above. Leave the plan and spec on disk with the feature recorded as `halted` (`step … halt`), and tell the user verbatim:

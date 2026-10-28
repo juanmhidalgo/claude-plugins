@@ -8,6 +8,7 @@ Feature development workflows with structured phases and quality gates.
 |---------|---------|
 | `/feature-dev:spec <feature>` | Create a structured specification before coding with gated review workflow |
 | `/feature-dev:tdd <spec>` | Test-driven feature development: write failing tests, implement, coverage gate, refactor |
+| `/feature-dev:harden [feature] [--base <branch>]` | After implementation: review in fresh context (defects, spec conformance, tech debt in parallel), verify every finding, fix the ones you approve, re-review the fixes' delta (two rounds at most). Runs the `harden-loop` workflow |
 | `/feature-dev:explore-plan <feature>` | Parallel codebase exploration with 4 agents, synthesized implementation plan |
 | `/feature-dev:spec-review [file]` | Validate a `SPEC-*.md` for structural gaps and check its claims about the existing code; emits Blocking / Should Address / Nice to Have checklist |
 | `/feature-dev:plan-review [file]` | Validate a `PLAN-*.md` for structural gaps, step contract and baseline; emits Blocking / Should Address / Nice to Have checklist |
@@ -64,6 +65,18 @@ The commands are designed to chain:
 2. **`/feature-dev:spec-review`** *(optional)* — Structural check plus a **code-claims pass**: the spec's load-bearing claims about the existing code (paths, symbols, nullability, relationship direction, migration numbers) are checked against the repo and reported as CONFIRMED / DRIFTED / REFUTED / UNVERIFIED. It offers to apply the fixes that need no decision.
 3. **`/feature-dev:explore-plan`** — Understand the codebase and create the plan. The plan is the only place implementation steps live, and it carries a **Baseline**: every `Verify` command run once on HEAD, so broken or hollow gates surface at planning time instead of mid-run. It then reviews its own plan (`plan-review` runs automatically) and fixes Blocking findings once before showing you the brief.
 4. **`/feature-dev:tdd`** — Execute the plan with test-driven development
+5. **`/feature-dev:harden`** — Review, verify and fix before shipping, then `/ship`
+
+### `/feature-dev:harden`
+
+Replaces staging by hand, running `/code-review:staged` in another session, pasting the report into `/code-review:receive`, and repeating for `/code-review:tech-debt`. It stages the modified files and asks which untracked files to add (or takes `--base <branch>` for committed work, with a clean tree) and runs the **`harden-loop` workflow** (`workflows/harden-loop.js`) in two stages:
+
+- **Review:** `code-review:branch-reviewer` (effort `high`), `spec-conformance-reviewer` (when the feature has a spec or linked issue) and `tech-debt-reviewer` run in parallel as workflow agents, which never see the conversation that wrote the code. Each finding then goes to a `finding-verifier` on opus.
+- **Fix:** after you pick which findings to fix, one `fix-implementer` per finding runs in order (it may also update the test covering the fixed file), and a separate review run reads the fixes' delta (`git diff` over the staged, reviewed state). Two fix rounds at most.
+
+A workflow takes no input mid-run, so the approval sits in the command, between the two runs. The command also hashes the tree (`scripts/tree-hash.sh`) before and after every review run and stops if it changed: inside a workflow, the reviewers' `Bash(git …)` restrictions were not enforced in testing, so read-only is by prompt only.
+
+Requires the `code-review` plugin (declared in `dependencies`) and Claude Code workflows enabled. Under `claude -p` or the SDK, allow it with a `Workflow(feature-dev:harden-loop)` permission rule.
 
 At any approval gate, **`/feature-dev:review <path>`** is the alternative to answering in the chat. It serves the artifact on `127.0.0.1` and opens it in your browser. The page uses the Python 3 standard library only and loads nothing from the network, so it is safe on proprietary code. For a plan, each Key Decision becomes a card you accept or change, and the Baseline is highlighted. For a spec, the acceptance criteria are. Select any text to comment on it. The **Changes** tab diffs against the previous version, which the commands copy to `.feature-dev/features/<slug>/history/` before each overwrite. Your verdict is written to `.feature-dev/features/<slug>/reviews/` and applied by the command:
 
