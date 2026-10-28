@@ -119,6 +119,10 @@ yourself before presenting.
 
 ### 3. Check the reports
 
+Read `summary` first: one entry per issue with its verdict, `verified` and `audit_flags`.
+It comes before the full ledgers in `issues` so it survives a result cut off at the end;
+if an issue's ledger is cut off, read the rest of the result before presenting that issue.
+
 Show every `audit_flags` entry next to its issue: each one is a place the verifier's
 ledger was corrected or contradicts itself. An issue with `verified: false` is not
 verified; never present a guess in its place.

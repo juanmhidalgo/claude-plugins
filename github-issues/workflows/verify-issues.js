@@ -104,4 +104,8 @@ phase('Verify')
 const results = (await parallel(args.issues.map((issue) => () => verifyOne(issue)))).filter(Boolean)
 const rank = (r) => (r.verified ? URGENCY.indexOf(r.verdict) : -1)
 results.sort((a, b) => rank(a) - rank(b))
-return { repo: args.repo, issues: results }
+// A long result reaches the caller cut off at the end. The compact summary goes
+// first so every issue's verdict and audit flags survive the cut; in testing the
+// flags of the second issue were lost with its ledger.
+const summary = results.map((r) => ({ number: r.number, title: r.title || '', verified: r.verified, verdict: r.verdict || '', audit_flags: r.audit_flags }))
+return { repo: args.repo, summary, issues: results }

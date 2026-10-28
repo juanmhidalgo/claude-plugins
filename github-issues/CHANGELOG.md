@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.11.2 (2026-10-28)
+
+### Fixed
+- `verify-issues` returns a compact `summary` (verdict, `verified` and audit flags per issue) before the full ledgers, and `/github-issues:verify` reads it first. A long result reaches the session cut off at the end: in a live run the audit flags of the second issue were lost with its ledger, and the session had to dig them out by hand.
+
 ## 1.11.1 (2026-10-28)
 
 ### Changed
