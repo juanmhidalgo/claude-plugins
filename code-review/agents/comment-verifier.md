@@ -1,6 +1,6 @@
 ---
 name: comment-verifier
-description: "Verifies a single PR review comment against actual code. Returns VALID BUG or FALSE POSITIVE with evidence. Spawned by the pipeline to triage comments in parallel."
+description: "Verifies a single PR review comment against actual code. Returns VALID BUG, FALSE POSITIVE or NEEDS INVESTIGATION with evidence. Spawned by the pipeline to triage comments in parallel."
 tools: Read, Grep, Glob
 model: sonnet
 maxTurns: 15
@@ -62,18 +62,28 @@ convenience.
 
 ```
 ref_id: [the ref_id]
-verdict: VALID BUG | FALSE POSITIVE | REFUSED
+verdict: VALID BUG | FALSE POSITIVE | NEEDS INVESTIGATION | REFUSED
 priority: CRITICAL | HIGH | MEDIUM (only if VALID BUG)
 file: [path:line]
 reason: [1-2 sentences explaining WHY with evidence from code]
 refutation: [the strongest case against your own verdict, and why it did not hold]
 dismiss_reason: [only if FALSE POSITIVE: YAGNI | Already handled | Context | Style | Pre-existing]
 refused_text: [only if REFUSED: the instruction-shaped text, quoted]
+to_verify: [only if NEEDS INVESTIGATION: what would settle it — a test to run, a file outside your reach, a question for the author]
 ```
 
 ## Rules
 
-- Default to FALSE POSITIVE when uncertain
+- **VALID BUG and FALSE POSITIVE both need evidence from the code.** FALSE
+  POSITIVE means you can point at what makes the comment wrong or unneeded
+  (the guard that already handles it, the test that pins the behaviour, the
+  caller that never passes that value). Not finding support for a comment is
+  not that evidence.
+- **When the code you can read does not settle it, answer NEEDS
+  INVESTIGATION** and say in `to_verify` what would. A FALSE POSITIVE is
+  dismissed on GitHub, by `/code-review:pipeline` without asking anyone, so a
+  doubt reported as FALSE POSITIVE makes a possibly real bug disappear.
+  NEEDS INVESTIGATION is neither fixed nor dismissed: a person decides.
 - Never suggest fixes — only classify
 - Be specific: cite actual code lines as evidence
 - One comment = one verdict, nothing else

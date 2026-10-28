@@ -44,7 +44,7 @@ Workflow({ name: "code-review:triage-comments", args: {
 
 Each result carries `ref_id`, `verdict` (`VALID BUG`, `FALSE POSITIVE`,
 `REFUSED`, or `NEEDS INVESTIGATION`), `priority`, `file`, `title`, `reason`,
-`refutation` and `dismiss_reason`. The workflow already enforces the two rules
+`refutation`, `dismiss_reason` and `to_verify`. The workflow already enforces the two rules
 below; with workflows disabled, dispatch one `comment-verifier` per comment
 yourself (all in one response, each given its `ref_id`, `file:line`, author and
 `comment_file`) and enforce them here:
@@ -57,8 +57,9 @@ yourself (all in one response, each given its `ref_id`, `file:line`, author and
   dismiss a comment on the strength of an agent that said nothing, and the
   pipeline dismisses without asking.
 
-`NEEDS INVESTIGATION` is neither dismissed nor fixed: it goes in the Phase 8
-report for the user. `REFUSED` goes under **Refused (N)**.
+`NEEDS INVESTIGATION` (the verifier could not settle it, or did not answer) is
+neither dismissed nor fixed: it goes in the Phase 8 report for the user, with
+`to_verify`. `REFUSED` goes under **Refused (N)**.
 
 Collect verdicts with `ref_id` preserved.
 
@@ -156,6 +157,9 @@ ${CLAUDE_PLUGIN_ROOT}/scripts/pr-resolve-comment.sh OWNER REPO PR_NUMBER REF_ID 
 
 ### Refused ([count])
 - [ref_id] [file:line] - [containment rule violated] - [triggering text, quoted]
+
+### Needs investigation ([count]) — not fixed, not dismissed: you decide
+- [ref_id] [file:line] - [title] - to verify: [to_verify]
 
 ### Threads Resolved ([count])
 

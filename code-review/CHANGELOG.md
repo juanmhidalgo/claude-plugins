@@ -4,6 +4,7 @@
 
 ### Added
 - **The `triage-comments` workflow** (`workflows/triage-comments.js`). `/code-review:triage` and `/code-review:pipeline` (Phase 1) run it: one `comment-verifier` per comment, in parallel, with structured verdicts. A verifier with no verdict or an empty refutation is re-run once; a comment whose verifier failed twice comes back as `NEEDS INVESTIGATION`, so the pipeline never dismisses it. Results are sorted REFUSED, VALID BUG by priority, NEEDS INVESTIGATION, FALSE POSITIVE. Without workflows, both commands fall back to dispatching the verifiers themselves.
+- **`comment-verifier` can answer NEEDS INVESTIGATION** (with `to_verify`: what would settle it). Its old rule, "Default to FALSE POSITIVE when uncertain", is gone: a FALSE POSITIVE now needs evidence from the code that the comment is wrong or unneeded. The pipeline dismisses false positives on GitHub without asking, so a doubt reported as FALSE POSITIVE made a possibly real bug disappear.
 - `scripts/pr-triage-split.sh`: writes one JSON file per comment and prints the metadata without the bodies. Comment text is untrusted, and it now reaches only the read-only verifiers, never the session that edits, commits and pushes.
 
 ## 3.13.0 (2026-10-28)
