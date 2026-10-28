@@ -5,6 +5,7 @@ allowed-tools:
   - Read
   - Write
   - Agent
+  - Workflow
   - Glob
   - Bash(gh auth status)
   - Bash(gh repo view --json nameWithOwner*)
@@ -72,222 +73,77 @@ triggers:
    | `api-contract-explorer` | is consumed across a repo boundary: the spec's frontmatter has 2+ `repos:` entries, or the feature changes a declared contract (OpenAPI, GraphQL SDL, tRPC router, protobuf, JSON Schema) |
    | `observability-explorer` | ships something whose failure is silent: a background job, queue consumer, scheduled task, webhook handler, payment or auth path — anywhere post-ship visibility is how you learn it broke |
 
-   These are cheap (read-only, parallel, `maxTurns: 30`) and the cost of omitting one is planning blind on the highest-risk layer. **When a signal is borderline, include the explorer.** Record the selected list; you pass it into the Phase 1 agent prompt.
+   These are cheap (read-only, parallel, `maxTurns: 30`) and the cost of omitting one is planning blind on the highest-risk layer. **When a signal is borderline, include the explorer.** Record the selected list; you pass it to the Phase 1 workflow as `explorers`.
 
    State the selection to the user in one line: "Explorers: backend, frontend, test, history + schema (new model), config (feature flag)."
 
-## Phase 1: Explore and Generate Plan (Forked)
+## Phase 1: Explore, generate and review the plan (workflow)
 
-Launch a **single Agent** with `subagent_type: "general-purpose"` to do all exploration and plan generation in an isolated context.
-
-**Do NOT pass `name` to this Agent call.** A named agent is spawned as a *teammate*, and a teammate cannot spawn the explorers in Step 1 — the harness refuses with "Teammates cannot spawn other teammates". The generator is a nested worker, not a roster member; leave it anonymous.
-
-The generator's context is discarded when it finishes — only the plan file persists, which is why the prompt below has it write the file.
-
-Agent prompt — include all of this:
+Launch the `feature-dev:plan-fanout` workflow and wait for its notification:
 
 ```
-You are generating an implementation plan for: [feature summary]
-
-Repository: [repo URL]
-Branch: [current branch]
-Plan file: [plan path from Phase 0]
-Source spec: [spec path from Phase 0, or "none"]
-
-## Step 1: Parallel Exploration
-
-Launch every agent below in a SINGLE response so they run concurrently. Do NOT use run_in_background, and do NOT pass `name` to any of them — a named spawn is a teammate, and the harness refuses teammates spawned from here.
-
-Always:
-
-Agent — subagent_type: "feature-dev:backend-explorer"
-Prompt: "Explore the backend/API layer for: [feature summary]"
-
-Agent — subagent_type: "feature-dev:frontend-explorer"
-Prompt: "Explore the frontend/UI layer for: [feature summary]"
-
-Agent — subagent_type: "feature-dev:test-explorer"
-Prompt: "Explore the test suite for: [feature summary]"
-
-Agent — subagent_type: "feature-dev:history-explorer"
-Prompt: "Explore git history and open PRs for: [feature summary]"
-
-Additionally, launch each explorer the caller selected in Phase 0 — [selected explorers from Phase 0, or "none"] — in the SAME response as the four above:
-
-Agent (only if selected) — subagent_type: "feature-dev:schema-explorer"
-Prompt: "Explore database schema and migration state for: [feature summary]"
-
-Agent (only if selected) — subagent_type: "feature-dev:config-explorer"
-Prompt: "Explore the configuration surface for: [feature summary]"
-
-Agent (only if selected) — subagent_type: "feature-dev:api-contract-explorer"
-Prompt: "Explore declared API contracts for: [feature summary]"
-
-Agent (only if selected) — subagent_type: "feature-dev:observability-explorer"
-Prompt: "Explore logging, metrics, tracing, error reporting and alerting conventions for: [feature summary]"
-
-Do NOT launch an explorer the caller did not select, and do NOT skip one it did.
-
-**If a spawn is refused:** retry that call once with `name` omitted. If it is refused again, do NOT abandon the layer and do NOT pretend it was covered — explore it yourself with Read/Grep/Glob, and make the degradation visible in the plan: put this line immediately under the `### Exploration Findings` heading, listing every explorer that could not run and the refusal verbatim.
-
-> **Degraded exploration** — `<explorer>, <explorer>` could not be spawned (`<refusal message>`). Those sections were written by the generator reading the tree directly: single-reader, no cross-check, and scoped to the files the spec names plus their immediate dependencies.
-
-## Step 2: Synthesize and Write Plan
-
-After all agents complete, synthesize the findings and draft the Implementation Order against the Step 2b rules. Run the Step 2c baseline on the draft's commands, then write the plan to [plan path] using the Write tool. If that file already exists, first run `${CLAUDE_PLUGIN_ROOT}/scripts/review_server.py snapshot <plan path>`, which copies it to `.feature-dev/features/<slug>/history/PLAN-<slug>.<n>.md` with the next n, `<slug>` being the feature folder the plan lives in. If Bash is unavailable, make the copy by hand at that same path, n one more than the highest already there (1 if none). `/feature-dev:review` diffs against the newest copy; without it nobody can see what changed between plan versions.
-
-The plan MUST follow this template:
-
----
-type: implementation-plan
-feature: [Feature Name]
-slug: [feature-slug]
-date: [YYYY-MM-DD]
-branch: [current branch]
----
-
-## Implementation Plan: [Feature Name]
-
-### Summary
-[One paragraph: what this feature does, which layers it touches]
-
-### Exploration Findings
-
-#### Backend
-[Key findings from backend-explorer]
-
-#### Frontend
-[Key findings from frontend-explorer]
-
-#### Tests
-[Key findings from test-explorer]
-
-#### History & Conflicts
-[Key findings from history-explorer — flag any potential conflicts]
-
-<!-- One subsection per ADDITIONAL explorer that ran. Omit the heading entirely
-     if that explorer was not selected — do not write "N/A". -->
-
-#### Schema & Migrations
-[Key findings from schema-explorer: migration tool, domain-touching migrations, current schema, indexes and constraints, pending migrations, naming conventions]
-
-#### Configuration
-[Key findings from config-explorer: settings modules, per-environment overrides, feature flags, how credentials are handled]
-
-#### API Contracts
-[Key findings from api-contract-explorer: operations in the domain, shared DTOs, versioning, contract testing, codegen, consumer repos]
-
-#### Observability
-[Key findings from observability-explorer: logging stack, metrics, tracing, error reporting, alerting, conventions for adding new signals]
-
-### Baseline
-Run on `<short sha>` at plan time. /tdd uses this to attribute failures.
-
-| Command | Steps | Result on HEAD | Detail |
-|---|---|---|---|
-| `[command]` | [step numbers] | [pass / expected-red / pre-existing-fail / hollow / not-run] | [what the output showed; for `not-run`, start with `missing` / `slow` / `writes`] |
-
-### Files to Modify
-| File | Change | Layer |
-|------|--------|-------|
-| [path] | [what to change] | backend/frontend/test |
-
-### Files to Create
-| File | Purpose | Layer |
-|------|---------|-------|
-| [path] | [what it does] | backend/frontend/test |
-
-### Implementation Order
-
-<!-- Each step is ONE bounded, independently verifiable change. This is the unit
-     /feature-dev:tdd dispatches to a tdd-runner and feature-implementer dispatches
-     to a plan-step-executor. A step without Accept + Verify is not dispatchable.
-     Optionally group steps under `#### Milestone N — <name>` headings; numbering
-     stays global and continuous across milestones. -->
-
-1. **[Step name]**
-   - Kind: [behavior | characterization — optional, default behavior]
-   - Accept: [one specific, testable acceptance criterion — observable behavior, not "implement X"]
-   - Pins: [optional — existing behaviors this step's test file must also lock in; only on a step whose Test is a path it creates]
-   - Covers: [spec AC ids this step makes true, e.g. AC-3, AC-5 — required on behavior and characterization steps when the source spec numbers its ACs (rule 8); may be omitted on non-behavioral steps]
-   - Impl: [path to the production file this step changes]
-   - Test: [path to the test file that proves it; add `(written by step N)` if an earlier step creates it; or `n/a — <reason>` for non-behavioral steps]
-   - Verify: [exact runnable command scoped to this step]
-   - Depends on: [step numbers, or `none`]
-   - Rationale: [why this step sits here in the order]
-
-2. **[Step name]**
-   - ...
-
-### Key Decisions
-| Decision | Options | Recommendation | Rationale |
-|----------|---------|----------------|-----------|
-| [e.g., where to put validation] | [A, B] | [chosen] | [why] |
-
-<!-- Plan-only feature (no spec in this repo): add a `## Decisions Log` section
-     after Key Decisions for the decisions the spec would have held. -->
-
-### Risks
-- [Risk 1 — and mitigation]
-- [Risk 2 — and mitigation]
-
-### Parallelization Hints
-<!-- Informational only. Flag steps from "Implementation Order" that are independent and could be worked on in parallel by humans or by a future executor. Do NOT include executable subagent prompts here — TDD requires sequential discipline, and concurrent edits to overlapping files will collide. -->
-- Steps [X] and [Y]: independent — touch different files / different layers, no shared state
-- Step [Z]: must complete before step [W] — [dependency reason]
-- (If nothing to parallelize, write exactly: "All steps are sequentially dependent — no parallelization opportunities.")
-
-### Estimated Test Cases
-- [Category]: [count] tests ([brief description])
-
-<!-- Run state lives in feature.json, owned by features.py. Do not write it into
-     the plan. -->
-
-## Step 2b: Rules for Implementation Order (non-negotiable)
-
-The downstream agents halt on a step that violates these. A plan that fails them is a TODO list, not a plan. Re-read your Implementation Order against this list before writing the file.
-
-1. **`Verify` must be a real, runnable command** — built from the test runner, config, and path conventions the test-explorer reported. `pytest tests/test_booking.py::test_no_active_subjects`, `npm run test:run -- src/composables/useBooking.spec.ts`. Never a description (`run the tests`, `check it works`), never a command you did not confirm the project actually has.
-2. **`Accept` is one criterion, testable in isolation.** If stating it needs an "and", split the step. "when contact has no active subjects, `start_booking` returns `NO_SUBJECTS`" — not "add the booking flow". The split applies to new behavior only. A test that merely locks in behavior that already exists (no production change) is a `Pins:` bullet on the step that creates its Test file, never a step of its own — each step costs a runner dispatch, and a pin-only step just passes at RED.
-   A step that changes structure but not behavior (refactor, deprecation, removal behind a flag), whose tests are expected to pass on first run, is `Kind: characterization`. Never use it for new behavior: it skips the RED that proves the behavior was missing.
-3. **`Impl` and `Test` are file paths, not layers.** Each must also appear in the Files to Modify / Files to Create tables above. If a step's impl spans two unrelated modules, split it.
-4. **Non-behavioral steps still need `Verify`.** A migration, a config wiring, or a dependency bump has no test file — write `Test: n/a — <reason>` and give `Verify` a command that proves the step landed (`python manage.py migrate --check`, `npm run typecheck`, `make lint`). These steps route to `plan-step-executor` instead of `tdd-runner`. A `Verify` that proves a removed path, option or name is gone (a docs or cleanup step) greps for **every** one the change retires, taken from this plan's own Exploration Findings and Files tables, not a sample of them: a pattern that misses one passes a step that left it behind.
-5. **Order by dependency, not by layer.** A step consuming a symbol another step introduces comes after it, and names it in `Depends on`.
-6. **Say who writes the test.** When one step writes a test file and a later step makes it pass, the later step's `Test:` must carry `(written by step N)`. Without that marker the executor cannot tell "write this test" from "make this existing test pass", and will try to write a test that already exists. A step whose `Test:` and `Impl:` are BOTH `n/a` is an environment precondition (rebase, migration check, dependency install) — legitimate, but it still needs a `Verify` command.
-7. **Re-examine a plan over ~20 steps before writing it.** Fold pin-only steps into `Pins:` and structure-only steps into `Kind: characterization`; above 25 the plan review flags it. What remains large can be grouped under `#### Milestone N — <name>` headings. Milestones are for reading; they add no gate.
-8. **Trace every acceptance criterion.** When the source spec numbers its ACs (`**AC-1**`…), every behavior and characterization step carries `Covers:` with the ids it makes true, and every AC is covered by at least one step. Steps with `Test: n/a` may omit it. Before writing, list the spec's AC ids and check each against the steps. An AC that no step covers gets a step, or a line in Risks that names its id and says why this plan leaves it out; the plan review accepts only that form. ACs were lost between spec and plan before: one was made unreachable by the code, and a docs step was dispatched only because the user asked for it.
-
-## Step 2c: Baseline — run every gate once on HEAD
-
-/feature-dev:tdd attributes each step's failures against this table. Without it, a command that was already red on HEAD halts the run mid-way and waits on the user; a gate that checks nothing passes a step that was never verified.
-
-1. **Collect the distinct commands**: every step's `Verify`, plus any suite, lint, or migration gate a step names, plus the full-suite, lint and coverage commands /tdd's Phases 4–5 will run — those phases attribute against this table too. Run each exactly once on the current HEAD (`git rev-parse --short HEAD` for the sha), with a timeout (`timeout 300 <command>`).
-2. **Classify each from its own output**, using exactly one of:
-   - `pass`
-   - `expected-red` — fails, or is empty, only because the plan has not run yet: the test file or symbol does not exist, or the selector matches a test this plan writes (`go test -run TestNew` reporting "no tests to run", a `--passWithNoTests` run over a file not yet created). Detail names the step that creates it.
-   - `pre-existing-fail` — fails for reasons outside this plan. Detail lists the failing test ids; for a count-only gate (lint), the total count plus the per-file count for each file this plan touches (a touched file with no findings is omitted — /tdd reads an absent file as 0). /tdd matches on exactly these.
-   - `hollow` — succeeds but its output shows it exercised nothing, and it would still exercise nothing after the plan runs (0 apps loaded without an env var, a target no step writes to).
-   - `not-run` — could not run. Detail starts with the reason, one of: `missing` (a tool, service or env var is absent — the command cannot work as written), `slow` (would take over ~5 min — typically the full suite and coverage), or `writes` (would mutate state: files, migrations, a non-test database). /tdd gates only on `missing`; `slow` and `writes` rows dispatch normally and are verified at run time.
-3. **Record only what the output shows.** A `hollow` comes from the output, never from suspicion; "probably pre-existing" is not a Detail.
-4. **Mutate nothing.** Never install, start, or restart anything to make a command runnable, and never run one that writes to the tree — mark it `not-run` (`writes`). Compare `git status --short` before and after; if a run changed the tree anyway, say so in its Detail and in Risks rather than reverting it yourself.
-5. **Leave gate-blocking rows standing** (`hollow`, and `not-run` for `missing`). If a different command you confirmed on HEAD is a real gate for the same step, use it as the `Verify` and baseline that one instead; otherwise keep the row as it is — /tdd asks the user about every such step before its first dispatch.
-
-## Step 3: Update .gitignore
-
-If `.feature-dev/` is not in the project's .gitignore, add it (features, review files and version history).
+Workflow({ name: "feature-dev:plan-fanout", args: {
+  feature: "<one-line summary>", repo: "<repo URL>", branch: "<branch>",
+  plan_path: "<plan path from Phase 0>", spec_path: "<spec path, or none>",
+  explorers: [<extra explorers from Phase 0: schema | config | api-contract | observability>],
+  rules: "${CLAUDE_PLUGIN_ROOT}/references/plan-generation.md",
+  plugin_root: "${CLAUDE_PLUGIN_ROOT}" } })
 ```
 
-## Phase 2: Plan Review (automatic)
+It runs the four base explorers plus the selected ones in parallel, retrying
+one that returns nothing once. One generator then synthesizes their reports,
+runs the Baseline and writes the plan by the rules in
+`references/plan-generation.md`. An explorer that failed twice is named to the
+generator, which covers that layer itself and writes the `Degraded exploration`
+line. Then `spec-plan-validator` reviews the plan; Blocking findings get one fix
+pass and one re-validation. There is no second pass: a Blocking finding that
+survives one fix needs the user. None of the explorer reports reach this
+conversation, only the plan file and the result.
 
-The plan is validated before the user sees it. When plan review was a separate, optional command it ran in 2 of 6 features, and in one of those the user carried the result over by pasting a review run in another session.
+**Read the result:**
 
-1. Spawn `feature-dev:spec-plan-validator` with `artifact_type: plan` and `artifact_path: PLAN-<slug>.md`. Leave `name` unset, for the same reason as the generator: it is a nested worker, and its fresh context is what makes it a review rather than the generator re-reading its own work.
-2. **If it returns Blocking findings**, re-dispatch the generator once: a new anonymous `general-purpose` Agent (no `name`) whose prompt gives the plan path, the Blocking findings verbatim, and these instructions — fix each finding in place with Edit, touching only what the finding names; read the code a fix needs, but do not re-run the explorers; a changed or new step still follows Step 2b and a changed or new `Verify` is baselined per Step 2c (include both sections of the Phase 1 prompt verbatim in this prompt); a finding that cannot be fixed without a user decision is left as it is and named in the reply; before the first Edit, snapshot the plan with `${CLAUDE_PLUGIN_ROOT}/scripts/review_server.py snapshot PLAN-<slug>.md` as Step 2 does. Then spawn the validator again on the edited plan. There is no second re-dispatch: a Blocking finding that survives one fix needs the user, not another pass.
-3. **Should Address and Nice to Have findings** are not re-dispatched; they go into the brief.
+- `written: false` → the plan was not written. Show `notes` and stop.
+- `explorers`: any with status `failed` must match `degraded`; if a failed
+  explorer is missing from `degraded`, add the line to the plan yourself.
+- `review.ran: false` → the validator returned nothing twice. Say so: the plan
+  is unreviewed, and `/feature-dev:plan-review <plan path>` runs it again.
+- `review.revalidated: false` → the fix pass edited the plan, but the
+  re-validation returned nothing. The report shown is from before the fixes:
+  say so.
+- `generator_notes` and `fix_notes` go in the brief (Assumed, or Unverified).
 
-4. **Record the plan in the feature store**, once the plan is final (after any re-dispatch): count the steps in Implementation Order and run `${CLAUDE_PLUGIN_ROOT}/scripts/features.py plan <slug> --steps <N> --root <repo root>`. When the feature is already past `approved` — a plan existed, or it is a plan-only feature — add `--replace`. A refusal (`refused: …`) names the state and the valid events; report it instead of editing `feature.json`.
+**Record the plan in the feature store** once the result is in: run
+`${CLAUDE_PLUGIN_ROOT}/scripts/features.py plan <slug> --steps <steps> --root <repo root>`.
+When the feature is already past `approved` (a plan existed, or it is a
+plan-only feature), add `--replace`. A refusal (`refused: …`) names the state
+and the valid events; report it instead of editing `feature.json`.
 
-Keep the final validator report for Phase 3. Do not print it in full.
+Keep `review` for Phase 3. Do not print the report in full.
+
+## Phase 2: Fallback when workflows are disabled
+
+Only when `Workflow` is not available. Say that the workflow path was not used.
+
+1. **Generate.** Launch one anonymous `general-purpose` Agent (do **not** pass
+   `name`: a named spawn is a teammate, and a teammate cannot spawn the
+   explorers). Its prompt gives the feature summary, repo, branch, plan path,
+   source spec, the selected explorers, `PLUGIN_ROOT: ${CLAUDE_PLUGIN_ROOT}` and
+   `RULES: ${CLAUDE_PLUGIN_ROOT}/references/plan-generation.md`, and tells it to:
+   - launch every selected explorer (`feature-dev:<name>-explorer`, prompt
+     "Explore <layer> for: <summary>") plus the four base ones in a single
+     response, none with `name`. A refused spawn is retried once without
+     `name`; if it is refused again, the generator explores that layer itself
+     and writes the `Degraded exploration` line, quoting the refusal;
+   - then follow Steps 2, 2b, 2c and 3 of RULES.
+2. **Review.** Spawn `feature-dev:spec-plan-validator` (no `name`) with
+   `artifact_type: plan` and `artifact_path: <plan path>`. On Blocking findings,
+   re-dispatch one anonymous `general-purpose` Agent with the plan path, the
+   Blocking findings verbatim, PLUGIN_ROOT and RULES: snapshot the plan with
+   `${CLAUDE_PLUGIN_ROOT}/scripts/review_server.py snapshot <plan path>`, fix
+   each finding in place touching only what it names, follow Steps 2b and 2c
+   for changed steps, leave a finding that needs a user decision. Then validate
+   once more. No second re-dispatch.
+3. **Record** the plan in the feature store as Phase 1 says.
 
 ## Phase 3: Review Brief
 

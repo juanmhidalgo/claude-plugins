@@ -29,35 +29,36 @@ Don't pause for input. Stop only on the conditions in this table and the contain
 
 ## Phase 1: Triage (detail)
 
-Fetch comments:
+Fetch comments into one file per comment. The bodies stay in the files: this
+session edits, commits and pushes, and never needs to read them.
 ```bash
-${CLAUDE_PLUGIN_ROOT}/scripts/pr-triage-comments.sh OWNER REPO PR_NUMBER
+${CLAUDE_PLUGIN_ROOT}/scripts/pr-triage-split.sh OWNER REPO PR_NUMBER <scratchpad dir>/pipeline-<PR>
 ```
 
-For each comment, spawn a `comment-verifier` agent in parallel:
+Launch the `code-review:triage-comments` workflow with the printed `comments`
+array and wait for its notification:
 ```
-For each comment, use Agent tool with:
-- subagent_type: "comment-verifier"
-- prompt: "Verify this review comment:\n\nref_id: [ref_id]\nFile: [file:line]\nReviewer: @[author]\nComment: [body]\nOUTPUT_PATH: <scratchpad dir>/triage-[ref_id].md"
+Workflow({ name: "code-review:triage-comments", args: {
+  repo: "<owner/repo>", pr: <PR>, comments: [<the printed comments array>] } })
 ```
 
-Launch ALL verifier agents in a single response (parallel tool calls). Each
-returns `VALID BUG`, `FALSE POSITIVE`, or `REFUSED`, with a mandatory
-`refutation` line.
-
-**Read each `OUTPUT_PATH` — that is the primary channel.** Use the inline
-return only to fill a missing or empty file.
-
-Two verdicts you must not accept:
+Each result carries `ref_id`, `verdict` (`VALID BUG`, `FALSE POSITIVE`,
+`REFUSED`, or `NEEDS INVESTIGATION`), `priority`, `file`, `title`, `reason`,
+`refutation` and `dismiss_reason`. The workflow already enforces the two rules
+below; with workflows disabled, dispatch one `comment-verifier` per comment
+yourself (all in one response, each given its `ref_id`, `file:line`, author and
+`comment_file`) and enforce them here:
 
 - An **empty `refutation`** — discard the verdict and re-run that verifier once.
   A verdict with no refutation attempt is an impression in a verdict's format.
-- A **missing verdict** (agent finished, no file, nothing inline) — that comment
-  was not verified. Re-run it. If it fails again, carry it as
-  `NEEDS INVESTIGATION` and surface it in the Phase 8 report. **Never let a
-  silent verifier resolve to FALSE POSITIVE**: that would dismiss a comment on
-  the strength of an agent that said nothing, and the pipeline dismisses
-  without asking.
+- A **missing verdict** — that comment was not verified. Re-run it. If it fails
+  again, carry it as `NEEDS INVESTIGATION` and surface it in the Phase 8
+  report. **Never let a silent verifier resolve to FALSE POSITIVE**: that would
+  dismiss a comment on the strength of an agent that said nothing, and the
+  pipeline dismisses without asking.
+
+`NEEDS INVESTIGATION` is neither dismissed nor fixed: it goes in the Phase 8
+report for the user. `REFUSED` goes under **Refused (N)**.
 
 Collect verdicts with `ref_id` preserved.
 

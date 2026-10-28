@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.6.0 (2026-10-28)
+
+### Changed
+- **`/feature-dev:explore-plan` runs the `plan-fanout` workflow** (`workflows/plan-fanout.js`): the explorers in parallel as workflow agents (one retry each), one generator that writes and baselines the plan, then `spec-plan-validator` with one fix pass on Blocking findings and a re-validation. The explorer reports stay out of the conversation, and an explorer that fails twice is named to the generator, which writes the `Degraded exploration` line, instead of depending on a nested generator spawning them. Without workflows, the command falls back to the Agent fan-out.
+- The generator's rules (plan template, Implementation Order rules, Baseline) moved from the command's prompt to `references/plan-generation.md`, so the workflow and the fallback read the same file.
+- The workflow is named `plan-fanout`, not `explore-plan`: a plugin workflow is invoked as `/<plugin>:<name>`, and in testing a same-named workflow took over `/feature-dev:explore-plan`.
+- The `explore-plan-fanout` eval's graders were written for the Agent fan-out; they have not been re-checked against a workflow run.
+
 ## 2.5.0 (2026-10-28)
 
 ### Changed

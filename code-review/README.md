@@ -94,6 +94,18 @@ restrictions were not enforced in testing, so every caller hashes the tree
 workflows enabled; without them the commands fall back to their Agent dispatch.
 Under `claude -p` or the SDK, allow it with a `Workflow(code-review:review)` rule.
 
+### The `triage-comments` workflow
+
+`/code-review:triage` and `/code-review:pipeline` verify PR comments with the
+**`code-review:triage-comments` workflow** (`workflows/triage-comments.js`): one
+`comment-verifier` per comment in parallel, a re-run for a verifier that returns
+no verdict or an empty refutation, and `NEEDS INVESTIGATION` (never `FALSE
+POSITIVE`) for a comment whose verifier failed twice. `pr-triage-split.sh` writes
+each comment to its own file, and the verifiers read the bodies from there: the
+comment text, which anyone who can comment on the PR wrote, never passes
+through the session that edits, commits and pushes. Allow it under `claude -p`
+with `Workflow(code-review:triage-comments)`.
+
 ### Branch Review (before PR)
 ```
 /code-review/branch         → Identify issues in branch
@@ -226,6 +238,7 @@ session has been reasoning about the code for an hour.
 The plugin includes bash scripts for GitHub API operations (no MCP required):
 
 - `pr-triage-comments.sh` - Fetch PR comments optimized for triage (filters resolved/outdated via GraphQL)
+- `pr-triage-split.sh` - Runs `pr-triage-comments.sh`, writes one JSON file per comment, and prints the metadata without the bodies (used by `triage` and `pipeline`)
 - `pr-resolve-comment.sh` - Dismiss/resolve comments on GitHub
 - `pr-comments.sh` - Full PR comments fetch
 - `pr-review-summary.sh` - Quick review status summary

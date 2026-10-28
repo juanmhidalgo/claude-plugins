@@ -16,6 +16,7 @@ allowed-tools:
   - Write
   - Edit
   - Agent
+  - Workflow
   - Glob
   - Grep
 argument-hint: "PR# [--pane|--no-pane]"
@@ -120,9 +121,9 @@ outcomes, and only the user decides which one applies.
 
 ## Phase 1: Triage
 
-Fetch all PR comments and verify each in parallel using the `comment-verifier` agent. Collect `VALID BUG` / `FALSE POSITIVE` verdicts with `ref_id` preserved.
+Fetch all PR comments into one file per comment and verify them with the `code-review:triage-comments` workflow: one `comment-verifier` per comment, in parallel. Collect the verdicts with `ref_id` preserved.
 
-For the exact script invocation and verifier-prompt format, see `${CLAUDE_PLUGIN_ROOT}/references/pipeline-phase-details.md` (Phase 1 detail).
+For the exact script invocation, the workflow call and the fallback when workflows are disabled, see `${CLAUDE_PLUGIN_ROOT}/references/pipeline-phase-details.md` (Phase 1 detail).
 
 ## Phase 2: Dismiss false positives
 
