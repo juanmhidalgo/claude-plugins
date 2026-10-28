@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.10.0 (2026-10-28)
+
+### Added
+- **The `verify-issues` workflow** (`workflows/verify-issues.js`). `/github-issues:verify` runs it, and so does `/github-issues:work` Phase 3 for its one issue. It starts one `issue-verifier` per issue in parallel and gets each ledger back as structured data. Then it applies "Auditing an agent's ledger" in code instead of leaving it to the reader:
+  - a `ran` row is downgraded to `read`;
+  - a CONFIRMED or REFUTED row without evidence becomes UNVERIFIED;
+  - an actionable verdict over a refuted load-bearing row is flagged as contradictory;
+  - an empty report is retried once, then reported as not verified.
+  Issues come back most urgent first. Each correction is listed in `audit_flags`. With workflows disabled, the commands fall back to the direct agent dispatch.
+
 ## 1.9.0 (2026-10-28)
 
 ### Changed

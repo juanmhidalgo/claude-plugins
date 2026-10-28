@@ -142,20 +142,17 @@ was checked (ran / read / not checked).
 **1. Get a ledger by reading.**
 
 - If `/github-issues:verify` already produced one for this issue in this conversation, use it.
-- Otherwise spawn one `github-issues:issue-verifier` — without a `name` — with:
-  ```
-  ISSUE: {owner}/{repo}#{number}
-  REPO_PATH: {repo root}
-  RULES: {base directory of this skill}/references/verification.md
-         {base directory of this skill}/references/work-types.md
-  PARTS: {the --part selection, or "all"}
-  ```
-  It reads the code, sibling repos included, in its own context, so this conversation
-  reaches the plan without the exploration in it.
+- Otherwise launch the `github-issues:verify-issues` workflow with this one issue
+  (`issues: [{ number, parts: <the --part selection, or "all"> }]`, `rules` pointing at
+  this skill's `references/verification.md` and `references/work-types.md`, `repo_path`
+  the repo root). Its `issue-verifier` reads the code, sibling repos included, in its own
+  context, and the workflow audits the ledger in code (see `/github-issues:verify` step 2).
+  If workflows are disabled, spawn the `github-issues:issue-verifier` directly instead,
+  without a `name`, with `ISSUE` / `REPO_PATH` / `RULES` / `PARTS`.
 - If the agent cannot be spawned (this skill is itself running inside a subagent), build
   the ledger here, following verification.md.
 
-Audit the report as "Auditing an agent's ledger" in verification.md describes before using it.
+Read its `audit_flags` before using the ledger (or, from the direct agent, audit it as "Auditing an agent's ledger" in verification.md describes).
 
 **2. Settle what reading cannot.** The agent never runs anything; this phase does.
 

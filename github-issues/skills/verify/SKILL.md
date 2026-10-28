@@ -24,6 +24,7 @@ allowed-tools:
   - Grep
   - Glob
   - Agent
+  - Workflow
   - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/herdr-pane.sh *)
   - Bash(gh issue view *)
   - Bash(gh issue list *)
@@ -90,38 +91,48 @@ label query that could resolve differently by the time it runs.
 ### 1. Resolve the list
 
 Resolve the arguments into issue numbers. With more than 10, show the list and ask before
-continuing — each issue costs one agent.
+continuing — each issue costs one opus agent.
 
 ### 2. Verify in parallel
 
-Spawn one `github-issues:issue-verifier` per issue, all in a single message. Do not pass a
-`name` to the Agent tool. Each prompt is exactly:
+Launch the `github-issues:verify-issues` workflow and wait for its notification:
 
 ```
-ISSUE: {owner}/{repo}#{number}
-REPO_PATH: {checkout path}
-RULES: {base directory of this skill}/../work/references/verification.md
-       {base directory of this skill}/../work/references/work-types.md
+Workflow({ name: "github-issues:verify-issues", args: {
+  repo: "{owner}/{repo}", repo_path: "{checkout path}",
+  rules: ["{base directory of this skill}/../work/references/verification.md",
+          "{base directory of this skill}/../work/references/work-types.md"],
+  issues: [{ number: N, parts: "all" }, ...] } })
 ```
 
-Resolve `{base directory of this skill}` to an absolute path before sending.
+Resolve `{base directory of this skill}` to an absolute path before sending. It runs one
+`issue-verifier` per issue in parallel and applies "Auditing an agent's ledger" from
+[verification.md](../work/references/verification.md) to each ledger in code: a `ran`
+row is downgraded, a CONFIRMED/REFUTED row without evidence becomes UNVERIFIED, an
+actionable verdict over a refuted load-bearing row is flagged, and an empty report
+(`verified: false`) is retried once. Issues come back most urgent first.
 
-For a single issue, the same agent is still used: its context stays out of this conversation.
+If workflows are disabled (`Workflow` unavailable), say so and spawn one
+`github-issues:issue-verifier` per issue instead, all in one message, no `name`, each with
+the prompt `ISSUE` / `REPO_PATH` / `RULES` (see the agent's Input), then do that audit
+yourself before presenting.
 
 ### 3. Check the reports
 
-Before showing anything, audit each report as "Auditing an agent's ledger" in
-[verification.md](../work/references/verification.md) describes, and say what you
-downgraded or flagged.
+Show every `audit_flags` entry next to its issue: each one is a place the verifier's
+ledger was corrected or contradicts itself. An issue with `verified: false` is not
+verified; never present a guess in its place.
 
 ### 4. Present
 
-1. A summary table, most urgent first (premise wrong and already fixed before actionable):
+1. A summary table, in the order the workflow returned (most urgent first):
 
    | Issue | Type (labels) | Verdict | What decides it |
    |---|---|---|---|
 
-2. Each issue's full report below it.
+2. Each issue's full report below it, rendered from its ledger: type, verdict and its
+   reason, the ledger table at `sha` (`#`, Claim, Status, How, Evidence), probes worth
+   running, corrections to the issue, and the audit flags.
 
 ### 5. Offer, don't act
 

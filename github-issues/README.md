@@ -42,6 +42,11 @@ need a decision stop there, with an offer to post the corrections to the issue.
 probes they propose can be run afterwards from the main session. `work` starts from a
 `verify` ledger produced earlier in the same conversation.
 
+Both run the verification as the **`verify-issues` workflow** (`workflows/verify-issues.js`):
+one `issue-verifier` per issue in parallel, each ledger audited in code (a `ran` row is
+downgraded, a verdict without evidence becomes UNVERIFIED, contradictions are flagged), most
+urgent first. Under `claude -p` or the SDK, allow it with `Workflow(github-issues:verify-issues)`.
+
 ## `work` workflow
 
 1. **Fetch** — issue, comments, and any PR that already references it
