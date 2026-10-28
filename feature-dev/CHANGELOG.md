@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.3.1 (2026-10-28)
+
+### Changed
+- `/feature-dev:spec` no longer recommends running in plan mode: it already asks for approval at every phase and writes the spec as a draft.
+
 ## 2.3.0 (2026-10-28)
 
 ### Added

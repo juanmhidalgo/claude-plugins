@@ -26,7 +26,7 @@ allowed-tools:
   - Bash(git show *)
   - Bash(git branch *)
   - Bash(git status)
-  - EnterPlanMode
+  - AskUserQuestion
   - SendMessage
 hooks:
   - event: Stop
@@ -87,9 +87,7 @@ Common discrepancies to watch for:
 
 ### Phase 3: Plan (Do NOT Implement)
 
-After research and verification, enter plan mode using the EnterPlanMode tool.
-
-Present a plan that includes:
+After research and verification, present a plan that includes:
 
 1. **Handoff summary** — what was requested, in one paragraph
 2. **Discrepancies found** — anything in the handoff that doesn't match the local codebase (if none, say so)
@@ -97,7 +95,10 @@ Present a plan that includes:
 4. **Open questions** — anything ambiguous or that needs a decision from the user
 5. **Risks** — breaking changes, migration needs, or areas where the handoff may be wrong
 
-**Do NOT start implementing until the user explicitly approves the plan.**
+Then ask with AskUserQuestion, in one call: each open question from item 4 as
+its own question (with your recommended answer first), and last **Approve and
+implement (Recommended)** / **Change the plan** (what, through Other) / **Stop
+here**. Implement nothing before the answer.
 
 ### What to Trust vs. Question
 

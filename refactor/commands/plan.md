@@ -17,12 +17,9 @@ hooks:
       echo "Plan created."
       echo "  - /refactor:extract to start implementing"
       echo "  - /feature-dev:tdd to implement with test-driven development"
-      echo "  - Enter plan mode to execute step by step"
 ---
 
 # Refactoring Plan
-
-> **Recommended:** run in plan mode (`Shift+Tab` to toggle) so the proposed plan is reviewed before any code changes.
 
 Create a structured refactoring plan.
 

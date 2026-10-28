@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.14.1] - 2026-10-28
+
+### Changed
+- `/discuss:feature` runs in plan mode instead of asking you to leave it (it is read-only), and its description no longer refers to plan mode; `/discuss:brainstorm`'s description points to `/feature-dev:spec` instead.
+
 ## [2.14.0] - 2026-10-14
 
 ### Added

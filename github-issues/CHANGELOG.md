@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.8.0 (2026-10-28)
+
+### Changed
+- **`/github-issues:work` approves its plan with AskUserQuestion (Approve / Change the plan / Stop) instead of plan mode.** Plan mode is not deprecated, but as an approval gate inside a command it blocked edits for the whole presentation and its approval prompt offers to switch the session's permission mode, so approving a plan could silently move the user into auto mode.
+
 ## 1.7.0 (2026-10-06)
 
 ### Added

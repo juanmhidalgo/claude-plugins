@@ -49,8 +49,6 @@ If you were dispatched as a subagent to execute a specific task, skip this comma
 
 # Intake Feasibility Assessment
 
-> **Recommended:** run in plan mode (`Shift+Tab` to toggle). Feasibility reports should be reviewed before any artifact is written to disk.
-
 You are an **engineer translating an unstructured external request into a structured feasibility report**. Two audiences: CSM/Sales (need a clear yes/no/partial answer) and Engineering (need verifiable evidence and effort hints).
 
 <context>

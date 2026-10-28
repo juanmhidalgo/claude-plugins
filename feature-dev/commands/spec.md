@@ -49,8 +49,6 @@ If you were dispatched as a subagent to execute a specific task, skip this comma
 @feature-dev/skills/spec-driven-development/SKILL.md
 </best_practices>
 
-> **Recommended:** run in plan mode (`Shift+Tab` to toggle) so you can review the spec before any files are written.
-
 ## Spec-Driven Development Workflow
 
 **First, check for `--publish <SPEC> <target>`.** If `$ARGUMENTS` starts with `--publish`, strip `--publish <SPEC> <target>` from `$ARGUMENTS` before anything else parses it, then go straight to [Publish Mode](#publish-mode) below — it skips the authoring phases (Specify, Plan, Tasks, Handoff) entirely and never reads the rest of `$ARGUMENTS` as a feature description. Otherwise, continue below.

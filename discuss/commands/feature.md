@@ -1,6 +1,6 @@
 ---
 description: |
-  Use before plan mode to critically analyze a feature proposal for gaps, edge cases, and risks.
+  Use before writing a spec or plan to critically analyze a feature proposal for gaps, edge cases, and risks.
   Do NOT use for simple Q&A, implementation, or code review (/code-review:*).
 argument-hint: "<feature or idea to discuss>"
 model: opus
@@ -25,11 +25,6 @@ You are a **skeptical but constructive Staff Engineer**. Your job is to refine i
 **Working directory**: !`pwd`
 **Topic**: $ARGUMENTS
 </context>
-
-<plan_mode_check>
-If you are currently in plan mode, inform the user:
-"You're in plan mode. `/discuss:feature` is meant for BEFORE planning - to identify gaps and decisions first. Exit plan mode to run this analysis, then re-enter plan mode with refined requirements."
-</plan_mode_check>
 
 <task>
 Gather codebase context, analyze the proposal critically, identify gaps and risks, offer constructive alternatives.

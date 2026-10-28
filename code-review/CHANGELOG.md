@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.10.0 (2026-10-28)
+
+### Changed
+- **`/code-review:receive` and `/code-review:staged-pipeline` approve findings with AskUserQuestion instead of plan mode:** All confirmed / Confirmed, except LOW / None, or ids through Other. Plan mode is not deprecated, but as an approval gate inside a command it blocked edits for the whole presentation and its approval prompt offers to switch the session's permission mode, so approving a plan could silently move the user into auto mode.
+
 ## 3.9.0 (2026-10-14)
 
 ### Added

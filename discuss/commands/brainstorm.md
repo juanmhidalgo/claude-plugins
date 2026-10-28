@@ -1,7 +1,7 @@
 ---
 description: |
   Use when you need multiple alternative approaches before committing to a solution.
-  Do NOT use when a clear solution exists (plan mode) or for comparing known options (/discuss:tradeoffs).
+  Do NOT use when a clear solution exists (go straight to /feature-dev:spec) or for comparing known options (/discuss:tradeoffs).
 argument-hint: "<problem or feature to brainstorm>"
 allowed-tools: [Read, Glob, Grep, Agent, WebFetch, WebSearch, AskUserQuestion]
 keywords:

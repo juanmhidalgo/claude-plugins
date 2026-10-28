@@ -19,8 +19,7 @@ allowed-tools:
   - Agent
   - Glob
   - Grep
-  - EnterPlanMode
-  - ExitPlanMode
+  - AskUserQuestion
 argument-hint: "[focus area] [--pane|--no-pane]"
 description: |
   Use when you want to review and fix staged changes in a single session before committing.
@@ -152,9 +151,7 @@ Then:
 If nothing survives, report `No findings.` with what was examined and the
 dropped count, then stop. Skip Phases 3-5.
 
-## Phase 3: Present & Approve (Plan Mode)
-
-Enter plan mode using the EnterPlanMode tool.
+## Phase 3: Present & Approve
 
 Present findings grouped by status:
 
@@ -207,11 +204,12 @@ rubber-stamped it*, and the refutation lines are what separate the two at a
 glance. A confirmation rate with no visible refutations is a number, not a
 result.
 
-**Wait for user to approve which findings to fix.** Do NOT proceed until the user confirms.
+Then ask once with AskUserQuestion which findings to fix: **All confirmed
+(Recommended)** / **Confirmed, except LOW** / **None**. The user can name ids
+through Other; plausible findings are acted on only when named. Implement
+nothing before the answer.
 
 ## Phase 4: Implement Fixes
-
-After user approval, exit plan mode with ExitPlanMode tool.
 
 ### Parallel execution (different files)
 

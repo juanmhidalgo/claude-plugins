@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.6.0] - 2026-10-28
+
+### Changed
+- **`/handoff:receive` asks for approval with AskUserQuestion instead of entering plan mode**, with each open question asked in the same call. Plan mode is not deprecated, but as an approval gate inside a command it blocked edits for the whole presentation and its approval prompt offers to switch the session's permission mode, so approving a plan could silently move the user into auto mode.
+
 ## [1.5.3] - 2026-10-02
 
 ### Changed

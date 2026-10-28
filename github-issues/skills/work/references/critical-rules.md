@@ -4,7 +4,7 @@ These rules apply across all phases.
 
 ## Safety
 
-- **No code before an approved plan.** Plan mode is mandatory — the plan is where the user
+- **No code before an approved plan.** The approval question after the plan is mandatory — the plan is where the user
   sees the corrections the verification made to the issue. Verification probes are not
   the change: they run from the scratchpad or a throwaway test, and leave no trace in the tree.
 - **No plan before verification.** The issue describes the code at the time it was written;

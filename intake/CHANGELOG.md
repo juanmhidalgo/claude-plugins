@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.4] - 2026-10-28
+
+### Changed
+- `/intake:feasibility` no longer recommends running in plan mode: it already saves the report only when asked.
+
 ## [0.9.3] - 2026-10-02
 
 ### Changed

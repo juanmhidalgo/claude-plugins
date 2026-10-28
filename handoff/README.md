@@ -15,7 +15,7 @@ Generate self-contained prompts for use in other repositories. Includes speciali
 | `/handoff:prompt [context]` | Generate a prompt from the current conversation for use in another repo |
 | `/handoff:backend-to-frontend [file]` | Generate instructions for frontend after backend API changes |
 | `/handoff:frontend-to-backend [feature]` | Generate instructions for backend when frontend needs new APIs |
-| `/handoff:receive <prompt>` | Process a received handoff with research-first verification and plan mode |
+| `/handoff:receive <prompt>` | Process a received handoff with research-first verification and an approval gate |
 
 ## Use Cases
 
@@ -45,7 +45,7 @@ After making changes to your API (new endpoints, modified responses, schema chan
 
 ### Receiving a Handoff
 
-When you receive a handoff prompt from another repo or team, use `receive` to process it safely. It forces research of the local codebase, verifies claims against actual code, and enters plan mode before any implementation:
+When you receive a handoff prompt from another repo or team, use `receive` to process it safely. It forces research of the local codebase, verifies claims against actual code, and asks you to approve its plan before any implementation:
 
 ```bash
 /handoff:receive <paste the handoff prompt here>

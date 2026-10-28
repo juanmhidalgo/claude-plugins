@@ -22,7 +22,7 @@ allowed-tools:
   - Bash(git log *)
   - Bash(git show *)
   - Bash(git status)
-  - EnterPlanMode
+  - AskUserQuestion
 skills:
   - branch-review
   - receiving-code-review
@@ -116,8 +116,6 @@ Discard any verdict whose refutation attempt is empty, and re-verify once.
 
 ### Phase 3: Present Verified Results
 
-Enter plan mode using the EnterPlanMode tool.
-
 Present findings grouped by status:
 
 ```
@@ -173,7 +171,10 @@ Two checks before presenting:
    true. Strike it, keep the finding only if it stands on what was read, and say
    the report carried a fabrication — that is a signal about the whole report.
 
-**Do NOT start implementing until the user approves which findings to act on.**
+Then ask once with AskUserQuestion which findings to act on: **All confirmed
+(Recommended)** / **Confirmed, except LOW** / **None**. The user can name ids
+through Other; plausible findings are acted on only when named. Implement
+nothing before the answer.
 
 ### What to Trust vs. Question
 

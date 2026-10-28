@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.5.1] - 2026-10-28
+
+### Changed
+- `/refactor:plan` no longer recommends plan mode (it cannot write files) and its next-step hint drops "Enter plan mode".
+
 ## [1.5.0] - 2026-10-02
 
 ### Added

@@ -23,6 +23,7 @@ triggers:
   - "implement this github issue"
   - "tackle this tech debt issue"
 allowed-tools:
+  - AskUserQuestion
   - Read
   - Grep
   - Glob
@@ -183,9 +184,11 @@ Never post to the issue without the user approving the exact text.
 
 ### Phase 4: Plan
 
-**Enter plan mode** (when running non-interactively, present the plan as text and stop). Present the plan using the [plan template](references/plan-template.md).
+Present the plan using the [plan template](references/plan-template.md).
 It must include the verification ledger, the scope boundary (what the issue explicitly left
-out stays out), and every deviation from the issue's suggested fix with its reason. Wait for approval.
+out stays out), and every deviation from the issue's suggested fix with its reason. Then ask
+with AskUserQuestion: **Approve (Recommended)** / **Change the plan** (what, through Other) /
+**Stop**. When running non-interactively, present the plan as text and stop.
 
 ### Phase 5: Branch and implement
 
