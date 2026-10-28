@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.14.2 (2026-10-28)
+
+### Fixed
+- `/code-review:pipeline`'s decision table still said "Unclear if issue is valid → default to false positive", contradicting 3.14.0's rule that a doubt is NEEDS INVESTIGATION. The row now says NEEDS INVESTIGATION, reported for the user and neither fixed nor dismissed.
+
 ## 3.14.1 (2026-10-28)
 
 ### Changed

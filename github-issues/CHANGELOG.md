@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.11.3 (2026-10-28)
+
+### Fixed
+- `verify-issues` audit: a CONFIRMED or REFUTED row now needs evidence that cites a `path:line`, a commit or a search, as `verification.md` requires; any non-empty text used to pass, so "the issue says so" went unflagged. A REFUSED report with no rows is returned as is instead of being retried and reported as "no ledger", which lost the verdict and the quoted text. Both found by Copilot on the org port of this workflow.
+
 ## 1.11.2 (2026-10-28)
 
 ### Fixed

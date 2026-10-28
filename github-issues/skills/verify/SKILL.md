@@ -108,7 +108,7 @@ Workflow({ name: "github-issues:verify-issues", args: {
 Resolve `{base directory of this skill}` to an absolute path before sending. It runs one
 `issue-verifier` per issue in parallel and applies "Auditing an agent's ledger" from
 [verification.md](../work/references/verification.md) to each ledger in code: a `ran`
-row is downgraded, a CONFIRMED/REFUTED row without evidence becomes UNVERIFIED, an
+row is downgraded, a CONFIRMED/REFUTED row whose evidence cites no `path:line`, commit or search becomes UNVERIFIED, a REFUSED report is returned as is, an
 actionable verdict over a refuted load-bearing row is flagged, and an empty report
 (`verified: false`) is retried once. Issues come back most urgent first.
 

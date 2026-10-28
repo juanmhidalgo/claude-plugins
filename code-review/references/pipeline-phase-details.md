@@ -15,7 +15,7 @@ This pipeline runs **without asking for input**. Use these decision rules:
 | Tests fail | Fix and retry (up to 2 attempts), then STOP |
 | Coverage below CI threshold | Write tests to improve coverage (up to 2 cycles), then STOP |
 | No CI coverage config found | Skip coverage gate, note in report |
-| Unclear if issue is valid | Default to false positive (conservative) |
+| Unclear if issue is valid | NEEDS INVESTIGATION — neither fixed nor dismissed; reported for the user |
 | No comments to triage | Report "no actionable feedback" and exit |
 | All comments are false positives | Dismiss all, skip to Phase 8 (report) |
 | No code changes made (all dismissed or no valid bugs) | Skip Phases 5-7, go to Phase 8 |
