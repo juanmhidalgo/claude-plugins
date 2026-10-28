@@ -160,11 +160,28 @@ async function review(scope, delta) {
   const wanted = args.axes || AXES.map((a) => a.key)
   const axes = AXES.filter((a) => wanted.includes(a.key) && (!a.when || a.when(args)) && !(delta && a.key === 'spec' && !args.spec_scope))
   const scopeOf = (key) => (delta && key === 'spec' ? args.spec_scope : scope)
-  const ran = await parallel(axes.map((a) => () => runAxis(a, scopeOf(a.key), 'Review')))
+  // Pipeline, not a barrier: an axis's findings go to their verifiers as soon as
+  // that axis reports, while the slower reviewers are still running. No step
+  // needs every axis at once, since there is no cross-axis dedupe.
+  const ran = await pipeline(
+    axes,
+    (a) => runAxis(a, scopeOf(a.key), 'Review'),
+    async (r) => {
+      if (!r.report) return { ...r, verified: [], listed: [] }
+      const raw = r.report.findings.map((f, i) => ({ ...f, axis: r.key, id: `${r.key}-${i + 1}${delta ? 'd' : ''}` }))
+      // Nits and pre-existing findings are listed, not verified: they do not block
+      // this change, and a verifier costs about as much as the review that found them.
+      const toVerify = raw.filter((f) => !f.labels.length)
+      const verdicts = await parallel(toVerify.map((f) => () => verify(f, scopeOf(f.axis))))
+      const verified = toVerify.map((f, i) => ({ ...f, verification: verdicts[i] || { verdict: 'UNVERIFIED', refutation_attempt: '', evidence: 'verifier returned nothing twice', corrected_fix: '' } }))
+      return { ...r, verified, listed: raw.filter((f) => f.labels.length) }
+    },
+  )
 
   const status = {}
   for (const a of AXES) status[a.key] = { status: axes.includes(a) ? 'failed' : 'skipped', summary: '', verdict: '' }
-  const raw = []
+  const verified = []
+  const listed = []
   const refused = []
   const dropped = []
   for (const r of ran.filter(Boolean)) {
@@ -174,18 +191,10 @@ async function review(scope, delta) {
     status[r.key].verdict = r.report.verdict || ''
     refused.push(...r.report.refused.map((t) => `${r.key}: ${t}`))
     dropped.push(...r.report.dropped.map((t) => `${r.key}: ${t}`))
-    r.report.findings.forEach((f, i) => raw.push({ ...f, axis: r.key, id: `${r.key}-${i + 1}${delta ? 'd' : ''}` }))
+    verified.push(...r.verified)
+    listed.push(...r.listed)
   }
-
-  // Nits and pre-existing findings are listed, not verified: they do not block
-  // this change, and a verifier costs about as much as the review that found them.
-  const toVerify = raw.filter((f) => !f.labels.length)
-  const listed = raw.filter((f) => f.labels.length)
   if (listed.length) log(`${listed.length} nit/pre_existing finding(s) listed without verification`)
-
-  phase('Verify')
-  const verdicts = await parallel(toVerify.map((f) => () => verify(f, scopeOf(f.axis))))
-  const verified = toVerify.map((f, i) => ({ ...f, verification: verdicts[i] || { verdict: 'UNVERIFIED', refutation_attempt: '', evidence: 'verifier returned nothing twice', corrected_fix: '' } }))
 
   return { scope, axes: status, findings: verified, listed, refused, dropped }
 }

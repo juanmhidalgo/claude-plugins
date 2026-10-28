@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.14.1 (2026-10-28)
+
+### Changed
+- The `review` workflow verifies each axis's findings as soon as that axis reports (`pipeline()` instead of a barrier between the review and verify phases). Defect findings no longer wait for the slower tech-debt reviewer before their verifiers start. Results, ids and order are unchanged.
+
 ## 3.14.0 (2026-10-28)
 
 ### Added
