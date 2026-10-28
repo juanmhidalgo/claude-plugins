@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.11.1 (2026-10-28)
+
+### Changed
+- `issue-verifier` gets a "Working efficiently" section: search with `git ls-files` / `git grep -E` for several terms at once instead of guessing paths, read ranges, batch independent calls, and stop once the verdict is settled. Its tools add `git ls-files`, `git status *`, `grep` (for untracked dependencies that `git grep` cannot see) and `ls -d` for sibling repos. The output section now says a status is exactly one of the five, with any nuance in Evidence.
+
 ## 1.11.0 (2026-10-28)
 
 ### Changed
