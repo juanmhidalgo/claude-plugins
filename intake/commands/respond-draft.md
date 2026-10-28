@@ -74,13 +74,13 @@ If sections are missing, note it but proceed.
 
 Translate engineering jargon into product-domain language CSM uses with customers. Drop file paths, library names, internal service names, repo names. Keep honest verdicts and limitation shapes.
 
-For the translation table, see `@respond-draft.references/translation-and-formats.md`.
+For the translation table, see `${CLAUDE_PLUGIN_ROOT}/references/respond-draft/translation-and-formats.md`.
 
 ## Phase 3: Group by Commitment Category (NOT by Phase)
 
 Phasing in the engineering report uses time language. The customer-facing reply must NOT carry timing — group by **commitment category** (currently supported / small adjustment / deliberate planning / significant initiative / not a path forward).
 
-For category definitions, see `@respond-draft.references/translation-and-formats.md`.
+For category definitions, see `${CLAUDE_PLUGIN_ROOT}/references/respond-draft/translation-and-formats.md`.
 
 ## Phase 4: Apply Constraints Explicitly
 
@@ -97,7 +97,7 @@ Produce **two output formats**, in this order:
 - **Format A: Structured status** (CSM internal review)
 - **Format B: Slack message to CSM** (default channel)
 
-For both full templates, the empty-bucket rule, and format-adaptation guidance, see `@respond-draft.references/translation-and-formats.md`.
+For both full templates, the empty-bucket rule, and format-adaptation guidance, see `${CLAUDE_PLUGIN_ROOT}/references/respond-draft/translation-and-formats.md`.
 
 ## Phase 6: Print, Then Offer to Save (Opt-in)
 
@@ -135,7 +135,7 @@ End the customer-facing prose with a single concrete next-step (answering open q
 </rule>
 </critical_rules>
 
-For shortcut/quality self-checks (rationalizations), see `@respond-draft.references/translation-and-formats.md` (Rationalization Defenses section).
+For shortcut/quality self-checks (rationalizations), see `${CLAUDE_PLUGIN_ROOT}/references/respond-draft/translation-and-formats.md` (Rationalization Defenses section).
 
 <mindset>
 - Every word will be quoted back if wrong

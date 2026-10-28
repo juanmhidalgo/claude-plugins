@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.5] - 2026-10-28
+
+### Fixed
+- **`/intake:feasibility` and `/intake:respond-draft` reference their files through `${CLAUDE_PLUGIN_ROOT}`.** The links were `@feasibility.references/...`, a relative path with nothing to anchor it to the plugin, so in a user's project the templates, schemas and rationalization checks may not have been found (not verified). The folders moved from `commands/*.references/` to `references/<command>/`. Under `commands/`, the validator also read each file as a command without frontmatter, which failed `validate --strict`.
+
 ## [0.9.4] - 2026-10-28
 
 ### Changed

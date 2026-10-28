@@ -85,7 +85,7 @@ Extract **two separate lists** from the prose:
 
 **Critical distinction**: a constraint like "they can't get email" excludes email-delivery for THIS customer; it does NOT motivate building email delivery as a workaround.
 
-For a worked decomposition example, see `@feasibility.references/report-format.md` (Worked example section).
+For a worked decomposition example, see `${CLAUDE_PLUGIN_ROOT}/references/feasibility/report-format.md` (Worked example section).
 
 ## Phase 2: Confirm Decomposition (Brief)
 
@@ -103,7 +103,7 @@ Spawn **N + 1 Explore subagents in parallel** in a single message:
 
 All `N + 1` agents must use `model: "sonnet"`. Wait for all to return before Phase 4.
 
-For prompt structure and required output schemas (capability + alternatives), see `@feasibility.references/subagent-schemas.md`.
+For prompt structure and required output schemas (capability + alternatives), see `${CLAUDE_PLUGIN_ROOT}/references/feasibility/subagent-schemas.md`.
 
 ## Phase 4: Synthesize the Report
 
@@ -120,7 +120,7 @@ Produce a single markdown report with these sections (in order):
 10. Excluded for this customer — required when constraints exist
 11. Open Questions — optional
 
-For full templates, the verdict-grid table, and phasing rules, see `@feasibility.references/report-format.md`.
+For full templates, the verdict-grid table, and phasing rules, see `${CLAUDE_PLUGIN_ROOT}/references/feasibility/report-format.md`.
 
 ## Phase 5: Print, Then Offer to Save (Opt-in)
 
@@ -154,7 +154,7 @@ When a capability appears to EXIST, look harder for silent bugs. The most danger
 </rule>
 </critical_rules>
 
-For shortcut/quality self-checks (rationalizations, common mistakes), see `@feasibility.references/rationalizations.md`.
+For shortcut/quality self-checks (rationalizations, common mistakes), see `${CLAUDE_PLUGIN_ROOT}/references/feasibility/rationalizations.md`.
 
 <mindset>
 - The customer's prose is a hypothesis, not a specification
