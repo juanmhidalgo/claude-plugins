@@ -12,7 +12,7 @@
       "name": "code-review",
       "source": "./code-review",
       "description": "Comprehensive code review workflow: branch reviews, PR triage, false positive dismissal, and fix tracking",
-      "version": "3.11.0",
+      "version": "3.12.0",
       "author": {
         "name": "Juan M. Hidalgo"
       },
@@ -89,7 +89,7 @@
       "name": "feature-dev",
       "source": "./feature-dev",
       "description": "Feature development workflows: test-driven development with coverage gates and parallel codebase exploration before planning",
-      "version": "2.4.0",
+      "version": "2.4.1",
       "author": {
         "name": "Juan M. Hidalgo"
       },
@@ -155,7 +155,7 @@
       "name": "github-issues",
       "source": "./github-issues",
       "description": "Work GitHub Issues — bugs, tech debt, refactors, follow-ups: verify each issue against the current code before planning and implementing, or triage a backlog read-only",
-      "version": "1.8.0",
+      "version": "1.9.0",
       "author": {
         "name": "Juan M. Hidalgo"
       },

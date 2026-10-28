@@ -46,6 +46,9 @@ allowed-tools:
   - Bash(git blame *)
   - Bash(git status)
   - Bash(git stash *)
+  - Bash(git add *)
+  - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/tree-hash.sh)
+  - Workflow
   - Bash(npm test *)
   - Bash(npx jest *)
   - Bash(npx vitest *)
@@ -218,27 +221,38 @@ with AskUserQuestion: **Approve (Recommended)** / **Change the plan** (what, thr
 
 ### Phase 6: Review
 
-The session that planned and wrote the change reads the diff through its own plan. Get a
-reviewer that has not seen this conversation.
+The session that planned and wrote the change reads the diff through its own plan. The
+review runs in code-review's `code-review:review` workflow, whose agents have not seen
+this conversation, and every finding is verified by a separate agent before it reaches
+you.
 
 1. Write the approved plan — ledger included — to a scratchpad file.
-2. Spawn `code-review:branch-reviewer` with `model: "opus"` and no `name`, using the prompt in
-   [review-prompt.md](references/review-prompt.md). If that agent type is not available, use
-   `general-purpose` with the same prompt and model.
-3. Treat every finding as unverified: check it against the code before acting
-   (`code-review:receiving-code-review`).
-   - **Confirmed defect inside the plan's scope** → fix it, and re-run the affected tests.
-   - **Confirmed, but the fix changes what the plan approved** (a UX the plan chose, scope
-     the plan fenced off) → don't fix; put it to the user.
-   - **Refuted** → discard, with the evidence.
-4. One round. Do not re-review your own fixes in a loop; list them in the close-out instead.
+2. Stage the change: `git add -u`, plus the new files the plan creates, by path. The
+   index is now the reviewed state.
+3. Follow `${CLAUDE_PLUGIN_ROOT}/references/review-loop.md` with:
+   - **scope**: `staged changes (git diff --cached)`
+   - **spec_sources**: `spec-file <plan path>` and `issue <number> closes` (`refs` when
+     working a `--part`)
+   - **axes**: `defect`, `spec`
+   - **focus**: `Tests against the work type (<type>): for a bug or performance issue,
+     would the planned test fail on BASE for the reason the plan's ledger gives, and pass
+     because of the change rather than a mock; for a refactor, do characterization tests
+     pin the old behaviour. Consumers in the plan's "Consumers checked": is each actually
+     unaffected, and is any consumer of the changed code missing?`
+   - **title**: `Issue #<number> review`
+   - **out of bounds**: anything the approved plan chose (a UX, an approach) and
+     everything under its Out of scope. A confirmed finding there goes to the user.
+4. If workflows are disabled (`Workflow` unavailable), say so and use the single-reviewer
+   fallback instead: spawn `code-review:branch-reviewer` with `model: "opus"` and no
+   `name`, using the prompt in [review-prompt.md](references/review-prompt.md), and check
+   each finding against the code before acting (`code-review:receiving-code-review`).
 
 ### Phase 7: Close out
 
 1. Does the work need changes in another repository? If yes, generate a handoff prompt
    (format in [critical rules](references/critical-rules.md)).
 2. Summarize: what changed, what the ledger corrected in the issue, what the review found
-   (fixed, put to the user, discarded and why), what remains out of scope, and whether you
+   (fixed, declined, left open, refuted and why), what remains out of scope, and whether you
    were assigned to the issue. Say whether the PR fully resolves the issue (`Closes #N`) or only part of it (`Refs #N`).
 
 For rules that apply across all phases, including rationalization defenses, see

@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.9.0 (2026-10-28)
+
+### Changed
+- **`/github-issues:work` Phase 6 runs code-review's `review` workflow** through the shared review loop (`references/review-loop.md`). Before, one reviewer checked the diff, the same session that wrote the code verified its findings, and there was one round with no re-review of the fixes. Now:
+  - A defect reviewer runs with a focus on the work type's tests and the plan's consumers, and a spec reviewer checks the diff against the approved plan and the issue.
+  - A separate opus agent verifies each finding.
+  - You pick which findings to fix. Fixes run one at a time, and their delta is reviewed again, two rounds at most.
+  - A confirmed finding that would change what the plan approved goes to you as a question.
+  - A tree hash before and after each review run stops the loop if a reviewer changed the tree.
+  - With workflows disabled, the old single reviewer (`review-prompt.md`) is the fallback.
+- Declares `code-review` in `dependencies`. `scripts/tree-hash.sh` and `references/review-loop.md` are synced from `shared/`.
+
 ## 1.8.0 (2026-10-28)
 
 ### Changed

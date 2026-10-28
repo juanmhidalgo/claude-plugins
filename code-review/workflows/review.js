@@ -16,6 +16,7 @@ export const meta = {
 //   spec_sources: find-spec.sh lines (spec-file / issue), [] when none
 //   axes:         review mode only — which of 'defect', 'spec', 'debt' to run (default all three);
 //                 spec still needs spec_sources
+//   focus:        review mode only — optional line the defect reviewer weighs more heavily (its FOCUS field)
 //   delta:        review mode only — true when the scope is the fixes' delta (skips the spec axis)
 //   findings:     fix mode only — the approved findings, as returned by review mode
 //
@@ -86,7 +87,7 @@ const AXES = [
   {
     key: 'defect',
     agentType: 'code-review:branch-reviewer',
-    prompt: (a, scope) => `SCOPE: ${scope}\nEFFORT: ${a.effort || 'high'}\n${COLLECT}`,
+    prompt: (a, scope) => `SCOPE: ${scope}\nEFFORT: ${a.effort || 'high'}\n${a.focus ? `FOCUS: ${a.focus}\n` : ''}${COLLECT}`,
   },
   {
     key: 'spec',

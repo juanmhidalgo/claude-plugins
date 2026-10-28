@@ -1,6 +1,7 @@
 # Review Prompt
 
-Prompt for the Phase 6 reviewer. Fill the placeholders with absolute paths and send it as is.
+Prompt for the Phase 6 fallback reviewer, used only when workflows are disabled. Fill the
+placeholders with absolute paths and send it as is.
 
 ```
 Review a change made to close one GitHub issue, before it is committed. You have not seen the

@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.12.0 (2026-10-28)
+
+### Added
+- The `review` workflow takes `args.focus`, passed as the defect reviewer's `FOCUS` line. `/github-issues:work` uses it to weight the work type's tests and the plan's consumers.
+
 ## 3.11.0 (2026-10-28)
 
 ### Added

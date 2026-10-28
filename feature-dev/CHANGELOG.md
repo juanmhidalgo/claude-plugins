@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.4.1 (2026-10-28)
+
+### Changed
+- `/feature-dev:harden`'s review, gate, fix and delta steps moved to `references/review-loop.md`, synced from `shared/review-loop/` and shared with `/github-issues:work`. Behaviour is unchanged, and a confirmed finding the caller marks out of bounds now goes to the user instead of into "All confirmed" (harden marks nothing).
+
 ## 2.4.0 (2026-10-28)
 
 ### Changed
