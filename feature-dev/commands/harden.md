@@ -42,7 +42,7 @@ triggers:
 - **Working tree**: !`git status --short`
 - **Arguments**: $ARGUMENTS
 
-This command drives the `feature-dev:harden-loop` workflow and owns the one
+This command drives code-review's `code-review:review` workflow and owns the one
 decision it cannot make: which findings to fix. A workflow takes no input
 mid-run, so each run is one stage and the approval happens here, between them.
 
@@ -96,12 +96,12 @@ Every review run in this command, here and in step 5, is wrapped the same way:
 Here the launch is:
 
 ```
-Workflow({ name: "feature-dev:harden-loop", args: {
+Workflow({ name: "code-review:review", args: {
   mode: "review", scope: "<scope line>", effort: "<effort>", spec_sources: [<lines>] } })
 ```
 
-If the name does not resolve, use `scriptPath: "${CLAUDE_PLUGIN_ROOT}/workflows/harden-loop.js"`
-and say which one ran.
+If the name does not resolve, the code-review plugin is missing or too old
+(the workflow ships with code-review 3.11.0): stop and say so.
 
 **A different hash means a reviewer or
 verifier changed the tree**: inside a workflow their read-only tool lists are
@@ -159,7 +159,7 @@ defect-1"). Plausible findings are fixed only when named.
 Launch the workflow with the approved findings exactly as step 2 returned them:
 
 ```
-Workflow({ name: "feature-dev:harden-loop", args: {
+Workflow({ name: "code-review:review", args: {
   mode: "fix", findings: [<approved findings>] } })
 ```
 
@@ -176,7 +176,7 @@ When it returns:
 4. Review the delta, wrapped like step 2 (`tree-hash.sh` before the launch and after):
 
    ```
-   Workflow({ name: "feature-dev:harden-loop", args: {
+   Workflow({ name: "code-review:review", args: {
      mode: "review", delta: true, effort: "<effort>",
      scope: "unstaged changes (git diff): fixes applied on top of the staged change, which was already reviewed. Review only what git diff shows." } })
    ```

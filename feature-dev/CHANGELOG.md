@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.4.0 (2026-10-28)
+
+### Changed
+- **`/feature-dev:harden` runs code-review's `code-review:review` workflow.** Its own `harden-loop` workflow moved to code-review as that shared workflow, so `/feature-dev:harden-loop` no longer exists. Needs code-review 3.11.0 or later. `scripts/tree-hash.sh` is now a synced copy from `shared/tree-hash/`.
+
 ## 2.3.1 (2026-10-28)
 
 ### Changed

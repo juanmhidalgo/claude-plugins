@@ -1,7 +1,8 @@
 #!/bin/bash
 # tree-hash.sh - Print one hash of the working tree's full state: index, unstaged
-# changes, and the contents of untracked files. /feature-dev:harden runs it before
-# and after a review stage; a different hash means a reviewer changed the tree.
+# changes, and the contents of untracked files. Commands that run the
+# code-review:review workflow take it before and after each run; a different hash
+# means a reviewer changed the tree.
 #
 # Usage: tree-hash.sh
 # Read-only. Exits 1 outside a git repository.

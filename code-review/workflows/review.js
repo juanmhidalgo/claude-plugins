@@ -1,7 +1,7 @@
 export const meta = {
-  name: 'harden-loop',
+  name: 'review',
   description: 'Review a change in fresh context (defects, spec, tech debt) and verify each finding, or apply approved fixes',
-  whenToUse: 'Launched by /feature-dev:harden with args. Not meant to be run by hand: it has no approval gate of its own.',
+  whenToUse: 'Launched with args by /code-review:branch and :staged (effort high/max), /feature-dev:harden and /github-issues:work. Not meant to be run by hand: the approval gate and the tree guard live in the calling command.',
   phases: [
     { title: 'Fix', detail: 'one fix-implementer per approved finding, in order' },
     { title: 'Review', detail: 'defect, spec and tech-debt reviewers in parallel' },
@@ -14,6 +14,8 @@ export const meta = {
 //   scope:        scope line every agent receives, e.g. "staged changes (git diff --cached)"
 //   effort:       review effort for the defect reviewer (default 'high')
 //   spec_sources: find-spec.sh lines (spec-file / issue), [] when none
+//   axes:         review mode only — which of 'defect', 'spec', 'debt' to run (default all three);
+//                 spec still needs spec_sources
 //   delta:        review mode only — true when the scope is the fixes' delta (skips the spec axis)
 //   findings:     fix mode only — the approved findings, as returned by review mode
 //
@@ -143,7 +145,8 @@ async function verify(f, scope) {
 // command groups duplicates when it presents them.
 async function review(scope, delta) {
   phase('Review')
-  const axes = AXES.filter((a) => (!a.when || a.when(args)) && !(delta && a.key === 'spec'))
+  const wanted = args.axes || AXES.map((a) => a.key)
+  const axes = AXES.filter((a) => wanted.includes(a.key) && (!a.when || a.when(args)) && !(delta && a.key === 'spec'))
   const ran = await parallel(axes.map((a) => () => runAxis(a, scope, 'Review')))
 
   const status = {}

@@ -82,6 +82,18 @@ must attempt to refute it before confirming. It costs roughly what the review
 did, which is why `low` and `medium` skip it and stay a fast gate. The protocol
 lives in `skills/branch-review/references/verification.md`.
 
+### The `review` workflow
+
+At `high` / `max`, `:branch` and `:staged` run the review as the
+**`code-review:review` workflow** (`workflows/review.js`): defect reviewer, spec
+reviewer and one opus `finding-verifier` per finding, returned as structured
+data. `/feature-dev:harden` and `/github-issues:work` run the same workflow, with
+the tech-debt axis and its fix mode. Inside a workflow the reviewers' `Bash(git …)`
+restrictions were not enforced in testing, so every caller hashes the tree
+(`scripts/tree-hash.sh`) before and after a run and stops if it changed. Requires
+workflows enabled; without them the commands fall back to their Agent dispatch.
+Under `claude -p` or the SDK, allow it with a `Workflow(code-review:review)` rule.
+
 ### Branch Review (before PR)
 ```
 /code-review/branch         → Identify issues in branch

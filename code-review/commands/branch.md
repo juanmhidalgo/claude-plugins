@@ -3,7 +3,9 @@ allowed-tools:
   - Bash(git *)
   - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/herdr-pane.sh *)
   - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/find-spec.sh *)
+  - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/tree-hash.sh)
   - Agent
+  - Workflow
   - Read
 disallowed-tools:
   - Edit
@@ -105,7 +107,12 @@ instead of the Dispatch below. It falls back to the normal run outside Herdr.
 
 ## Dispatch
 
-Use the Agent tool with `subagent_type="code-review:branch-reviewer"`.
+**At `high` / `max`**, follow **`references/workflow-path.md` in the
+`branch-review` skill** instead of this section and the verifier dispatch below,
+with scope `branch <current> vs base <base>`. It runs the reviewer, the spec axis
+and the verifiers as one workflow. Then present as below.
+
+**At `low` / `medium`**, use the Agent tool with `subagent_type="code-review:branch-reviewer"`.
 
 Pass it **scope, not content** — the base branch, the effort level, and an
 `OUTPUT_PATH`. Do not summarize the changes, explain the intent, paste excerpts,

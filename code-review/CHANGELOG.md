@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.11.0 (2026-10-28)
+
+### Added
+- **The `code-review:review` workflow** (`workflows/review.js`, moved here from feature-dev's `harden-loop`). It runs the defect, spec and tech-debt reviewers in parallel in fresh context and verifies each finding with an opus `finding-verifier`, returning structured results. In fix mode it applies approved findings one at a time. `args.axes` picks which axes run.
+- **`/code-review:branch` and `:staged` run it at `high` / `max`**, with the defect and spec axes (`skills/branch-review/references/workflow-path.md`). The verifier fan-out now runs as a script instead of passing through the main conversation one Agent call at a time. `low` / `medium` keep the single Agent dispatch, and so does every level when workflows are disabled.
+- `scripts/tree-hash.sh` (shared from `shared/tree-hash/`): one hash of index, unstaged changes and untracked files. Callers take it before and after each workflow run and stop if it changed, because the reviewers' `Bash(git …)` restrictions were not enforced inside a workflow in testing.
+
 ## 3.10.0 (2026-10-28)
 
 ### Changed

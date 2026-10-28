@@ -1,7 +1,7 @@
 {
   "name": "feature-dev",
   "description": "Feature development workflows: spec-driven development, test-driven development with coverage gates, and parallel codebase exploration",
-  "version": "2.3.1",
+  "version": "2.4.0",
   "dependencies": ["code-review"],
   "types": "./types/index.d.ts",
   "userConfig": {

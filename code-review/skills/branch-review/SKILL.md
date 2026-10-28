@@ -192,6 +192,10 @@ The Spec axis (reviewing the change against the issue or SPEC/PLAN it was built
 from, in its own section, never as a fix) is defined in
 [spec-axis.md](references/spec-axis.md).
 
+At `high`/`max`, `:branch` and `:staged` run the reviewer, the spec axis and the
+verifiers as the `code-review:review` workflow: see
+[workflow-path.md](references/workflow-path.md).
+
 It is not restated in the commands. Six copies of a protocol is one copy that
 drifts, which already happened to this plugin's analysis-focus block.
 
