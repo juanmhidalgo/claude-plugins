@@ -1,5 +1,19 @@
 # Changelog
 
+## 3.15.0 (2026-10-28)
+
+### Added
+- **`/code-review:pr` and `/code-review:staged-pipeline` run the `review` workflow at every effort level.** Both always verify, so they always fan out. Before, they dispatched the reviewers and one verifier per finding by hand and read each agent's report from a scratchpad file. Now the reports and verdicts come back as structured data, a reviewer that does not finish is retried once and otherwise reported as a failed axis, and a verifier that returns nothing twice yields `UNVERIFIED`. Both commands hash the tree before and after the run. Without workflows they keep their Agent dispatch.
+- **PR axes in the `review` workflow**: `bugs`, `claudemd`, `comments`, `history` and `pr-comments`, which run `/code-review:pr`'s five reviewers. They run only when named in `axes` and need `pr`, so the default axes and `:branch`, `:staged`, `/feature-dev:harden` and `/github-issues:work` are unchanged.
+- **The `review` workflow returns a compact `summary` before `findings`**, and sorts findings by verdict (REFUSED, CONFIRMED, PLAUSIBLE, UNVERIFIED, REFUTED), then severity. A long result reaches the caller cut off at the end; the summary survives it.
+
+### Changed
+- `/code-review:pr` surfaces `UNVERIFIED` findings at every level, marked "not verified": a silent verifier must not hide a finding at `low`.
+- On the workflow path `/code-review:pr` no longer deduplicates before verifying: every finding is verified, and findings that share a cause are merged when presented. Merging by line before judgement dropped distinct findings in the `review` workflow's testing.
+
+### Fixed
+- A verifier that returned REFUSED with an empty refutation was retried, so the refused text was lost or the injected text got a second try. The `review` workflow now keeps a REFUSED as it comes, and `triage-comments` keeps one that quotes the refused text. Any other verdict with an empty refutation is still retried once. Found by the live test of `/code-review:pr` on the workflow path.
+
 ## 3.14.2 (2026-10-28)
 
 ### Fixed

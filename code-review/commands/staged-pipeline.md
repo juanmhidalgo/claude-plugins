@@ -4,6 +4,7 @@ allowed-tools:
   - Bash(git *)
   - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/herdr-pane.sh *)
   - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/find-spec.sh *)
+  - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/tree-hash.sh)
   - Bash(npm *)
   - Bash(npx *)
   - Bash(yarn *)
@@ -17,6 +18,7 @@ allowed-tools:
   - Write
   - Edit
   - Agent
+  - Workflow
   - Glob
   - Grep
   - AskUserQuestion
@@ -100,6 +102,15 @@ This pipeline runs in the session that wrote the staged code. That session
 holds every reason the code looks correct — which is the framing both the
 review and the verification must start without.
 
+**With workflows, at every effort level**, follow **`references/workflow-path.md`
+in the `branch-review` skill** for Phases 1 and 2 together, with scope
+`staged changes (git diff --cached)`, the effort, the focus area as `focus`, and
+`axes: ["defect"]` at `low` or `["defect", "spec"]` at `medium` and above. Unlike
+`:staged`, this command takes the workflow at `low` and `medium` too: it always
+verifies, so there is always a fan-out to run. Then continue at the verdict list
+at the end of Phase 2.
+
+**Without workflows** (`Workflow` is not available), dispatch as below and say so.
 Use the Agent tool with `subagent_type="code-review:branch-reviewer"`.
 
 Pass **scope, not content**. Do not summarize the change, explain its intent,
@@ -141,12 +152,13 @@ about to make that change is the same one that wrote the code.
 Then:
 
 - `CONFIRMED` → Phase 3 as a proposed fix
-- `PLAUSIBLE` → Phase 3 as a question for the user, never as a fix
+- `PLAUSIBLE`, or `UNVERIFIED` (workflow: the verifier returned nothing twice) → Phase 3 as a question for the user, never as a fix
 - **Any spec finding, at any verdict** → Phase 3 as a question, never as a fix.
   Fixing `unrequested` means deleting it, and `missing` is feature work, not a
   review fix (`spec-axis.md`).
 - `REFUTED` → dropped, **and counted**
 - `REFUSED` → surfaced at the top of Phase 3 regardless of anything else
+- A `failed` axis (workflow) → that axis did not review: say so in Phase 3 and offer to re-run it, never present it as clean
 
 If nothing survives, report `No findings.` with what was examined and the
 dropped count, then stop. Skip Phases 3-5.

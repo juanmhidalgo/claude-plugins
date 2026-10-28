@@ -6,8 +6,10 @@ allowed-tools:
   - Bash(git *)
   - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/herdr-pane.sh *)
   - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/find-spec.sh *)
+  - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/tree-hash.sh)
   - Bash(gh issue view *)
   - Agent
+  - Workflow
   - Read
   - Glob
   - Grep
@@ -141,8 +143,40 @@ Use Agent tool with `subagent_type="code-review:pr-summarizer"` and `model="haik
 
 ## Step 4: Parallel review
 
-Launch the dimensions for the resolved effort level **in parallel** — multiple
-Agent tool calls in a single message.
+**With workflows, at every effort level**, Steps 4 and 5 are one run of the
+`code-review:review` workflow:
+
+1. `find-spec.sh --pr <N> [--spec <value>]` (medium+); its lines are `spec_sources`.
+2. Run `${CLAUDE_PLUGIN_ROOT}/scripts/tree-hash.sh` and keep the hash.
+3. Wait for Steps 1 and 3 to finish: the `claudemd` axis gets the summary.
+   Launch and wait for the notification:
+
+   ```
+   Workflow({ name: "code-review:review", args: {
+     mode: "review", scope: "PR #<N> (gh pr diff <N>)", pr: <N>, effort: "<level>",
+     axes: [<the dimension keys for the level, below>], files: [<files changed>],
+     claudemd: "<the CLAUDE.md rules from Step 2>", pr_summary: "<the Step 3 summary>",
+     spec_sources: [<lines>] } })
+   ```
+
+   Keys by level: `low` → `bugs`, `claudemd`; `medium` → + `comments`, `spec`;
+   `high` / `max` → + `history`, `pr-comments`. `spec` runs only with
+   `spec_sources`.
+4. Run `tree-hash.sh` again. A different hash means an agent changed the tree:
+   stop, show `git status --short`, and present nothing as a review result.
+
+Read `summary` first (one line per verified finding, most actionable first),
+then `findings`. An axis with `status: "failed"` did not review: list it under
+**Not reviewed**, never as clean. `UNVERIFIED` (the verifier returned nothing
+twice) is surfaced at every level, marked as not verified: a silent verifier
+must not hide a finding. `listed` holds the `nit` and
+`pre_existing` findings, unverified. The workflow verifies every finding without
+deduplicating, so merge the ones that share a cause when you present them (see
+below). Then go to Step 6.
+
+**Without workflows** (`Workflow` is not available), launch the dimensions for
+the resolved effort level **in parallel** — multiple Agent tool calls in a
+single message — and say so in the report.
 
 | # | Agent | Give it | Levels |
 |---|-------|---------|--------|
@@ -168,7 +202,8 @@ it as clean.
 
 ### Deduplicate before verifying
 
-Different dimensions routinely report the same defect. Merge findings that name
+On the workflow path every finding is already verified: merge when presenting
+instead, by the same rule. Different dimensions routinely report the same defect. Merge findings that name
 the same `file:line` and the same underlying cause into one, keeping the
 clearest statement and noting which dimensions raised it. Verifying duplicates
 separately wastes agents and inflates the report with what looks like
@@ -193,6 +228,8 @@ Apply the Step 0 table to the verdicts:
 
 - `CONFIRMED` → always surfaced
 - `PLAUSIBLE` → `high` / `max` only, each marked with what could not be verified
+- `UNVERIFIED` → every level, under Plausible, marked "not verified"
+
 - `REFUTED` → dropped, and **counted**
 - `REFUSED` → surfaced regardless of level, at the top
 - `nit` / `pre_existing` → their own groups, never blocking; `nit` collapses to a

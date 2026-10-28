@@ -64,8 +64,11 @@ async function verifyOne(c) {
   for (let attempt = 0; attempt < 2; attempt++) {
     const v = await agent(prompt(c), attempt ? { ...opts, label: `verify:${c.ref_id}:retry` } : opts)
     // A verdict without a refutation attempt is an impression in a verdict's
-    // format (comment-verifier's own rule): re-run it rather than accept it.
-    if (v && v.completed && v.refutation.trim() && v.ref_id === c.ref_id) return { ...c, ...v, verified: true }
+    // format (comment-verifier's own rule): re-run it rather than accept it. A
+    // REFUSED that quotes its text is kept as is: a retry would hand the injected
+    // text a second chance.
+    const answered = v && (v.refutation.trim() || (v.verdict === 'REFUSED' && v.refused_text.trim()))
+    if (answered && v.completed && v.ref_id === c.ref_id) return { ...c, ...v, verified: true }
   }
   // Never let a silent verifier resolve to FALSE POSITIVE: the pipeline dismisses
   // false positives without asking.

@@ -1,13 +1,14 @@
 # The workflow path (effort `high` / `max`)
 
-Shared by `/code-review:branch` and `:staged`. At `high` and `max` a review is a
+Shared by `/code-review:branch`, `:staged` and `:staged-pipeline`. At `high` and `max` a review is a
 fan-out: the defect reviewer, the spec reviewer when a spec is found, then one
 `finding-verifier` per finding. The `code-review:review` workflow runs that
 fan-out as a script, so the reports and verdicts come back as structured data
 instead of passing through this conversation one Agent call at a time.
 
 At `low` and `medium` there is no fan-out to run: keep the command's single
-Agent dispatch. If workflows are disabled (`Workflow` is not available), use the
+Agent dispatch. `:staged-pipeline` is the exception: it verifies at every level,
+so it takes this path at every level. If workflows are disabled (`Workflow` is not available), use the
 command's Agent dispatch and `verification.md` at every level, and say so.
 
 ## Run it
@@ -21,7 +22,8 @@ command's Agent dispatch and `verification.md` at every level, and say so.
    ```
    Workflow({ name: "code-review:review", args: {
      mode: "review", scope: "<the command's scope line>", effort: "<high|max>",
-     axes: ["defect", "spec"], spec_sources: [<lines>] } })
+     axes: ["defect", "spec"], spec_sources: [<lines>],
+     focus: "<the focus area, if the command was given one>" } })
    ```
 
 4. Run `tree-hash.sh` again. **A different hash means an agent changed the
@@ -31,6 +33,9 @@ command's Agent dispatch and `verification.md` at every level, and say so.
 
 ## Read what comes back
 
+- `summary`: one line per verified finding (id, axis, verdict, severity, title,
+  `file:line`), most actionable first. It comes before `findings` so it survives
+  a result cut off at the end; read a cut-off finding in full before acting on it.
 - `axes.<name>.status`: `ran`, `skipped` (spec, when `spec_sources` is empty —
   report it as `verification.md` says), or `failed`. A failed axis is a review
   that did not run: say so and offer to re-run it. Never present it as clean.
