@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.6.1] - 2026-10-28
+
+### Fixed
+- **`pr-watch.sh` no longer dies on its own `sort`/`comm` under a UTF-8 locale.** Check names with `-`, `_` or mixed case sort differently under `en_US.UTF-8`, `comm` reported "input is not in sorted order" and exited 1, and `set -e` killed the watcher before it printed its final block, so a green CI read as a failure. The script now runs with `LC_ALL=C`.
+
 ## [1.6.0] - 2026-10-14
 
 ### Added

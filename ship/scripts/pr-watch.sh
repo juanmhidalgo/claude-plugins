@@ -19,6 +19,7 @@
 # Example: ./pr-watch.sh 42 --copilot --timeout 2400
 
 set -euo pipefail
+export LC_ALL=C  # sort and comm must agree on collation; with set -e a comm complaint kills the watcher
 
 PR_NUMBER=""
 WAIT_COPILOT="false"
