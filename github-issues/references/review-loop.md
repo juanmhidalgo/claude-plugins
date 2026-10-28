@@ -120,11 +120,26 @@ When it returns:
 
    ```
    Workflow({ name: "code-review:review", args: {
-     mode: "review", delta: true, effort: "<effort>",
+     mode: "review", delta: true, effort: "<effort>", axes: [<axes>],
+     spec_sources: [<lines>], spec_scope: "<whole change>", known_spec: [<lines>],
      scope: "unstaged changes (git diff): fixes applied on top of the staged change, which was already reviewed. Review only what git diff shows." } })
    ```
 
-   The spec axis does not run on a delta; say so when the loop ends.
+   The defect and debt reviewers read the delta. The spec reviewer reads the
+   whole change with the fixes applied, because a fix can contradict the spec
+   and only that reviewer reads it:
+
+   - **spec_scope** for a staged scope: `staged and unstaged changes (git diff HEAD): the reviewed change with the review fixes applied`.
+     For `branch <x> vs base <y>`, run `git merge-base <y> HEAD` and pass
+     `branch <x> vs base <y> plus the unstaged review fixes (git diff <sha>)`.
+   - **known_spec**: every spec finding from the earlier rounds, one line each
+     with its id, title, `file:line` and outcome (`fixed`, `declined`, `left
+     open`), so the reviewer checks the fixed ones and does not re-raise what
+     the user declined.
+
+   With no spec_sources, omit the three spec arguments: the axis stays skipped.
+   Delta finding ids end in `d` (`defect-1d`) so they don't collide with the
+   first round's.
 5. `git add` the files from item 1: the index is again the reviewed state.
 6. If the delta review has confirmed or plausible findings, present them as in
    step 2 and return to step 3. **Two fix rounds at most**: after the second,

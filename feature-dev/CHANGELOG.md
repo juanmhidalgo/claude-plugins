@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.5.0 (2026-10-28)
+
+### Changed
+- `/feature-dev:harden`'s delta review (via `references/review-loop.md`) re-runs the spec reviewer on the whole change after each fix round, so a fix that contradicts the spec is caught. Needs code-review 3.13.0.
+
 ## 2.4.1 (2026-10-28)
 
 ### Changed

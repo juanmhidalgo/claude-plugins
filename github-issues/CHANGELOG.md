@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.11.0 (2026-10-28)
+
+### Changed
+- `/github-issues:work`'s review re-runs the spec reviewer against the plan and the issue after each fix round, on the whole change (via `references/review-loop.md`). Needs code-review 3.13.0.
+
 ## 1.10.0 (2026-10-28)
 
 ### Added

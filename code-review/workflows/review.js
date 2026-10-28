@@ -17,7 +17,12 @@ export const meta = {
 //   axes:         review mode only — which of 'defect', 'spec', 'debt' to run (default all three);
 //                 spec still needs spec_sources
 //   focus:        review mode only — optional line the defect reviewer weighs more heavily (its FOCUS field)
-//   delta:        review mode only — true when the scope is the fixes' delta (skips the spec axis)
+//   delta:        review mode only — true when the scope is the fixes' delta. The defect and debt
+//                 axes read the delta; the spec axis runs only with spec_scope
+//   spec_scope:   delta only — scope line for the whole change with the fixes applied; the spec
+//                 axis reads that instead of the delta. Omitted → the spec axis is skipped
+//   known_spec:   delta only — spec findings from earlier rounds, one line each with what
+//                 happened to them ("spec-2 fixed: …", "spec-3 declined: …")
 //   findings:     fix mode only — the approved findings, as returned by review mode
 //
 // Fix mode only fixes. The caller reviews the delta with a separate review-mode
@@ -94,7 +99,10 @@ const AXES = [
     agentType: 'code-review:spec-conformance-reviewer',
     when: (a) => (a.spec_sources || []).length > 0,
     prompt: (a, scope) => `SCOPE: ${scope}\nSPEC_SOURCES:\n${a.spec_sources.join('\n')}\n${COLLECT}
-Map each spec finding onto the schema: failure_scenario = what the spec asked versus what the diff does; counter_case = the strongest reading under which the diff satisfies it.`,
+Map each spec finding onto the schema: failure_scenario = what the spec asked versus what the diff does; counter_case = the strongest reading under which the diff satisfies it.${a.delta && (a.known_spec || []).length ? `
+KNOWN — spec findings from an earlier round of this review, before review fixes were applied:
+${a.known_spec.join('\n')}
+Report a known one again only if it is marked fixed and the code still does not meet the requirement, or the fix got it wrong. A declined one is the user's decision: do not report it again.` : ''}`,
   },
   {
     key: 'debt',
@@ -138,8 +146,11 @@ async function verify(f, scope) {
   return null
 }
 
-// The delta review skips the spec axis: a diff of fixes implements none of the
-// spec, and would report every requirement as missing.
+// On a delta the spec axis reads the whole change (spec_scope), not the delta: a
+// diff of fixes implements none of the spec and would report every requirement as
+// missing. It still has to run, because a fix can contradict the spec (one in
+// testing nearly turned the spec's `>= 10` into `> 10`), and the defect reviewer
+// on the delta does not read the spec.
 // No mechanical dedupe: deciding that two findings share a cause takes judgement,
 // and merging by line proximity dropped five distinct findings in testing (in a
 // small file everything is within a few lines). Every finding is verified; the
@@ -147,8 +158,9 @@ async function verify(f, scope) {
 async function review(scope, delta) {
   phase('Review')
   const wanted = args.axes || AXES.map((a) => a.key)
-  const axes = AXES.filter((a) => wanted.includes(a.key) && (!a.when || a.when(args)) && !(delta && a.key === 'spec'))
-  const ran = await parallel(axes.map((a) => () => runAxis(a, scope, 'Review')))
+  const axes = AXES.filter((a) => wanted.includes(a.key) && (!a.when || a.when(args)) && !(delta && a.key === 'spec' && !args.spec_scope))
+  const scopeOf = (key) => (delta && key === 'spec' ? args.spec_scope : scope)
+  const ran = await parallel(axes.map((a) => () => runAxis(a, scopeOf(a.key), 'Review')))
 
   const status = {}
   for (const a of AXES) status[a.key] = { status: axes.includes(a) ? 'failed' : 'skipped', summary: '', verdict: '' }
@@ -162,7 +174,7 @@ async function review(scope, delta) {
     status[r.key].verdict = r.report.verdict || ''
     refused.push(...r.report.refused.map((t) => `${r.key}: ${t}`))
     dropped.push(...r.report.dropped.map((t) => `${r.key}: ${t}`))
-    r.report.findings.forEach((f, i) => raw.push({ ...f, axis: r.key, id: `${r.key}-${i + 1}` }))
+    r.report.findings.forEach((f, i) => raw.push({ ...f, axis: r.key, id: `${r.key}-${i + 1}${delta ? 'd' : ''}` }))
   }
 
   // Nits and pre-existing findings are listed, not verified: they do not block
@@ -172,7 +184,7 @@ async function review(scope, delta) {
   if (listed.length) log(`${listed.length} nit/pre_existing finding(s) listed without verification`)
 
   phase('Verify')
-  const verdicts = await parallel(toVerify.map((f) => () => verify(f, scope)))
+  const verdicts = await parallel(toVerify.map((f) => () => verify(f, scopeOf(f.axis))))
   const verified = toVerify.map((f, i) => ({ ...f, verification: verdicts[i] || { verdict: 'UNVERIFIED', refutation_attempt: '', evidence: 'verifier returned nothing twice', corrected_fix: '' } }))
 
   return { scope, axes: status, findings: verified, listed, refused, dropped }

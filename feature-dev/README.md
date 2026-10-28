@@ -72,7 +72,7 @@ The commands are designed to chain:
 Replaces staging by hand, running `/code-review:staged` in another session, pasting the report into `/code-review:receive`, and repeating for `/code-review:tech-debt`. It stages the modified files and asks which untracked files to add (or takes `--base <branch>` for committed work, with a clean tree) and runs code-review's **`code-review:review` workflow** in two stages:
 
 - **Review:** `code-review:branch-reviewer` (effort `high`), `spec-conformance-reviewer` (when the feature has a spec or linked issue) and `tech-debt-reviewer` run in parallel as workflow agents, which never see the conversation that wrote the code. Each finding then goes to a `finding-verifier` on opus.
-- **Fix:** after you pick which findings to fix, one `fix-implementer` per finding runs in order (it may also update the test covering the fixed file), and a separate review run reads the fixes' delta (`git diff` over the staged, reviewed state). Two fix rounds at most.
+- **Fix:** after you pick which findings to fix, one `fix-implementer` per finding runs in order (it may also update the test covering the fixed file), and a separate review run reads the fixes' delta (`git diff` over the staged, reviewed state), while the spec reviewer re-reads the whole change with the fixes applied, so a fix that contradicts the spec is caught. Two fix rounds at most.
 
 A workflow takes no input mid-run, so the approval sits in the command, between the two runs. The command also hashes the tree (`scripts/tree-hash.sh`) before and after every review run and stops if it changed: inside a workflow, the reviewers' `Bash(git …)` restrictions were not enforced in testing, so read-only is by prompt only.
 

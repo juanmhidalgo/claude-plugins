@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.13.0 (2026-10-28)
+
+### Changed
+- **The `review` workflow's delta review runs the spec axis** when the caller passes `spec_scope`: the spec reviewer reads the whole change with the fixes applied, not the delta, and gets `known_spec` (earlier spec findings and their outcome) so it checks the fixed ones and does not re-raise declined ones. Before, the spec axis was skipped on a delta, so nothing independent checked a fix against the spec. Delta finding ids end in `d`.
+
 ## 3.12.0 (2026-10-28)
 
 ### Added
