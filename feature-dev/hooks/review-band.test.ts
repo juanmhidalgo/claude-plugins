@@ -1,8 +1,8 @@
-import { describe, expect, test } from 'claude-code/testing'
+import { describe, expect, mock, test } from 'claude-code/testing'
 import type { Engine } from 'claude-code/testing'
 import type { On } from 'claude-code'
 
-import { needsReviewCount } from './register'
+import { needsReviewCount, newlyApproved } from './register'
 
 const ROOT = '/work/repo'
 
@@ -20,7 +20,7 @@ type World = {
   /** Every process.run the mod made. */
   runs: { argv: readonly string[] }[]
   /** Every ui.open the mod made. */
-  opens: { id: string; title?: string; focus?: boolean }[]
+  opens: { id: string; title?: string; focus?: boolean; columns?: number }[]
   /** What ui.open answers: false when the terminal is too narrow to place the pane. */
   isPlaced?: boolean
   /** Every command.run the mod made. */
@@ -81,6 +81,7 @@ function world(on: On, w: World): void {
     value: [
       { name: 'feature-dev:review', description: '', source: 'plugin' as const, plugin: 'feature-dev' },
       { name: 'feature-dev:tdd', description: '', source: 'plugin' as const, plugin: 'feature-dev' },
+      { name: 'feature-dev:explore-plan', description: '', source: 'plugin' as const, plugin: 'feature-dev' },
     ],
   }))
   on('command.run', (_$, e) => {
@@ -122,8 +123,8 @@ async function start($: Engine): Promise<void> {
   await $.session.start({ cwd: ROOT, surface: 'terminal', isInteractive: true })
 }
 
-async function endTurn($: Engine, agentId?: string): Promise<void> {
-  await $.turn.complete({ answer: '', durationMs: 1, isAborted: false, turnId: 't', reason: 'answer', ...(agentId ? { agentId } : {}) })
+async function endTurn($: Engine, agentId?: string, reason: 'answer' | 'aborted' = 'answer'): Promise<void> {
+  await $.turn.complete({ answer: '', durationMs: 1, isAborted: reason === 'aborted', turnId: 't', reason, ...(agentId ? { agentId } : {}) })
 }
 
 function withPlan(f: Feature): Feature {
@@ -149,7 +150,7 @@ describe('feature sidebar', () => {
     const w = threeFeatures()
     world(on, w)
     await start($)
-    expect(w.opens).toEqual([{ id: 'features', title: 'Features' }])
+    expect(w.opens).toEqual([{ id: 'features', title: 'Features', columns: 56 }])
     expect(w.runs).toHaveLength(1)
     const argv = w.runs[0]!.argv
     expect(argv[0]).toBe('python3')
@@ -360,7 +361,7 @@ describe('feature sidebar', () => {
 
     w.opens.length = 0
     await ui.press({ key: String(found[0]!.key) })
-    expect(w.opens).toEqual([{ id: 'features', focus: true }])
+    expect(w.opens).toEqual([{ id: 'features', focus: true, columns: 56 }])
   })
 
   test('an implemented feature is never marked: no band, no row mark, not counted', async ($, on) => {
@@ -408,18 +409,25 @@ describe('feature sidebar', () => {
     expect(await ui.find({ type: 'Button' })).toBeUndefined()
   })
 
-  test('ac23: review_band false registers neither the pane nor the band', { options: { review_band: false } }, async ($, on) => {
+  test('ac23: review_band false draws neither the pane nor the band', { options: { review_band: false } }, async ($, on) => {
     const w = threeFeatures()
     w.isPlaced = false
     w.features = [feature('a', 'running', true)]
     world(on, w)
     await start($)
-    expect(w.runs).toEqual([])
     expect(w.opens).toEqual([])
     const band = await $.ui.mount(BAND)
     expect(await band.find({ type: 'Button' })).toBeUndefined()
     const pane = await $.ui.mount(PANE)
     expect(await pane.find({ type: 'Text' })).toBeUndefined()
+  })
+
+  test('review_band and plan_after_approve both false register nothing', { options: { review_band: false, plan_after_approve: false } }, async ($, on) => {
+    const w = threeFeatures()
+    world(on, w)
+    await start($)
+    expect(w.runs).toEqual([])
+    expect(w.opens).toEqual([])
   })
 
   test('the band yields to a survey and to an agent view', async ($, on) => {
@@ -444,7 +452,7 @@ describe('feature sidebar', () => {
       w.isPlaced = false
       world(on, w)
       await start($)
-      expect(w.opens).toEqual([{ id: 'features', title: 'Features' }])
+      expect(w.opens).toEqual([{ id: 'features', title: 'Features', columns: 56 }])
       const ui = await $.ui.mount(PANE)
       expect(await rows(ui)).toHaveLength(1)
       expect(await buttons(ui)).toEqual(['retry'])
@@ -486,5 +494,100 @@ describe('feature sidebar', () => {
     const ui = await $.ui.mount(PANE)
     expect(await rows(ui)).toHaveLength(1)
     expect(await buttons(ui)).toEqual(['retry'])
+  })
+
+  test('Plan shows only for an approved feature without a plan, and runs explore-plan on its spec', async ($, on) => {
+    const w = threeFeatures()
+    w.features = [feature('fresh', 'approved'), withPlan(feature('planned', 'approved')), feature('search', 'draft')]
+    world(on, w)
+    await start($)
+    const ui = await $.ui.mount(PANE)
+    await ui.press({ key: 'select:planned' })
+    expect(await buttons(ui)).not.toContain('plan')
+    await ui.press({ key: 'select:search' })
+    expect(await buttons(ui)).not.toContain('plan')
+    await ui.press({ key: 'select:fresh' })
+    expect(await buttons(ui)).toContain('plan')
+    await ui.press({ key: 'plan' })
+    expect(w.commands).toEqual([
+      { command: 'feature-dev:explore-plan', args: '.feature-dev/features/fresh/SPEC-fresh.md' },
+    ])
+  })
+
+  test('pressing the selected row again collapses its actions', async ($, on) => {
+    const w = threeFeatures()
+    world(on, w)
+    await start($)
+    const ui = await $.ui.mount(PANE)
+    await ui.press({ key: 'select:search' })
+    expect(await buttons(ui)).toContain('dismiss')
+    await ui.press({ key: 'select:search' })
+    expect(await buttons(ui)).not.toContain('dismiss')
+  })
+})
+
+describe('plan after approve', () => {
+  test('newlyApproved needs draft before, approved after, and no plan', () => {
+    const before = [feature('a', 'draft'), feature('b', 'approved'), feature('c', 'draft')]
+    expect(newlyApproved(before as never, [feature('a', 'approved')] as never)?.slug).toBe('a')
+    expect(newlyApproved(before as never, [feature('b', 'approved')] as never)).toBeUndefined()
+    expect(newlyApproved(before as never, [withPlan(feature('c', 'approved'))] as never)).toBeUndefined()
+    expect(newlyApproved([] as never, [feature('new', 'approved')] as never)).toBeUndefined()
+  })
+
+  test('a turn that approves a draft spec queues explore-plan on it once the turn is over', async ($, on) => {
+    const clock = mock.clock(on)
+    const w = threeFeatures()
+    world(on, w)
+    await start($)
+    w.features = w.features.map(f => (f.slug === 'search' ? feature('search', 'approved') : f))
+    await endTurn($)
+    expect(w.commands).toEqual([])
+    await clock.advance(1)
+    expect(w.commands).toEqual([
+      { command: 'feature-dev:explore-plan', args: '.feature-dev/features/search/SPEC-search.md' },
+    ])
+    expect(w.toasts?.some(t => t.includes('search approved'))).toBe(true)
+
+    // The next turn sees it approved already: nothing is queued again.
+    await endTurn($)
+    await clock.advance(1)
+    expect(w.commands).toHaveLength(1)
+  })
+
+  test('the turn explore-plan ran in does not queue a second run', async ($, on) => {
+    const clock = mock.clock(on)
+    const w = threeFeatures()
+    world(on, w)
+    await start($)
+    await $.command.run({ command: 'feature-dev:explore-plan', args: '.feature-dev/features/search/SPEC-search.md' } as never)
+    w.features = w.features.map(f => (f.slug === 'search' ? feature('search', 'approved') : f))
+    await endTurn($)
+    await clock.advance(1)
+    expect(w.commands).toHaveLength(1)
+  })
+
+  test('an aborted turn and a subagent turn queue nothing', async ($, on) => {
+    const clock = mock.clock(on)
+    const w = threeFeatures()
+    world(on, w)
+    await start($)
+    w.features = w.features.map(f => (f.slug === 'search' ? feature('search', 'approved') : f))
+    await endTurn($, 'agent-1')
+    await endTurn($, undefined, 'aborted')
+    await clock.advance(1)
+    expect(w.commands).toEqual([])
+  })
+
+  test('plan_after_approve false keeps the pane but queues nothing', { options: { plan_after_approve: false } }, async ($, on) => {
+    const clock = mock.clock(on)
+    const w = threeFeatures()
+    world(on, w)
+    await start($)
+    expect(w.opens).toHaveLength(1)
+    w.features = w.features.map(f => (f.slug === 'search' ? feature('search', 'approved') : f))
+    await endTurn($)
+    await clock.advance(1)
+    expect(w.commands).toEqual([])
   })
 })

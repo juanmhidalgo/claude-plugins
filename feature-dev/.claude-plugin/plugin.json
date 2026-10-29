@@ -1,7 +1,7 @@
 {
   "name": "feature-dev",
   "description": "Feature development workflows: spec-driven development, test-driven development with coverage gates, and parallel codebase exploration",
-  "version": "2.6.0",
+  "version": "2.7.0",
   "dependencies": ["code-review"],
   "types": "./types/index.d.ts",
   "userConfig": {
@@ -9,6 +9,12 @@
       "type": "boolean",
       "title": "Review band",
       "description": "Show the band above the prompt that lists specs and plans changed since their last browser review",
+      "default": true
+    },
+    "plan_after_approve": {
+      "type": "boolean",
+      "title": "Plan after approve",
+      "description": "When a turn approves a draft spec, queue /feature-dev:explore-plan for it once the turn ends",
       "default": true
     },
     "spec_store": {

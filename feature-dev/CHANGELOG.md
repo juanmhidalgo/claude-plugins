@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.7.0 (2026-10-29)
+
+### Added
+- **Plan after approve** (`plan_after_approve` option, on by default): a turn that moves a feature from `draft` to `approved` queues `/feature-dev:explore-plan <spec>`, which runs once the turn ends, as if typed. It works whichever path approved the spec (`/spec`, `/review`, or a plain chat request), because it watches the feature's status instead of a command. A turn that ran explore-plan, an interrupted turn and a subagent turn queue nothing.
+- **Plan** action in the Features pane for an `approved` feature without a plan.
+
+### Changed
+- The Features pane draws a selected feature's actions (and its plan progress) right under its row, not at the bottom of the list, where they read as belonging to the last row. Rows are plain, with a status glyph; the dock asks for 56 columns instead of half the terminal.
+- `review_band: false` now hides only the pane and the band: the feature list is still read for plan after approve. With both options off, the mod registers nothing.
 ## 2.6.0 (2026-10-28)
 
 ### Changed

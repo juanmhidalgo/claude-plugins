@@ -5,6 +5,11 @@
 //
 // Draws only where the engine raises `Pane`. Under `claude -p`, VS Code,
 // --safe-mode or disableAllHooks nothing here runs.
+//
+// It also starts planning when a spec gets approved (`plan_after_approve`):
+// a turn that moves a feature from draft to approved queues
+// /feature-dev:explore-plan for its spec, whichever path approved it
+// (/spec, /review, or a plain chat request).
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
@@ -13,6 +18,8 @@ import type { Feature } from '../types'
 const PANE_ID = 'features'
 const PANE_TITLE = 'Features'
 const LIST_TIMEOUT_MS = 30_000
+/** Dock width the pane asks for; the default share is half the terminal. */
+const PANE_COLUMNS = 56
 
 const featuresAtom = atom({ plugin: 'feature-dev', key: 'features' } as const, [] as Feature[])
 const errorAtom = atom({ plugin: 'feature-dev', key: 'error' } as const, null as string | null)
@@ -67,6 +74,27 @@ const isContinuable = (f: Feature) => ['planned', 'running', 'halted'].includes(
 
 const isDone = (f: Feature) => f.status === 'implemented'
 
+const needsPlan = (f: Feature) => f.status === 'approved' && pathOf(f, 'plan') === undefined
+
+const GLYPHS: Record<Feature['status'], [string, string]> = {
+  draft: ['○', 'subtle'],
+  approved: ['◐', 'suggestion'],
+  planned: ['◑', 'suggestion'],
+  running: ['●', 'claude'],
+  halted: ['■', 'warning'],
+  implemented: ['✓', 'success'],
+  invalid: ['✗', 'error'],
+}
+
+/**
+ * The feature whose spec this turn approved: draft before the turn, approved
+ * after it, and still without a plan. Only one per turn, the first listed.
+ */
+export function newlyApproved(before: readonly Feature[], after: readonly Feature[]): Feature | undefined {
+  const wasDraft = new Set(before.filter(f => f.status === 'draft').map(f => f.slug))
+  return after.find(f => wasDraft.has(f.slug) && needsPlan(f) && pathOf(f, 'spec') !== undefined)
+}
+
 // A shipped feature is never marked: approving in chat writes no review, so its
 // artifacts keep reading "needs review" forever and would pin the band on.
 const isMarked = (f: Feature, dismissed: readonly string[]) =>
@@ -82,7 +110,19 @@ function label(f: Feature, dismissed: readonly string[]): string {
 }
 
 export const register: Register = (on, options) => {
-  if (options.review_band === false) return
+  const showPane = options.review_band !== false
+  const autoPlan = options.plan_after_approve !== false
+  if (!showPane && !autoPlan) return
+
+  // Set when /feature-dev:explore-plan runs, cleared at the end of the turn:
+  // explore-plan approves a draft spec itself before planning it, and that
+  // approval must not queue a second run.
+  let planningThisTurn = false
+
+  on('command.run', { command: 'feature-dev:explore-plan' }, async ($, e, next) => {
+    planningThisTurn = true
+    return next(e)
+  })
 
   on('session.start', async ($, e, next) => {
     const result = await next(e)
@@ -90,8 +130,8 @@ export const register: Register = (on, options) => {
       // List first; an empty repository gets no pane at all (AC-22).
       await refresh($)
       // A failed list opens the pane too, so the person sees the error and Retry.
-      if ((await read($, featuresAtom)).length > 0 || (await read($, errorAtom)) !== null) {
-        const opened = await $.ui.open({ id: PANE_ID, title: PANE_TITLE })
+      if (showPane && ((await read($, featuresAtom)).length > 0 || (await read($, errorAtom)) !== null)) {
+        const opened = await $.ui.open({ id: PANE_ID, title: PANE_TITLE, columns: PANE_COLUMNS })
         if (opened.isPlaced) await update($, paneOpenAtom, () => true)
       }
     }
@@ -113,6 +153,7 @@ export const register: Register = (on, options) => {
   })
 
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
+    if (!showPane) return next(e)
     if (e.props.hasSurvey || e.props.view.agentId !== undefined) return next(e)
     if (await read($, paneOpenAtom)) return next(e)
     if ((await read($, errorAtom)) !== null) return next(e)
@@ -126,7 +167,7 @@ export const register: Register = (on, options) => {
           label={`${count} need review · ${PANE_TITLE}`}
           variant="primary"
           onPress={async () => {
-            const opened = await $.ui.open({ id: PANE_ID, focus: true })
+            const opened = await $.ui.open({ id: PANE_ID, focus: true, columns: PANE_COLUMNS })
             if (opened.isPlaced) await update($, paneOpenAtom, () => true)
           }}
         />
@@ -136,22 +177,40 @@ export const register: Register = (on, options) => {
 
   on('turn.complete', async ($, e, next) => {
     const result = await next(e)
-    if (e.agentId === undefined) await refresh($)
+    if (e.agentId !== undefined) return result
+    const before = await read($, featuresAtom)
+    await refresh($)
+    const planning = planningThisTurn
+    planningThisTurn = false
+    if (!autoPlan || planning || e.reason !== 'answer') return result
+    const approved = newlyApproved(before, await read($, featuresAtom))
+    const spec = approved && pathOf(approved, 'spec')
+    if (approved && spec) {
+      $.ui.toast(`${approved.slug} approved: starting /feature-dev:explore-plan (plan_after_approve)`)
+      // From a timer, not this hook: $.command.run is refused inside a hook the
+      // turn waits on, and from here it queues until the session is idle.
+      $.clock.after(1, () => {
+        runCommand($, 'feature-dev:explore-plan', spec).catch(err =>
+          $.ui.toast(`Could not run /feature-dev:explore-plan: ${String(err)}`),
+        )
+      })
+    }
     return result
   })
 
-  on('ui.render', { component: 'Pane', requestId: PANE_ID }, async ($, e) => {
-    const { Box, Text } = $.ui.resolve(e)
-    const { Button } = $.ui.resolve(e)
+  on('ui.render', { component: 'Pane', requestId: PANE_ID }, async ($, e, next) => {
+    if (!showPane) return next(e)
+    const { Box, Text, Button } = $.ui.resolve(e)
     const error = await read($, errorAtom)
     if (error !== null) {
-      const { Button } = $.ui.resolve(e)
       return (
-        <Box flexDirection="column">
-          <Text key="error" wrap="truncate-end">
+        <Box flexDirection="column" paddingX={1} rowGap={1}>
+          <Text key="error" color="error" wrap="truncate-end">
             {`Could not list features: ${error}`}
           </Text>
-          <Button key="retry" label="Retry" onPress={() => refresh($)} />
+          <Box key="error-actions" flexDirection="row">
+            <Button key="retry" label="Retry" variant="primary" onPress={() => refresh($)} />
+          </Box>
         </Box>
       )
     }
@@ -163,23 +222,13 @@ export const register: Register = (on, options) => {
     const done = features.filter(isDone)
     if (features.length === 0) {
       return (
-        <Box flexDirection="column">
-          <Text key="empty" wrap="truncate-end">
+        <Box flexDirection="column" paddingX={1}>
+          <Text key="empty" dimColor wrap="truncate-end">
             No features yet. Start one with /feature-dev:spec
           </Text>
         </Box>
       )
     }
-    const row = (f: Feature) => (
-      <Box key={`feature:${f.slug}`} flexDirection="row">
-        <Button key={`select:${f.slug}`} label="▸" onPress={async () => {
-            await update($, selectedAtom, () => f.slug)
-            await update($, confirmDeleteAtom, () => null)
-          }}
-        />
-        <Text wrap="truncate-end">{label(f, dismissed)}</Text>
-      </Box>
-    )
     const run = (command: string, path: string) => () =>
       runCommand($, command, path).catch(err => $.ui.toast(`Could not run /${command}: ${String(err)}`))
     const confirming = await read($, confirmDeleteAtom)
@@ -204,34 +253,87 @@ export const register: Register = (on, options) => {
         $.ui.toast(err instanceof Error ? err.message : String(err))
       }
     }
-    const deleteLabel = !selected || confirming !== selected.slug
-      ? 'Delete'
-      : isDone(selected)
-        ? 'Press again to delete'
-        : 'Not implemented: press again to force delete'
-    const spec = selected && pathOf(selected, 'spec')
-    const plan = selected && pathOf(selected, 'plan')
-    const continuePath = selected && (plan ?? spec)
-    return (
-      <Box flexDirection="column">
-        {active.map(row)}
-        {done.length > 0 ? (
-          <Text key="group:done" bold>
-            Done
-          </Text>
-        ) : null}
-        {done.map(row)}
-        {selected ? (
-          <Box key="actions" flexDirection="row">
+    const deleteLabel = (f: Feature) =>
+      confirming !== f.slug ? 'Delete' : isDone(f) ? 'Press again to delete' : 'Not implemented: press again to force delete'
+
+    // The selected feature's detail and actions, drawn right under its row.
+    const actions = (f: Feature) => {
+      const spec = pathOf(f, 'spec')
+      const plan = pathOf(f, 'plan')
+      const continuePath = plan ?? spec
+      const detail = [
+        f.plan ? `${f.plan.completed.length}/${f.plan.steps} steps` : null,
+        f.plan?.halt_reason ? `halted: ${f.plan.halt_reason}` : null,
+        f.issue,
+        f.reason ?? null,
+      ].filter(Boolean).join(' · ')
+      return (
+        <Box key={`actions:${f.slug}`} flexDirection="column" marginLeft={2} marginBottom={1}>
+          {detail ? (
+            <Text key="detail" dimColor wrap="truncate-end">
+              {detail}
+            </Text>
+          ) : null}
+          <Box key="buttons" flexDirection="row" flexWrap="wrap" columnGap={1}>
+            {spec && needsPlan(f) ? (
+              <Button key="plan" label="Plan" variant="primary" onPress={run('feature-dev:explore-plan', spec)} />
+            ) : null}
+            {isContinuable(f) && continuePath ? (
+              <Button key="continue" label="Continue" variant="primary" onPress={run('feature-dev:tdd', continuePath)} />
+            ) : null}
             {spec ? <Button key="review-spec" label="Review spec" onPress={run('feature-dev:review', spec)} /> : null}
             {plan ? <Button key="review-plan" label="Review plan" onPress={run('feature-dev:review', plan)} /> : null}
-            {isContinuable(selected) && continuePath ? (
-              <Button key="continue" label="Continue" onPress={run('feature-dev:tdd', continuePath)} />
-            ) : null}
-            <Button key="dismiss" label="Dismiss" onPress={() => update($, dismissedAtom, d => [...d, selected.slug])} />
-            <Button key="delete" label={deleteLabel} onPress={() => deleteFeature(selected)} />
+            <Button key="dismiss" label="Dismiss" onPress={() => update($, dismissedAtom, d => [...d, f.slug])} />
+            <Button key="delete" label={deleteLabel(f)} onPress={() => deleteFeature(f)} />
+          </Box>
+        </Box>
+      )
+    }
+
+    const row = (f: Feature) => {
+      const [glyph, color] = GLYPHS[f.status] ?? ['?', 'subtle']
+      const isSelected = f.slug === selected?.slug
+      return (
+        <Box key={`feature:${f.slug}`} flexDirection="column">
+          <Button
+            key={`select:${f.slug}`}
+            plain
+            onPress={async () => {
+              await update($, selectedAtom, () => (isSelected ? null : f.slug))
+              await update($, confirmDeleteAtom, () => null)
+            }}
+          >
+            <Text color={color}>{`${glyph} `}</Text>
+            <Text
+              bold={isSelected}
+              dimColor={isDone(f) && !isSelected}
+              color={isMarked(f, dismissed) ? 'warning' : undefined}
+              wrap="truncate-end"
+            >
+              {label(f, dismissed)}
+            </Text>
+          </Button>
+          {isSelected ? actions(f) : null}
+        </Box>
+      )
+    }
+
+    return (
+      <Box flexDirection="column" paddingX={1}>
+        {active.length > 0 ? (
+          <Text key="group:active" bold dimColor>
+            Active
+          </Text>
+        ) : null}
+        {active.map(row)}
+        {done.length > 0 ? (
+          <Box key="group:done" marginTop={active.length > 0 ? 1 : 0}>
+            <Text bold dimColor>
+              Done
+            </Text>
           </Box>
         ) : null}
+        {done.map(row)}
       </Box>
     )
   })

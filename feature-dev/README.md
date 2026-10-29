@@ -104,18 +104,21 @@ One folder per feature. `feature.json` holds the feature's state (`draft`, `appr
 
 ### Features sidebar
 
-In the interactive terminal, a **Features** pane opens at session start, docked beside the transcript in fullscreen. It lists active features first, then a `Done` group with the `implemented` ones, each with its status and a needs-review mark when its SPEC or PLAN changed after its latest review. Selecting a feature offers only the actions valid for it:
+In the interactive terminal, a **Features** pane opens at session start, docked beside the transcript in fullscreen (56 columns wide unless you resize it). It lists active features first, then a `Done` group with the `implemented` ones, each with a status glyph, its status and a needs-review mark when its SPEC or PLAN changed after its latest review. Selecting a feature shows its plan progress and the actions valid for it right under its row; selecting it again collapses them:
 
+- **Plan** runs `/feature-dev:explore-plan` on the spec of an `approved` feature that has no plan yet.
 - **Review spec** / **Review plan** run `/feature-dev:review <path>`, the same as typing it.
 - **Continue** runs `/feature-dev:tdd` for a `planned`, `running` or `halted` feature.
 - **Dismiss** hides the needs-review mark and the band count for the rest of the session. It is session-only: a new session shows the feature again if it still needs review.
 - **Delete** needs two presses; the first turns the label into a confirmation (and says so when the feature is not `implemented`). The second runs `features.py delete`. A `running` or `halted` feature is never deleted from the pane: finish the run, or remove it with `/feature-dev:cleanup`.
 
+**Plan after approve**: when a turn moves a feature from `draft` to `approved` (from `/feature-dev:spec`, `/feature-dev:review`, or asking for approval in chat), the mod queues `/feature-dev:explore-plan <spec>` and it runs once that turn ends, as if you had typed it. The turn that runs explore-plan itself (which approves a draft spec before planning it) never queues a second run, and an interrupted turn queues nothing. To turn it off, set the plugin option `plan_after_approve` to `false`.
+
 Above the prompt, a one-line band (`N need review · Features`) opens the pane. It is hidden while the pane is shown or when N is 0. With no features, nothing opens. If `features.py` fails (no `python3`, bad output), the pane shows one error line with a Retry action and the band hides.
 
 The mod never reads the files itself: it renders `features.py list --json` and acts through `features.py` or a command. The text fallback is the commands themselves (`/feature-dev:review`, `/feature-dev:tdd`, `/feature-dev:cleanup`) plus the "Or review it in the browser: …" line that `spec` and `explore-plan` print.
 
-It is a hooks module (`hooks/register.tsx`), so it needs a Claude Code build that loads plugin hooks modules (**Requires Claude Code >= 2.1.287**). **It does not appear** under `claude -p`, `--safe-mode` or `disableAllHooks`, nor in the VS Code extension. **To turn it off** (pane and band), set the plugin option `review_band` to `false` in `/config` (or `/plugin configure feature-dev@juanmhidalgo-plugins`); the commands keep working.
+It is a hooks module (`hooks/register.tsx`), so it needs a Claude Code build that loads plugin hooks modules (**Requires Claude Code >= 2.1.287**). **It does not appear** under `claude -p`, `--safe-mode` or `disableAllHooks`, nor in the VS Code extension. **To turn it off** (pane and band), set the plugin option `review_band` to `false`; plan after approve keeps working unless `plan_after_approve` is `false` too in `/config` (or `/plugin configure feature-dev@juanmhidalgo-plugins`); the commands keep working.
 
 Each command can also be used independently.
 
