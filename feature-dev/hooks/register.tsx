@@ -104,6 +104,10 @@ const isMarked = (f: Feature, dismissed: readonly string[]) =>
 export const needsReviewCount = (features: readonly Feature[], dismissed: readonly string[]): number =>
   features.filter(f => isMarked(f, dismissed)).length
 
+/** Cuts `text` to `width` cells with an ellipsis: Text inside a Button wraps instead of truncating. */
+export const fit = (text: string, width: number): string =>
+  width <= 1 || [...text].length <= width ? text : `${[...text].slice(0, width - 1).join('')}…`
+
 function label(f: Feature, dismissed: readonly string[]): string {
   const needsReview = isMarked(f, dismissed)
   return `${f.slug} · ${f.status}${needsReview ? ' · needs review' : ''}`
@@ -268,7 +272,7 @@ export const register: Register = (on, options) => {
         f.reason ?? null,
       ].filter(Boolean).join(' · ')
       return (
-        <Box key={`actions:${f.slug}`} flexDirection="column" marginLeft={2} marginBottom={1}>
+        <Box key={`actions:${f.slug}`} flexDirection="column" marginLeft={2}>
           {detail ? (
             <Text key="detail" dimColor wrap="truncate-end">
               {detail}
@@ -310,7 +314,7 @@ export const register: Register = (on, options) => {
               color={isMarked(f, dismissed) ? 'warning' : undefined}
               wrap="truncate-end"
             >
-              {label(f, dismissed)}
+              {fit(label(f, dismissed), e.props.bodyColumns - 4)}
             </Text>
           </Button>
           {isSelected ? actions(f) : null}

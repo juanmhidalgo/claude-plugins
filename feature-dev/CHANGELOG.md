@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.7.1 (2026-10-29)
+
+### Fixed
+- Features pane: a row label longer than the pane is cut with an ellipsis instead of wrapping onto a second line (Text inside a Button wraps), and the selected feature's actions no longer leave two blank lines before `Done`.
+
 ## 2.7.0 (2026-10-29)
 
 ### Added

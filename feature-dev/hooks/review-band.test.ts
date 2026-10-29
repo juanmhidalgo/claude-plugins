@@ -2,7 +2,7 @@ import { describe, expect, mock, test } from 'claude-code/testing'
 import type { Engine } from 'claude-code/testing'
 import type { On } from 'claude-code'
 
-import { needsReviewCount, newlyApproved } from './register'
+import { fit, needsReviewCount, newlyApproved } from './register'
 
 const ROOT = '/work/repo'
 
@@ -589,5 +589,10 @@ describe('plan after approve', () => {
     await endTurn($)
     await clock.advance(1)
     expect(w.commands).toEqual([])
+  })
+
+  test('fit cuts a row label to the pane width with an ellipsis', () => {
+    expect(fit('cumulative-fraud-checks · running · needs review', 30)).toBe('cumulative-fraud-checks · run…')
+    expect(fit('short', 30)).toBe('short')
   })
 })
