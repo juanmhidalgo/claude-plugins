@@ -56,6 +56,7 @@ remains.
 1. PR number was provided (from `$ARGUMENTS`)
 2. Working tree is clean. If dirty, **STOP** and ask user to commit or stash.
 3. PR is open: `gh pr view $ARGUMENTS --json state -q '.state'` must be `OPEN`. If draft/closed/merged, **STOP**.
+4. The checkout is the PR's head: `gh pr view $ARGUMENTS --json headRefName,headRefOid`. The current branch must be `headRefName` and `git rev-parse HEAD` must be `headRefOid`. Otherwise **STOP** and say which: a push from another branch never reaches the PR, and a HEAD with commits the PR lacks would push them along with the fixes. In a `--pane` worktree this runs there, after checkout.
 
 ## Herdr pane
 
@@ -127,7 +128,7 @@ For the exact script invocation, the workflow call and the fallback when workflo
 
 ## Phase 2: Dismiss false positives
 
-For each `FALSE POSITIVE`, run `pr-resolve-comment.sh ... dismiss "REASON"`. For canonical reason phrases, see `${CLAUDE_PLUGIN_ROOT}/references/pipeline-phase-details.md` (Phase 2 detail).
+For each `FALSE POSITIVE`, run `pr-resolve-comment.sh --seen <thread_comments> ... dismiss "REASON"`, passing the count triage saw (inline comments only). Exit 6 means the thread moved since triage (a new reply, or resolved): nothing was posted, list it under **Changed since triage** and move on. Exit 5 means the reply landed but the thread stayed open. Any other failure: stop posting and report which dismissals reached GitHub and which did not. For canonical reason phrases and the exit codes, see `${CLAUDE_PLUGIN_ROOT}/references/pipeline-phase-details.md` (Phase 2 detail).
 
 ## Phase 3: Plan fixes
 
@@ -167,7 +168,7 @@ For the commit-message template, see `${CLAUDE_PLUGIN_ROOT}/references/pipeline-
 
 ## Phase 7: Resolve GitHub threads
 
-For each `VALID BUG` that was fixed, run `pr-resolve-comment.sh ... resolve`.
+For each `VALID BUG` that was fixed, run `pr-resolve-comment.sh --seen <thread_comments> ... resolve`. Exit 6 (someone wrote in the thread since triage) leaves it open for the user: list it under **Changed since triage** rather than resolving over a reply nobody read.
 
 ## Phase 8: Report
 

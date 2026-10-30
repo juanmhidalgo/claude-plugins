@@ -67,8 +67,17 @@ Collect verdicts with `ref_id` preserved.
 
 For each FALSE POSITIVE, dismiss immediately:
 ```bash
-${CLAUDE_PLUGIN_ROOT}/scripts/pr-resolve-comment.sh OWNER REPO PR_NUMBER REF_ID dismiss "REASON"
+${CLAUDE_PLUGIN_ROOT}/scripts/pr-resolve-comment.sh --seen THREAD_COMMENTS OWNER REPO PR_NUMBER REF_ID dismiss "REASON"
 ```
+
+`THREAD_COMMENTS` is the comment's `thread_comments` from Phase 1; omit `--seen` for issue comments and reviews, which have none. The script reads the thread again right before replying:
+
+| Exit | Meaning | Do |
+|------|---------|----|
+| 0 | dismissed (or, for `resolve`, resolved / already resolved) | next comment |
+| 6 | the thread changed since triage (new reply, or resolved): nothing posted | **Changed since triage** in the report; do not retry |
+| 5 | reply posted, thread not resolved | **Replied, not resolved** in the report |
+| 1 | error, nothing posted for this comment | stop posting; report what was posted and what was not |
 
 Concise reasons: "Already handled in [location]", "YAGNI", "Misunderstands context: [brief]", "Style preference", "Pre-existing, not introduced by this PR".
 
@@ -141,8 +150,10 @@ Then `git push`.
 
 For each VALID BUG that was fixed:
 ```bash
-${CLAUDE_PLUGIN_ROOT}/scripts/pr-resolve-comment.sh OWNER REPO PR_NUMBER REF_ID resolve
+${CLAUDE_PLUGIN_ROOT}/scripts/pr-resolve-comment.sh --seen THREAD_COMMENTS OWNER REPO PR_NUMBER REF_ID resolve
 ```
+
+Same exit codes as Phase 2. Exit 6 here means someone wrote in the thread after triage: leave it open and list it.
 
 ## Phase 8: Report format
 
@@ -162,6 +173,12 @@ ${CLAUDE_PLUGIN_ROOT}/scripts/pr-resolve-comment.sh OWNER REPO PR_NUMBER REF_ID 
 - [ref_id] [file:line] - [title] - to verify: [to_verify]
 
 ### Threads Resolved ([count])
+
+### Changed since triage ([count]) — nothing posted: someone replied or resolved meanwhile
+- [ref_id] [file:line] - [what changed]
+
+### Replied, not resolved ([count])
+- [ref_id] [file:line]
 
 ### Tests: PASS/FAIL
 

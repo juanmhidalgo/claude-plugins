@@ -70,9 +70,10 @@ For each confirmed dismissal, run:
 ${CLAUDE_PLUGIN_ROOT}/scripts/pr-resolve-comment.sh OWNER REPO PR_NUMBER REF_ID dismiss "REASON"
 ```
 
-This will:
-1. Add a reply with "**Dismissed**" + reason
-2. Resolve the thread on GitHub
+Pass `--seen <thread_comments>` (from the triage output) first when you have it. This will:
+1. Read the thread again, and skip it (exit 6, nothing posted) if it was resolved or got a new comment since triage
+2. Add a reply with "**Dismissed**" + reason
+3. Resolve the thread on GitHub (exit 5 if the reply landed but resolving failed)
 
 ### Step 4: Report
 

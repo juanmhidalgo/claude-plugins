@@ -240,9 +240,9 @@ session has been reasoning about the code for an hour.
 
 The plugin includes bash scripts for GitHub API operations (no MCP required):
 
-- `pr-triage-comments.sh` - Fetch PR comments optimized for triage (filters resolved/outdated via GraphQL)
+- `pr-triage-comments.sh` - Fetch PR comments optimized for triage (pages through every thread and comment, filters resolved threads, marks outdated ones)
 - `pr-triage-split.sh` - Runs `pr-triage-comments.sh`, writes one JSON file per comment, and prints the metadata without the bodies (used by `triage` and `pipeline`)
-- `pr-resolve-comment.sh` - Dismiss/resolve comments on GitHub
+- `pr-resolve-comment.sh` - Dismiss/resolve comments on GitHub. With `--seen N` it re-reads the thread first and skips one that changed since triage (exit 6); exit 5 is a reply that landed on a thread it could not resolve
 - `pr-comments.sh` - Full PR comments fetch
 - `pr-review-summary.sh` - Quick review status summary
 - `find-spec.sh` - Lists the spec sources for a review (`--base`, `--pr`, `--staged`, optional `--spec`): explicit argument, closing issues, commit keywords, feature-dev `branch:` frontmatter

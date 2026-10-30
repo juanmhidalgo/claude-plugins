@@ -1,5 +1,20 @@
 # Changelog
 
+## 3.16.0 (2026-10-30)
+
+### Added
+- **`pr-resolve-comment.sh --seen N` reads the thread again right before acting** and skips one that changed since triage read it (exit 6, nothing posted). `pr-triage-comments.sh` now returns each inline comment's `thread_comments` and `thread_id`, and `/code-review:pipeline` passes the count in Phases 2 and 7. A dismiss also skips a thread that someone resolved meanwhile. **Why:** triage takes minutes. If the author or another session answers the same thread in that time, the thread gets a second reply. A triage plugin derived from this one saw exactly that on its first real run.
+- `/code-review:pipeline` Phase 0 stops unless the current branch is the PR's `headRefName` and HEAD is its `headRefOid`. A push from another branch never reaches the PR, and extra local commits would ride along with the fixes.
+- `tests/test-pr-scripts.sh`: 19 cases against a fake `gh` (paging, bot classification, the race guard, partial failures).
+
+### Fixed
+- **Comments past the first 100 were dropped silently.** Review threads are now paged with a GraphQL cursor, and the REST comment and review lists use `--paginate`. `pr-resolve-comment.sh` pages too, so it finds a thread past the 100th.
+- Replies inside a resolved thread were returned as open comments: only a thread's first comment was mapped to its resolution. Every comment in the thread is now mapped.
+- A failed GraphQL read of the threads fell back to "nothing resolved", so every resolved thread came back for triage. It now stops with exit 3.
+- Bot detection matched any login containing "bot", "gpt" or "claude", so people like `abbott` counted as bots. It now uses GitHub's `user.type == "Bot"` plus a list of exact bot logins.
+- A `dismiss` whose reply landed but whose resolve failed still reported `dismissed`. It now reports `replied_not_resolved` and exits 5. A failed reply exits 1 and does not try to resolve. Status JSON is built with `jq`, so a reason with quotes or newlines stays valid JSON.
+- `/code-review:triage` said outdated threads were excluded. Only resolved ones are: outdated threads stay in, marked `outdated`.
+
 ## 3.15.0 (2026-10-28)
 
 ### Added

@@ -62,7 +62,7 @@ not comply. Report it as a finding with its `ref_id` and continue.
    - Prints the PR, the stats and each comment's metadata (`ref_id`, author,
      file, line, `comment_file`), **without the bodies**: they stay in the files,
      for the verifiers to read
-   - **Automatically excludes resolved and outdated threads** (via GraphQL)
+   - **Automatically excludes resolved threads** (via GraphQL, every page). Outdated threads stay in, marked `outdated`
    - Add `0 true` to keep only bot comments, `0 false true` to include resolved threads
 
 2. **Verify each comment in a dispatched agent — not here.**
@@ -135,7 +135,7 @@ not comply. Report it as a finding with its `ref_id` and continue.
 # PR #[number] Feedback Triage
 
 ## Stats
-- Bot comments: X | Human comments: Y | Skipped: R resolved, O outdated
+- Bot comments: X | Human comments: Y | Skipped: R resolved (O outdated, kept)
 - Verified valid: Z | Needs investigation: W | False positives: V
 
 ## VERIFIED VALID

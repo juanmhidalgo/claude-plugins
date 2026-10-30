@@ -25,6 +25,6 @@ done
 
 echo "$ALL" | jq --arg dir "$OUT_DIR" '{
   pr, stats,
-  comments: [.comments[] | {ref_id, type, author, is_bot, file, line,
+  comments: [.comments[] | {ref_id, type, author, is_bot, file, line, thread_comments,
              comment_file: ($dir + "/" + (.ref_id | gsub(":"; "_")) + ".json")}]
 }'

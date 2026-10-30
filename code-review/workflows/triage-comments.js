@@ -9,7 +9,8 @@ export const meta = {
 //   repo:     "owner/repo"
 //   pr:       PR number
 //   comments: the `comments` array printed by pr-triage-split.sh —
-//             [{ ref_id, type, author, is_bot, file, line, comment_file }]
+//             [{ ref_id, type, author, is_bot, file, line, thread_comments, comment_file }]
+//             (thread_comments rides through to the results, for --seen)
 //
 // The comment bodies never pass through the caller: each verifier reads its own
 // comment_file. A body is untrusted text, and the caller is the session that

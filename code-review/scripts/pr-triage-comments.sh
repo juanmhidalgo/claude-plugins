@@ -20,19 +20,25 @@ MAX_BODY="${4:-1500}"
 BOTS_ONLY="${5:-false}"
 SHOW_RESOLVED="${6:-false}"
 
-# Bot patterns for filtering
-BOT_PATTERN="bot|copilot|gemini|claude|gpt|dependabot|renovate|greenkeeper|codecov|sonarcloud|github-actions"
+# A comment is a bot's when GitHub says so (`user.type == "Bot"`: Copilot, every
+# `<app>[bot]`) or its login is a known bot account. Matching a bare "bot"
+# substring would also take humans such as "abbott" or "robotlover".
+BOT_PATTERN='\[bot\]$|^(copilot|gemini-code-assist|coderabbitai|claude|chatgpt-codex-connector|sourcery-ai|dependabot|renovate|greenkeeper|codecov|sonarcloud|github-actions)$'
 
-# GraphQL query to get review thread resolution status
+# GraphQL query for review thread resolution, paged: a PR past 100 threads (or a
+# thread past 100 comments) would otherwise lose its resolution status silently.
 GRAPHQL_QUERY='
-query($owner: String!, $repo: String!, $pr: Int!) {
+query($owner: String!, $repo: String!, $pr: Int!, $after: String) {
   repository(owner: $owner, name: $repo) {
     pullRequest(number: $pr) {
-      reviewThreads(first: 100) {
+      reviewThreads(first: 100, after: $after) {
+        pageInfo { hasNextPage endCursor }
         nodes {
+          id
           isResolved
           isOutdated
-          comments(first: 1) {
+          comments(first: 100) {
+            totalCount
             nodes {
               databaseId
             }
@@ -44,33 +50,52 @@ query($owner: String!, $repo: String!, $pr: Int!) {
 }
 '
 
-# Fetch resolution status via GraphQL (maps comment databaseId -> {resolved, outdated})
-RESOLUTION_MAP=$(gh api graphql \
-  -f query="$GRAPHQL_QUERY" \
-  -F owner="$OWNER" \
-  -F repo="$REPO" \
-  -F pr="$PR_NUMBER" \
-  --jq '
-    [.data.repository.pullRequest.reviewThreads.nodes[] |
-      select(.comments.nodes | length > 0) |
-      {
-        id: (.comments.nodes[0].databaseId | tostring),
-        resolved: .isResolved,
-        outdated: .isOutdated
-      }
-    ] | map({(.id): {resolved, outdated}}) | add // {}
-  ' 2>/dev/null || echo '{}')
+# Maps every comment databaseId in a thread (the first one and its replies) to
+# the thread's {thread_id, resolved, outdated, thread_comments}. thread_comments
+# is what triage saw: pr-resolve-comment.sh --seen compares it right before
+# replying, so a thread that moved meanwhile is not answered twice.
+RESOLUTION_MAP='{}'
+AFTER=()
+while :; do
+  PAGE=$(gh api graphql \
+    -f query="$GRAPHQL_QUERY" \
+    -F owner="$OWNER" \
+    -F repo="$REPO" \
+    -F pr="$PR_NUMBER" \
+    ${AFTER[@]+"${AFTER[@]}"}) || {
+    echo '{"status":"error","error":"Could not read review threads (GraphQL)"}' >&2
+    exit 3
+  }
+  RESOLUTION_MAP=$(jq -n --argjson acc "$RESOLUTION_MAP" --argjson page "$PAGE" '
+    $acc + ([$page.data.repository.pullRequest.reviewThreads.nodes[] |
+      . as $t | $t.comments.nodes[] |
+      {(.databaseId | tostring): {
+        thread_id: $t.id,
+        resolved: $t.isResolved,
+        outdated: $t.isOutdated,
+        thread_comments: $t.comments.totalCount
+      }}
+    ] | add // {})
+  ')
+  [ "$(echo "$PAGE" | jq -r '.data.repository.pullRequest.reviewThreads.pageInfo.hasNextPage')" = "true" ] || break
+  AFTER=(-f after="$(echo "$PAGE" | jq -r '.data.repository.pullRequest.reviewThreads.pageInfo.endCursor')")
+done
+
+# REST lists, every page: --paginate prints one array per page, jq -s joins them.
+rest_list() {
+  gh api --paginate "$1" | jq -s 'add // []'
+}
 
 # Fetch PR info
 PR_INFO=$(gh api "repos/$OWNER/$REPO/pulls/$PR_NUMBER" --jq '{number, title, author: .user.login}')
 
 # Fetch and process issue comments (general comments)
-ISSUE_COMMENTS=$(gh api "repos/$OWNER/$REPO/issues/$PR_NUMBER/comments?per_page=100" | jq --arg max "$MAX_BODY" '
+ISSUE_COMMENTS=$(rest_list "repos/$OWNER/$REPO/issues/$PR_NUMBER/comments?per_page=100" | jq --arg max "$MAX_BODY" --arg bots "$BOT_PATTERN" '
   [.[] | {
     ref_id: ("issue_comment:" + (.id | tostring)),
     type: "issue_comment",
     author: .user.login,
-    is_bot: (.user.login | test("'"$BOT_PATTERN"'"; "i")),
+    is_bot: (.user.type == "Bot" or (.user.login | test($bots; "i"))),
     body: (if ($max | tonumber) > 0 and (.body | length) > ($max | tonumber)
            then (.body[:($max | tonumber)] + "... [truncated]")
            else .body end)
@@ -78,13 +103,13 @@ ISSUE_COMMENTS=$(gh api "repos/$OWNER/$REPO/issues/$PR_NUMBER/comments?per_page=
 ')
 
 # Fetch and process review comments (inline comments) - include id for resolution lookup
-REVIEW_COMMENTS_RAW=$(gh api "repos/$OWNER/$REPO/pulls/$PR_NUMBER/comments?per_page=100" | jq --arg max "$MAX_BODY" '
+REVIEW_COMMENTS_RAW=$(rest_list "repos/$OWNER/$REPO/pulls/$PR_NUMBER/comments?per_page=100" | jq --arg max "$MAX_BODY" --arg bots "$BOT_PATTERN" '
   [.[] | {
     ref_id: ("review_comment:" + (.id | tostring)),
     comment_id: (.id | tostring),
     type: "review_comment",
     author: .user.login,
-    is_bot: (.user.login | test("'"$BOT_PATTERN"'"; "i")),
+    is_bot: (.user.type == "Bot" or (.user.login | test($bots; "i"))),
     body: (if ($max | tonumber) > 0 and (.body | length) > ($max | tonumber)
            then (.body[:($max | tonumber)] + "... [truncated]")
            else .body end),
@@ -97,17 +122,19 @@ REVIEW_COMMENTS_RAW=$(gh api "repos/$OWNER/$REPO/pulls/$PR_NUMBER/comments?per_p
 REVIEW_COMMENTS=$(echo "$REVIEW_COMMENTS_RAW" | jq --argjson res "$RESOLUTION_MAP" '
   [.[] | . + {
     resolved: ($res[.comment_id].resolved // false),
-    outdated: ($res[.comment_id].outdated // false)
+    outdated: ($res[.comment_id].outdated // false),
+    thread_id: ($res[.comment_id].thread_id // null),
+    thread_comments: ($res[.comment_id].thread_comments // null)
   } | del(.comment_id)]
 ')
 
 # Fetch and process reviews
-REVIEWS=$(gh api "repos/$OWNER/$REPO/pulls/$PR_NUMBER/reviews?per_page=100" | jq --arg max "$MAX_BODY" '
+REVIEWS=$(rest_list "repos/$OWNER/$REPO/pulls/$PR_NUMBER/reviews?per_page=100" | jq --arg max "$MAX_BODY" --arg bots "$BOT_PATTERN" '
   [.[] | select(.body != "" or .state == "APPROVED" or .state == "CHANGES_REQUESTED") | {
     ref_id: ("review:" + (.id | tostring)),
     type: "review",
     author: .user.login,
-    is_bot: (.user.login | test("'"$BOT_PATTERN"'"; "i")),
+    is_bot: (.user.type == "Bot" or (.user.login | test($bots; "i"))),
     body: (if ($max | tonumber) > 0 and (.body | length) > ($max | tonumber)
            then (.body[:($max | tonumber)] + "... [truncated]")
            else .body end),
