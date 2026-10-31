@@ -44,7 +44,7 @@ Four sections: **Summary** (one sentence of why, plus one visual derived from th
 
 ## Watching CI and Copilot
 
-Once the branch has a PR, `/ship` starts `scripts/pr-watch.sh` in the background and ends its turn; the session is re-invoked when the script exits. The script waits until every check has finished and, if Copilot's review was requested in this run, until Copilot has reviewed the PR's current head commit (30-minute cap).
+Once the branch has a PR, `/ship` starts `gh feedback watch` in the background and ends its turn; the session is re-invoked when it exits. It waits until every check has finished and, if Copilot's review was requested in this run, until Copilot has reviewed the PR's current head commit (30-minute cap).
 
 - **CI failed**: the failing step's log is shown. `/ship` does not fix it.
 - **Copilot left inline comments**: `/code-review:pipeline <PR#>` runs on them (triage, fix, test, push, resolve). Then CI is watched once more on the fix commit — no second Copilot round.
@@ -62,7 +62,7 @@ After a successful push to the default branch, `/ship` looks for other live Clau
 - A git remote
 - Optional: Copilot code review enabled on the repo (skip the request with `--skip-copilot-review`)
 - Optional: the `code-review` plugin, for the hand-off of Copilot's comments to `/code-review:pipeline`
-- `jq`, for the watcher
+- The `gh-feedback` extension, for the watcher: `gh extension install juanmhidalgo/gh-feedback`. Without it `/ship` stops after the PR and tells you how to check CI
 - No MCP servers or browser
 
 ## Installation

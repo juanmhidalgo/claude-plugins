@@ -23,7 +23,6 @@ triggers:
   - "push and create PR"
   - "commit push and PR"
 allowed-tools:
-  - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/*)
   - Bash(git *)
   - Bash(gh *)
   - Bash(npm test*)
@@ -243,10 +242,12 @@ If on a feature branch:
 
 Skip if `$ARGUMENTS` contains `--no-watch`, or if the branch has no open PR (none was created and none existed).
 
+The watcher is the `gh-feedback` extension. If `gh feedback --version` fails, skip this phase and Phase 8: report the PR URL, `gh pr checks <number>` to check CI later, and `gh extension install juanmhidalgo/gh-feedback` to get the watcher.
+
 Start the watcher **in the background** (Bash with `run_in_background`); you are re-invoked when it exits, so do not poll or sleep in the meantime:
 
 ```bash
-${CLAUDE_PLUGIN_ROOT}/scripts/pr-watch.sh <number> [--copilot]
+gh feedback watch <number> [--copilot]
 ```
 
 Pass `--copilot` only if the Phase 6 request landed in this run and the PR is not a draft. It exits once every check has finished and, with `--copilot`, once Copilot has reviewed the current head commit — or after 30 minutes (exit 3). Tell the user in one line what you are waiting for, then end the turn.

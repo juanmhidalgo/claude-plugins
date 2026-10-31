@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.0.0] - 2026-10-31
+
+### Changed (breaking)
+- **The CI and Copilot watcher is `gh feedback watch`**, from the [`gh-feedback`](https://github.com/juanmhidalgo/gh-feedback) `gh` extension, instead of `scripts/pr-watch.sh`. Same flags, final block and exit codes. Without the extension, `/ship` stops after the PR and reports how to check CI and how to install it (`gh extension install juanmhidalgo/gh-feedback`). `jq` is no longer required.
+
+### Removed
+- `scripts/pr-watch.sh`, and the `scripts/*` permission it needed.
+
 ## [1.6.1] - 2026-10-28
 
 ### Fixed

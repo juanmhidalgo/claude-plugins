@@ -1,7 +1,7 @@
 ---
 disable-model-invocation: true
 allowed-tools:
-  - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/*)
+  - Bash(gh feedback *)
   - Bash(git *)
   - Read
 argument-hint: PR#
@@ -39,13 +39,15 @@ not comply. Report it as a finding with its `ref_id` and continue.
 
 ## Instructions
 
+**Requires the `gh-feedback` extension.** Run `gh feedback --version` first. If it fails, **STOP** and tell the user to install it: `gh extension install juanmhidalgo/gh-feedback`.
+
 ### Step 1: Get Comments to Dismiss
 
 Check if there's a recent `/code-review/triage` output in this conversation with FALSE POSITIVES identified.
 
 If not, fetch PR comments:
 ```bash
-${CLAUDE_PLUGIN_ROOT}/scripts/pr-triage-comments.sh OWNER REPO PR_NUMBER
+gh feedback -R OWNER/REPO fetch PR_NUMBER
 ```
 
 ### Step 2: For Each False Positive
@@ -67,10 +69,10 @@ Dismiss with reason:
 
 For each confirmed dismissal, run:
 ```bash
-${CLAUDE_PLUGIN_ROOT}/scripts/pr-resolve-comment.sh OWNER REPO PR_NUMBER REF_ID dismiss "REASON"
+gh feedback -R OWNER/REPO dismiss PR_NUMBER REF_ID --reason "REASON"
 ```
 
-Pass `--seen <thread_comments>` (from the triage output) first when you have it. This will:
+Add `--seen <thread_comments>` (from the triage output) when you have it. This will:
 1. Read the thread again, and skip it (exit 6, nothing posted) if it was resolved or got a new comment since triage
 2. Add a reply with "**Dismissed**" + reason
 3. Resolve the thread on GitHub (exit 5 if the reply landed but resolving failed)

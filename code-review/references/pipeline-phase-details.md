@@ -32,7 +32,7 @@ Don't pause for input. Stop only on the conditions in this table and the contain
 Fetch comments into one file per comment. The bodies stay in the files: this
 session edits, commits and pushes, and never needs to read them.
 ```bash
-${CLAUDE_PLUGIN_ROOT}/scripts/pr-triage-split.sh OWNER REPO PR_NUMBER <scratchpad dir>/pipeline-<PR>
+gh feedback -R OWNER/REPO fetch PR_NUMBER --split <scratchpad dir>/pipeline-<PR>
 ```
 
 Launch the `code-review:triage-comments` workflow with the printed `comments`
@@ -67,10 +67,10 @@ Collect verdicts with `ref_id` preserved.
 
 For each FALSE POSITIVE, dismiss immediately:
 ```bash
-${CLAUDE_PLUGIN_ROOT}/scripts/pr-resolve-comment.sh --seen THREAD_COMMENTS OWNER REPO PR_NUMBER REF_ID dismiss "REASON"
+gh feedback -R OWNER/REPO dismiss PR_NUMBER REF_ID --seen THREAD_COMMENTS --reason "REASON"
 ```
 
-`THREAD_COMMENTS` is the comment's `thread_comments` from Phase 1; omit `--seen` for issue comments and reviews, which have none. The script reads the thread again right before replying:
+`THREAD_COMMENTS` is the comment's `thread_comments` from Phase 1; omit `--seen` for issue comments and reviews, which have none. The command reads the thread again right before replying:
 
 | Exit | Meaning | Do |
 |------|---------|----|
@@ -150,7 +150,7 @@ Then `git push`.
 
 For each VALID BUG that was fixed:
 ```bash
-${CLAUDE_PLUGIN_ROOT}/scripts/pr-resolve-comment.sh --seen THREAD_COMMENTS OWNER REPO PR_NUMBER REF_ID resolve
+gh feedback -R OWNER/REPO resolve PR_NUMBER REF_ID --seen THREAD_COMMENTS
 ```
 
 Same exit codes as Phase 2. Exit 6 here means someone wrote in the thread after triage: leave it open and list it.
