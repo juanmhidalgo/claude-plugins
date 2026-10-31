@@ -86,6 +86,18 @@ Your last message did not land. The agent re-explains it in the conversation's l
 
 ---
 
+### `/discuss:show-me [--local] [what to draw]`
+
+Draws what you are discussing as an HTML page with inline SVG. It picks the form from the question: a **flow** (what crosses a boundary), a **topology** (who talks to whom), a **pipeline** (stages, actors, what each stage emits) or a **sequence** (numbered calls between services). It only draws what it can source, from the conversation, `file:line` or a doc section. Inferred or proposed parts are dashed and labelled. Under the diagram it puts a bold one-line takeaway, then its sources and its gaps. It publishes as a private artifact when an artifact tool is available, and otherwise writes a local file. `--local` (or "keep it local") skips the artifact even when it is available: it writes the file and opens it in your browser. Use it for material that should not leave your machine. It also triggers on its own when you ask to graph or draw something.
+
+**Example:**
+```
+/discuss:show-me how a webhook from the external system becomes a domain event
+/discuss:show-me --local the auth flow between the gateway and the services
+```
+
+---
+
 ### `/discuss:adversarial-doc-review <doc-path> [design|descriptive]`
 
 Adversarial review of a technical document that already exists as a **file** — PRD, ADR, spec, RFC, architecture doc. Dispatches the `doc-adversary` subagent in a **fresh context** and reports only what would cause a bad architecture, design, or implementation decision. Not a proofreader and not a completeness checker.

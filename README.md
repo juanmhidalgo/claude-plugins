@@ -63,6 +63,7 @@ Critical feature discussion, idea refinement, and adversarial review of technica
 - `/discuss:adversarial-doc-review [doc-path]` - Red-team a written PRD/ADR/spec in a fresh context, reporting only what would cause a bad design decision
 - `/discuss:grill [plan or idea]` - Interview you in rounds, each question with a recommended answer, until every decision is settled
 - `/discuss:wait-what [the part that lost you]` - Re-explain the last message simply, in the conversation's language
+- `/discuss:show-me [--local] [what to draw]` - Draw the flow, architecture, pipeline or sequence under discussion as a diagram page
 
 **Install:**
 ```bash
