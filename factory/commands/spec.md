@@ -35,13 +35,14 @@ allowed-tools:
 
 # `/factory:spec` — `status:needs-spec` → the spec section in the body
 
-Stage `spec`. Caps are the daemon's (60 turns · 4 USD · 20 min). No branch:
+Stage `spec`. Caps are the daemon's (defaults 60 turns · 4 USD · 20 min; the real numbers for this run, per-repo overrides included, are the `Caps for this run` line under Context: size long steps against those, never against the defaults). No branch:
 the clone stays on whatever it has checked out, and nothing is committed.
 
 ## Context
 
 - **Arguments**: $ARGUMENTS
 - **Stage variable set**: !`echo "${#FACTORY_STAGE}"`
+- **Caps for this run**: !`echo "turns=${FACTORY_MAX_TURNS:-default} budget_usd=${FACTORY_BUDGET_USD:-default} timeout_min=${FACTORY_TIMEOUT_MINUTES:-default}"`
 - **Issue variable set**: !`echo "${#FACTORY_ISSUE}"`
 - **HEAD**: !`git rev-parse --short HEAD 2>/dev/null || echo "no git"`
 

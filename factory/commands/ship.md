@@ -39,7 +39,7 @@ allowed-tools:
 
 # `/factory:ship` — last done = `harden` → the PR is open
 
-Stage `ship`. Caps are the daemon's (40 turns · 3 USD · 15 min). It does not
+Stage `ship`. Caps are the daemon's (defaults 40 turns · 3 USD · 15 min; the real numbers for this run, per-repo overrides included, are the `Caps for this run` line under Context: size long steps against those, never against the defaults). It does not
 wait for CI (daemon §15): the PR is opened, no Copilot review is requested
 (the factory never asks for one: the PR review is the human gate), and the
 stage ends.
@@ -48,6 +48,7 @@ stage ends.
 
 - **Arguments**: $ARGUMENTS
 - **Stage variable set**: !`echo "${#FACTORY_STAGE}"`
+- **Caps for this run**: !`echo "turns=${FACTORY_MAX_TURNS:-default} budget_usd=${FACTORY_BUDGET_USD:-default} timeout_min=${FACTORY_TIMEOUT_MINUTES:-default}"`
 - **Current branch**: !`git branch --show-current`
 - **Working tree**: !`git status --short | head -20`
 

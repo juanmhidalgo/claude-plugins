@@ -38,7 +38,7 @@ allowed-tools:
 
 # `/factory:plan` — `status:needs-plan` → the plan section in the body
 
-Stage `plan`. Caps are the daemon's (80 turns · 6 USD · 30 min). No branch
+Stage `plan`. Caps are the daemon's (defaults 80 turns · 6 USD · 30 min; the real numbers for this run, per-repo overrides included, are the `Caps for this run` line under Context: size long steps against those, never against the defaults). No branch
 exists yet: the plan's Baseline must run on the base, so the clone is put on
 `origin/<default>` first.
 
@@ -46,6 +46,7 @@ exists yet: the plan's Baseline must run on the base, so the clone is put on
 
 - **Arguments**: $ARGUMENTS
 - **Stage variable set**: !`echo "${#FACTORY_STAGE}"`
+- **Caps for this run**: !`echo "turns=${FACTORY_MAX_TURNS:-default} budget_usd=${FACTORY_BUDGET_USD:-default} timeout_min=${FACTORY_TIMEOUT_MINUTES:-default}"`
 - **Working tree**: !`git status --short | head -20`
 
 ## Inputs
