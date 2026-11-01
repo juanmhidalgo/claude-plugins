@@ -244,15 +244,21 @@ If on a feature branch:
    )"
    ```
    - If `$ARGUMENTS` contains `--draft`, add the `--draft` flag to `gh pr create`
-8. **Request Copilot review** (unless `$ARGUMENTS` contains `--skip-copilot-review`):
+8. **Request Copilot review** (unless `$ARGUMENTS` contains `--skip-copilot-review`), with the form GitHub documents for the CLI:
    ```bash
-   gh pr edit --add-reviewer @copilot
+   gh pr edit <number> --add-reviewer @copilot
    ```
-   If it fails, retry once through the API, with `Copilot` capitalized (the lowercase login can resolve without triggering a review):
+   Then **confirm**: a call that returns 0 is not a landed request (two accepted calls on one PR left no trace at all). Check these listings; Copilot is requested when any of them names it (`copilot`, case-insensitive; the bot's login reads `Copilot` or `copilot-pull-request-reviewer[bot]` depending on the endpoint):
    ```bash
-   gh api repos/{owner}/{repo}/pulls/<number>/requested_reviewers -X POST -f 'reviewers[]=Copilot'
+   gh pr view <number> --json reviewRequests --jq '.reviewRequests[] | .login // .name'
+   gh api repos/{owner}/{repo}/pulls/<number>/requested_reviewers --jq '.users[].login'
+   gh api repos/{owner}/{repo}/issues/<number>/timeline --jq '.[] | select(.event=="review_requested") | .requested_reviewer.login'
    ```
-   `reviewRequests` and the POST's response never list bot reviewers, so an empty list there is not a failure — do not re-request on it. Confirm in the timeline instead: `gh api repos/{owner}/{repo}/issues/<number>/timeline --jq '.[] | select(.event=="review_requested") | .requested_reviewer.login'`. If both attempts fail (e.g., Copilot review not available on the repo's plan), warn the user and continue — do not fail the workflow. Remember whether the request landed: Phase 7 waits for Copilot only if it did.
+   If none names it, retry once through the REST API with the login GitHub documents for it, then check the three listings again:
+   ```bash
+   gh api repos/{owner}/{repo}/pulls/<number>/requested_reviewers -X POST -f 'reviewers[]=copilot-pull-request-reviewer[bot]'
+   ```
+   Still nothing → report `Copilot: not requested` with why (the exit code and output of both calls, and that none of the three listings shows it; the usual cause is Copilot code review not being available to the account or the repo's plan), warn the user and continue — do not fail the workflow and never issue a third request. Report `Copilot: requested (<login>, seen in <listing>)` otherwise. Phase 7 waits for Copilot only when it was confirmed.
 9. Report the PR URL
 
 ## Phase 7: Watch CI and Copilot (Feature Branches Only)

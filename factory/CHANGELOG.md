@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.1 (2026-11-01)
+
+### Fixed
+- **`/factory:ship` confirms the Copilot request or says `Copilot: not requested`.** After `gh pr edit <n> --add-reviewer @copilot` the stage checks `reviewRequests`, the REST `requested_reviewers` and the timeline, retries once through the REST API with `copilot-pull-request-reviewer[bot]` (ship 2.1.1's step 8), and the close block says `requested (<login>, seen in <listing>)` only when a listing shows it, else `not requested` with why. In the first end-to-end run two accepted calls left no request and the stage reported it as "requested twice".
+
 ## 0.3.0 (2026-11-01)
 
 ### Added

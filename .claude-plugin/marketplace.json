@@ -111,7 +111,7 @@
       "name": "ship",
       "source": "./ship",
       "description": "End-to-end shipping workflow: smart staging with change cohesion analysis, conventional commits, test gates, push, and optional PR creation",
-      "version": "2.1.0",
+      "version": "2.1.1",
       "author": {
         "name": "Juan M. Hidalgo"
       },
@@ -166,7 +166,7 @@
       "name": "factory",
       "source": "./factory",
       "description": "Headless stage commands for the factory daemon: spec, plan, implement, harden and ship one GitHub issue each, composing feature-dev, code-review, ship and github-issues, with every outcome written back to the issue",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "author": {
         "name": "Juan M. Hidalgo"
       },

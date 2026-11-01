@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.1.1] - 2026-11-01
+
+### Fixed
+- **The Copilot request is confirmed, or reported as not requested.** A `gh pr edit --add-reviewer @copilot` (or the REST request) that returns 0 is not a landed request: on one PR two accepted calls left nothing in `reviewRequests`, in the REST `requested_reviewers` nor in the timeline. Phase 6 now checks those three listings after the request, retries once through the REST API with the login GitHub documents (`copilot-pull-request-reviewer[bot]`, the same bot account as `Copilot`), and reports `Copilot: requested (<login>, seen in <listing>)` or `Copilot: not requested` with why. Phase 7 waits for Copilot only when it was confirmed. The old text claimed the listings never show bot reviewers and told the model not to look; that hid the failure.
+
 ## [2.1.0] - 2026-11-01
 
 ### Added
