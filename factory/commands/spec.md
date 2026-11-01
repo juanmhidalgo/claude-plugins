@@ -35,7 +35,7 @@ allowed-tools:
 
 # `/factory:spec` — `status:needs-spec` → the spec section in the body
 
-Stage `spec`. Caps are the daemon's (60 turns · 4 USD · 20 min). No branch:
+Stage `spec`. Caps are the daemon's (80 turns · 6 USD · 30 min). No branch:
 the clone stays on whatever it has checked out, and nothing is committed.
 
 ## Context
@@ -112,13 +112,55 @@ issue `M` carries `type:product-decision` (read it with `gh issue view M
    which case `close the issue` is recommended for ALREADY FIXED and
    `re-scope` for a REFUTED premise).
 
+4. **Adversarial review.** After step 3's validator pass (the structural
+   fixes are already in the spec) and before Publish. Spawn
+   `discuss:doc-adversary` (no `name`, never backgrounded; read
+   `${CLAUDE_PLUGIN_ROOT}/../discuss/skills/adversarial-doc-review/SKILL.md`
+   §Dispatch once). The prompt is paths, never content — no summary, no
+   excerpt, no mention of who wrote the document:
+
+   ```
+   DOC_PATH: <SPEC path>
+   MODE: design
+   SOURCES: <repo root>
+   OUTPUT_PATH: <session scratchpad, or /tmp when none is listed>/doc-adversary-<slug>-spec-r<n>.md
+   ```
+
+   Read `OUTPUT_PATH` first; use whatever came back inline only when the file
+   is missing or empty. Before trusting a finding, spot-check one of its
+   `Evidence` references (`path:line` or grep) against the clone.
+
+   | Adversary report item | Headless rule |
+   |---|---|
+   | No report (file empty and nothing inline), or no findings **and** no Falsification attempts | the review did not happen: re-run once with a new `OUTPUT_PATH`; still nothing → `parked reason=adversary-unreviewed` |
+   | A finding whose spot-checked `Evidence` does not hold | not a gate: kept in the report under Unverified with the check that failed |
+   | A **HIGH** finding | **question**: the finding's title, `Decision at risk` and `What would be decided wrong`, verbatim; options: the reading the finding implies (recommended) / the document's reading / re-scope |
+   | A **MEDIUM** finding | one fix pass: the reading the finding implies is written into the spec as an `A-<n>` entry under `## Assumptions` whose `Basis:` cites the finding's Evidence — unless it changes a data model, a public contract or user-visible behaviour **and** has no basis in the issue, `docs/` or the code, which is a **question** as the HIGH row. After the fix pass the adversary runs **once more** (the skill's after-fixes rule) with a new `OUTPUT_PATH`; a MEDIUM that survives the re-run → **question** as the HIGH row |
+   | Verdict `do not implement as written` with no HIGH finding | **question** anyway; options: re-scope (recommended) / proceed as written / close the issue |
+   | An item under `Needs to be resolved` not covered by a finding's question | **question**, options taken from the item |
+   | Verdict `no material findings` with Falsification attempts present | proceed; the report carries the verdict and the attempt count |
+
+   Questions from this step count toward the four of the contract (§5); more
+   than four in the run → `parked reason=too-many-questions`.
+
+   The step runs under every lane. Under `spec-gate` / `plan-gate` the owner
+   sees the adversary's block in the done comment before flipping.
+
 ## Outputs
 
 - The spec section in the issue body (Publish, slug from the contract).
 - The `done` comment: `/feature-dev:spec`'s **Review brief** block (Decided,
   Assumed, Unverified claims about the code, Out of scope), the validator's
-  Code claims table, the verifier's verdict line when step 1 ran, and the
-  contract's §7 lines.
+  Code claims table, the **Adversarial review** block of step 4 right after
+  it, the verifier's verdict line when step 1 ran, and the contract's §7
+  lines. The block:
+
+  ```
+  Adversarial review: <verdict line verbatim> — re-run: yes|no
+  Material findings: <n> (<m> HIGH)
+  - [HIGH|MEDIUM] <title> — decided A-<n> | asked | unverified: <failed check>
+  Falsification attempts: <k>
+  ```
 - The flip of the contract's lane table (`needs-plan` under `factory:auto`,
   `spec-review` under either gate).
 
@@ -126,7 +168,9 @@ issue `M` carries `type:product-decision` (read it with `gh issue view M
 
 Multi-repo scope; an unbased contract-shaping assumption; a validator finding
 that needs a decision; a verifier verdict of needs-decision or premise wrong;
-an open `Blocked by #M` that is a `type:product-decision`. Each is one
+an open `Blocked by #M` that is a `type:product-decision`; a HIGH adversary
+finding; a MEDIUM finding that survives the re-run; a `do not implement as
+written` verdict; a `Needs to be resolved` item. Each is one
 numbered question with 2–4 options (contract §5); more than four → `parked
 reason=too-many-questions`. The spec is **not published** when the stage ends
 in a question (AC-8): the local cache keeps the draft for the re-run.
@@ -138,3 +182,8 @@ the answer applied and quotes it under `Answer understood:`. A re-run whose
 body already holds a valid spec section for this slug and whose latest marker
 is this stage's `done` runs only the flip. A re-run with no answer and no done
 marker (a crash mid-authoring) starts over: nothing was written to the issue.
+
+A re-run after an answer applies the answer, then runs the adversary **once**
+(no fix pass). A finding that names a decision the answer already settled is
+listed as `decided by owner` and never re-asked; a new HIGH finding is a
+question like any other.

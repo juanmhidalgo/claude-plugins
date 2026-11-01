@@ -4,10 +4,13 @@ The stage commands the **factory daemon** runs headless, one per tick, inside
 a sandbox: `/factory:spec`, `/factory:plan`, `/factory:implement`,
 `/factory:harden`, `/factory:ship`. Each one reads everything from a GitHub
 issue and the factory branch, composes the existing plugins (`feature-dev`,
-`code-review`, `ship`, `github-issues`), and writes everything back to GitHub
-before it ends. None of them can ask: the daemon runs them with
-`--permission-prompts none`, so every interactive gate of the composed
-commands is a documented default or a `question` outcome on the issue.
+`code-review`, `ship`, `github-issues`, `discuss`), and writes everything back
+to GitHub before it ends. `spec` and `plan` also run `discuss:doc-adversary`
+over the document as a second review axis, so a HIGH finding becomes a
+question before anything is published. None of them can ask: the daemon runs
+them with `--permission-prompts none`, so every interactive gate of the
+composed commands is a documented default or a `question` outcome on the
+issue.
 
 The daemon itself (the state machine, the sandboxes, the caps, the
 notifications) lives in the `factory` repository; this plugin is only the
@@ -55,7 +58,7 @@ label wins.
 ```bash
 claude -p "/factory:spec #12" --permission-prompts none --output-format json \
   --plugin-dir factory --plugin-dir feature-dev --plugin-dir code-review \
-  --plugin-dir ship --plugin-dir github-issues
+  --plugin-dir ship --plugin-dir github-issues --plugin-dir discuss
 ```
 
 Without the `FACTORY_*` variables the command derives the repository from
@@ -77,7 +80,8 @@ bash factory/scripts/test_factory_scripts.sh
 - `gh` authenticated, `jq`, `git`, and the plugins in `dependencies`
   (`feature-dev` ≥ 2.8.0 for the plan section and the step loop, `ship` ≥
   2.1.0 for `--yes`, `code-review` ≥ 3.13.0 for the review workflow,
-  `github-issues` for the issue verifier).
+  `github-issues` for the issue verifier, `discuss` for the `doc-adversary`
+  agent that `spec` and `plan` dispatch).
 - Workflows enabled (`Workflow(feature-dev:plan-fanout)` and
   `Workflow(code-review:review)`); without them `plan` falls back to the
   Agent fan-out and `harden` parks.
