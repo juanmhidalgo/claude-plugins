@@ -209,9 +209,9 @@ the user chooses to import the issue's version instead of overwriting it.
      text. Rebuild `## Decisions Log` from the issue's `## Decision — <slug>`
      comments, oldest first: each entry is the comment's text *below* its heading
      (see Decision comment format) — drop the `## Decision — <slug>` heading
-     itself, so no `## ` line lands inside the log, and drop any trailing
-     `<!-- … -->` lines (a `<!-- factory:decision … -->` marker a headless stage
-     appends is routing data, not part of the decision). Then run
+     itself, so no `## ` line lands inside the log, and drop any `<!-- … -->`
+     marker line before or after it (the `<!-- factory:decision … -->` line a
+     headless stage puts first is routing data, not part of the decision). Then run
      `${CLAUDE_PLUGIN_ROOT}/scripts/features.py approve <slug> --root <repo root>`
      and `${CLAUDE_PLUGIN_ROOT}/scripts/features.py link-issue <slug>
      <owner/repo#N> <fingerprint> --root <repo root>` with the extracted section's
