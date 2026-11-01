@@ -203,6 +203,13 @@ reconciling it with an existing one via a three-way fingerprint compare), and
 continues as if that path had been given directly. A closed issue asks for
 confirmation first.
 
+**The plan too**: an issue can carry a second section, `<!-- feature-dev:plan:start
+slug=… -->` … `<!-- feature-dev:plan:end -->`, next to the spec's. `/feature-dev:explore-plan`
+offers to publish the plan there when the feature is linked to an issue, and
+Import rebuilds `PLAN-<slug>.md` from it (recording `issue.plan_fingerprint`), so
+`/feature-dev:tdd #N` on a fresh checkout gets the reviewed plan, not only the
+spec. Every `issue_spec.py` subcommand takes `--kind spec|plan`.
+
 **Opting in**: set the plugin option `spec_store` to `issue` (in `/config`) for every project, or set `spec_store: issue` in a project's `.claude/feature-dev.local.md`, which wins over the option:
 
 ```markdown

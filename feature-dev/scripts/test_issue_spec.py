@@ -473,5 +473,155 @@ class SpliceCommandTest(unittest.TestCase):
         )
 
 
+PLAN_WITH_DECISIONS_LOG = """---
+type: implementation-plan
+feature: Sample Feature
+slug: sample-feature
+date: 2026-01-01
+branch: main
+---
+
+## Implementation Plan: Sample Feature
+
+### Implementation Order
+
+1. **Step one**
+   - Accept: it works
+   - Verify: pytest tests/test_one.py
+
+## Decisions Log
+
+- **[repo: r · step 1]** decided something.
+"""
+
+PLAN_SECTION = (
+    "<!-- feature-dev:plan:start slug=sample-feature -->\n"
+    "## Implementation Plan: Sample Feature\n"
+    "\n"
+    "### Implementation Order\n"
+    "\n"
+    "1. **Step one**\n"
+    "   - Accept: it works\n"
+    "   - Verify: pytest tests/test_one.py\n"
+    "<!-- feature-dev:plan:end -->"
+)
+
+BODY_WITH_BOTH_SECTIONS = (
+    "Author's intro.\n"
+    "\n"
+    + EXPECTED_EXTRACTED_SECTION
+    + "\n\n"
+    + PLAN_SECTION
+    + "\n\nAuthor's footer.\n"
+)
+
+
+class PlanKindTest(unittest.TestCase):
+    """Plan markers (`--kind plan`): `feature-dev:plan:start/end`, independent of the spec section."""
+
+    def setUp(self):
+        self.tmpdir = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmpdir.cleanup)
+
+    def _write(self, name: str, text: str) -> Path:
+        path = Path(self.tmpdir.name) / name
+        path.write_text(text, encoding="utf-8")
+        return path
+
+    def test_section_plan_wraps_in_plan_markers_and_strips_decisions_log(self):
+        plan = self._write("PLAN-sample-feature.md", PLAN_WITH_DECISIONS_LOG)
+        result = run_cli("section", "--kind", "plan", str(plan))
+        self.assertEqual(result.returncode, 0)
+        self.assertEqual(result.stdout, PLAN_SECTION + "\n")
+        self.assertNotIn("feature-dev:spec", result.stdout)
+
+    def test_section_plan_last_resort_slug_is_plan(self):
+        plan = self._write("PLAN-x.md", "---\nslug: ///\n---\n# body\n")
+        result = run_cli("section", "--kind", "plan", str(plan))
+        self.assertEqual(result.returncode, 0)
+        self.assertEqual(result.stdout.splitlines()[0], "<!-- feature-dev:plan:start slug=plan -->")
+
+    def test_section_default_kind_is_spec(self):
+        spec = self._write("SPEC-sample.md", SPEC_WITH_MIDDLE_DECISIONS_LOG)
+        self.assertEqual(run_cli("section", str(spec)).stdout, run_cli("section", "--kind", "spec", str(spec)).stdout)
+
+    def test_extract_each_kind_from_a_body_holding_both(self):
+        body = self._write("body.md", BODY_WITH_BOTH_SECTIONS)
+        spec_result = run_cli("extract", str(body))
+        plan_result = run_cli("extract", "--kind", "plan", str(body))
+        self.assertEqual(spec_result.returncode, 0)
+        self.assertEqual(spec_result.stdout, EXPECTED_EXTRACTED_SECTION + "\n")
+        self.assertEqual(plan_result.returncode, 0)
+        self.assertEqual(plan_result.stdout, PLAN_SECTION + "\n")
+
+    def test_extract_plan_refuses_body_with_only_a_spec_section(self):
+        body = self._write("body.md", ISSUE_BODY_WITH_SECTION)
+        result = run_cli("extract", "--kind", "plan", str(body))
+        self.assertEqual(result.returncode, 2)
+        self.assertEqual(result.stdout, "")
+        self.assertIn("plan", result.stderr)
+
+    def test_extract_slug_plan_reads_the_plan_marker(self):
+        body = self._write("body.md", BODY_WITH_BOTH_SECTIONS.replace("plan:start slug=sample-feature", "plan:start slug=../other"))
+        result = run_cli("extract", "--kind", "plan", "--slug", "--fallback-title", "T", str(body))
+        self.assertEqual(result.returncode, 0)
+        self.assertEqual(result.stdout, "other\n")
+
+    def test_fingerprint_plan_hashes_only_the_plan_section(self):
+        body = self._write("body.md", BODY_WITH_BOTH_SECTIONS)
+        section_only = self._write("plan-section.md", PLAN_SECTION)
+        self.assertEqual(
+            run_cli("fingerprint", "--kind", "plan", str(body)).stdout,
+            run_cli("fingerprint", "--kind", "plan", str(section_only)).stdout,
+        )
+        self.assertNotEqual(
+            run_cli("fingerprint", "--kind", "plan", str(body)).stdout,
+            run_cli("fingerprint", str(body)).stdout,
+        )
+
+    def test_splice_plan_appends_after_spec_section_when_body_has_no_plan(self):
+        body = self._write("body.md", ISSUE_BODY_WITH_SECTION)
+        section = self._write("plan-section.md", PLAN_SECTION + "\n")
+        result = run_cli("splice", "--kind", "plan", str(body), str(section))
+        self.assertEqual(result.returncode, 0)
+        self.assertEqual(result.stdout, ISSUE_BODY_WITH_SECTION + "\n" + PLAN_SECTION + "\n")
+
+    def test_splice_plan_replaces_only_the_plan_section(self):
+        body = self._write("body.md", BODY_WITH_BOTH_SECTIONS)
+        new_plan = PLAN_SECTION.replace("it works", "it still works")
+        section = self._write("plan-section.md", new_plan + "\n")
+        result = run_cli("splice", "--kind", "plan", str(body), str(section))
+        self.assertEqual(result.returncode, 0)
+        self.assertEqual(result.stdout, BODY_WITH_BOTH_SECTIONS.replace(PLAN_SECTION, new_plan))
+        self.assertIn(EXPECTED_EXTRACTED_SECTION, result.stdout)
+
+    def test_splice_spec_leaves_the_plan_section_alone(self):
+        body = self._write("body.md", BODY_WITH_BOTH_SECTIONS)
+        new_spec = EXPECTED_EXTRACTED_SECTION.replace("Section body line.", "Changed.")
+        section = self._write("spec-section.md", new_spec + "\n")
+        result = run_cli("splice", str(body), str(section))
+        self.assertEqual(result.returncode, 0)
+        self.assertEqual(result.stdout, BODY_WITH_BOTH_SECTIONS.replace(EXPECTED_EXTRACTED_SECTION, new_spec))
+
+    def test_splice_plan_refuses_duplicate_plan_markers(self):
+        body = self._write("body.md", PLAN_SECTION + "\n" + PLAN_SECTION + "\n")
+        section = self._write("plan-section.md", PLAN_SECTION + "\n")
+        result = run_cli("splice", "--kind", "plan", str(body), str(section))
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("more than one start marker", result.stderr)
+
+    def test_plan_round_trip_preserves_fingerprint(self):
+        plan = self._write("PLAN-sample-feature.md", PLAN_WITH_DECISIONS_LOG)
+        section = self._write("plan-section.md", run_cli("section", "--kind", "plan", str(plan)).stdout)
+        body = self._write("body.md", ISSUE_BODY_WITH_SECTION)
+        spliced = self._write("spliced.md", run_cli("splice", "--kind", "plan", str(body), str(section)).stdout)
+        extracted = self._write("extracted.md", run_cli("extract", "--kind", "plan", str(spliced)).stdout)
+        self.assertEqual(
+            run_cli("fingerprint", "--kind", "plan", str(extracted)).stdout,
+            run_cli("fingerprint", "--kind", "plan", str(section)).stdout,
+        )
+        self.assertEqual(run_cli("extract", str(spliced)).stdout, EXPECTED_EXTRACTED_SECTION + "\n")
+
+
 if __name__ == "__main__":
     unittest.main()

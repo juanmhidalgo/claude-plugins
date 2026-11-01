@@ -2,7 +2,8 @@
 
 The shared algorithm behind the GitHub-issue store: "issue in, issue out, local file
 in between." `/feature-dev:spec --publish` and cleanup's `Republish to #<N>` both run
-Publish; `/feature-dev:explore-plan`, `/feature-dev:tdd`, `/feature-dev:spec-review`,
+Publish for the spec, and `/feature-dev:explore-plan` runs it for the plan
+(`--kind plan`); `/feature-dev:explore-plan`, `/feature-dev:tdd`, `/feature-dev:spec-review`,
 `/feature-dev:review`, and `/feature-dev:spec --publish`'s own mismatch branch (when
 the user chooses to import the issue's version instead of overwriting it) all run
 Import when given an issue argument. Every caller
@@ -19,16 +20,25 @@ segment of a Bash pipeline must match a declared pattern.
 
 ## Format
 
-One marker section per issue body (never more than one spec per issue):
+One marker section per kind per issue body (never more than one spec, never
+more than one plan per issue):
 
 ```
 <!-- feature-dev:spec:start slug=<slug> -->
 <the spec body, without frontmatter, without ## Decisions Log>
 <!-- feature-dev:spec:end -->
+
+<!-- feature-dev:plan:start slug=<slug> -->
+<the plan body, without frontmatter, without ## Decisions Log>
+<!-- feature-dev:plan:end -->
 ```
 
-Everything outside the markers belongs to the issue's author, not to feature-dev —
-publish only ever touches the text between them.
+The plan section is optional and carries the same slug as the spec section: both
+name one feature folder. Everything outside the markers belongs to the issue's
+author, not to feature-dev — publish only ever touches the text between the
+markers of the kind it publishes, and leaves the other kind's section where it is.
+Every `issue_spec.py` subcommand takes `--kind spec|plan` (default `spec`) to say
+which section it reads or writes.
 
 Once a spec is published, the link lives in the feature's `feature.json`, never in
 the spec's frontmatter. Only `features.py` writes it:
@@ -40,9 +50,13 @@ ${CLAUDE_PLUGIN_ROOT}/scripts/features.py link-issue <slug> <owner/repo#N> <fing
 - `issue.ref` — `<owner>/<repo>#<N>`, which issue this spec is the local copy of.
   `features.py list --json` exposes it as the feature's `issue` (a string, or
   `null` when never published).
-- `issue.fingerprint` — the section fingerprint recorded at the last verified
+- `issue.fingerprint` — the spec section fingerprint recorded at the last verified
   publish or import. `list --json` does not expose it; read it from the feature's
   `feature.json`.
+- `issue.plan_fingerprint` — the same for the plan section, written by
+  `link-issue … --kind plan`. Absent until a plan is published or imported.
+  Recording one kind keeps the other's fingerprint; linking to a different issue
+  drops both.
 
 The link is recorded only after a write is verified (Publish step 7); a failed
 publish leaves it exactly as it was.
@@ -65,6 +79,9 @@ gh issue view <N> --repo <owner>/<repo> --json body -q .body | ${CLAUDE_PLUGIN_R
 surrounding whitespace trimmed, so a full issue body and a bare `section` output
 that carry the same section hash identically — the two calls above are directly
 comparable, and so is the recorded `issue.fingerprint`.
+
+The plan's fingerprints are the same two calls with `--kind plan` on `section`,
+`fingerprint` and the recorded `issue.plan_fingerprint`.
 
 ## gh preflight
 
@@ -110,7 +127,13 @@ inline on `--body`:
 
 ## Publish (AC-1, AC-2, AC-3, AC-4, AC-5, AC-7)
 
-Run by `/feature-dev:spec --publish` and by cleanup's `Republish to #<N>`.
+Run by `/feature-dev:spec --publish` and by cleanup's `Republish to #<N>` for the
+spec, and by `/feature-dev:explore-plan` (and the `factory` plugin's stages) for
+the plan. **Kind `plan`**: the same steps with `--kind plan` on every
+`issue_spec.py` call and on `link-issue`, against the `PLAN-<slug>.md` instead of
+the SPEC, with the recorded fingerprint being `issue.plan_fingerprint`. The
+target is always the feature's own `#N` (the issue its spec lives on): a plan is
+never published to `new`, and never to an issue the feature is not linked to.
 
 1. **gh preflight** (above). Failure: stop, nothing published.
 2. **Build the section**: `${CLAUDE_PLUGIN_ROOT}/scripts/issue_spec.py section <SPEC>`
@@ -160,7 +183,11 @@ the user chooses to import the issue's version instead of overwriting it.
 4. **Extract**: `${CLAUDE_PLUGIN_ROOT}/scripts/issue_spec.py extract -` on the
    body. Exit 2 (no start marker, more than one, or a start with no end marker):
    write no local file, stop, name the issue and point at
-   `/feature-dev:spec --publish` as the way to create a section.
+   `/feature-dev:spec --publish` as the way to create a section. Then
+   `extract --kind plan -` on the same body: exit 2 for *no* plan start marker
+   means the issue carries no plan (normal; step 5b is skipped), while a
+   duplicate or unterminated plan marker is the same malformed-body stop as for
+   the spec.
 5. **Find a local spec** whose `issue.ref` is this exact `<owner>/<repo>#<N>`: run
    `${CLAUDE_PLUGIN_ROOT}/scripts/features.py list --json --root <repo root>` and
    pick the feature whose `issue` equals it. Its spec is the artifact of kind
@@ -182,7 +209,9 @@ the user chooses to import the issue's version instead of overwriting it.
      text. Rebuild `## Decisions Log` from the issue's `## Decision — <slug>`
      comments, oldest first: each entry is the comment's text *below* its heading
      (see Decision comment format) — drop the `## Decision — <slug>` heading
-     itself, so no `## ` line lands inside the log. Then run
+     itself, so no `## ` line lands inside the log, and drop any trailing
+     `<!-- … -->` lines (a `<!-- factory:decision … -->` marker a headless stage
+     appends is routing data, not part of the decision). Then run
      `${CLAUDE_PLUGIN_ROOT}/scripts/features.py approve <slug> --root <repo root>`
      and `${CLAUDE_PLUGIN_ROOT}/scripts/features.py link-issue <slug>
      <owner/repo#N> <fingerprint> --root <repo root>` with the extracted section's
@@ -208,7 +237,33 @@ the user chooses to import the issue's version instead of overwriting it.
      - `issue != recorded` and `local != recorded` (both sides changed) → stop,
        show both diffs (issue vs. recorded, local vs. recorded), and ask which to
        keep.
-6. **Continue** as if the resulting spec path had been given directly.
+5b. **The plan section**, when step 4 found one. Its local copy is
+   `.feature-dev/features/<slug>/PLAN-<slug>.md`, the feature's PLAN artifact
+   (the slug is the spec's, so the plan lands in the same folder). Compare the
+   same three ways as the spec, with `--kind plan` and `issue.plan_fingerprint`
+   as *recorded*:
+   - **No local PLAN** — write it with frontmatter rebuilt (`type:
+     implementation-plan`, `feature:` from the issue title, `slug:`, `date:`
+     today, `branch:` = current branch), body = the section's inner text. Count
+     its Implementation Order steps (the numbered `**Step name**` entries) and
+     record the plan in the store: `features.py plan <slug> --steps <T>`
+     (`--replace` when the feature is already `planned`, `running` or `halted`).
+     Then `features.py link-issue <slug> <owner/repo#N> <fingerprint> --kind plan`.
+   - `local == issue` → in sync; use the local file. Record the fingerprint with
+     `link-issue … --kind plan` when *recorded* differs.
+   - `issue == recorded` (local differs) → keep the local file: unpublished local
+     edits, and say so.
+   - `issue != recorded` and `local == recorded` → the issue wins: snapshot the
+     local plan (`review_server.py snapshot <PLAN>`), replace its body (between
+     the frontmatter and its `## Decisions Log`, if any), record the fingerprint,
+     and run `features.py plan <slug> --steps <T> --replace`: progress recorded
+     against the old plan no longer describes this one, so it is discarded — say
+     so.
+   - both changed → stop and ask which to keep, as for the spec. A headless
+     caller applies its own rule instead (the `factory` plugin parks).
+6. **Continue** as if the resulting spec path had been given directly. A caller
+   that wants the plan (tdd, the `factory` plugin) finds it as the feature's PLAN
+   artifact in `list --json`.
 
 ## Decision comment format (AC-13)
 

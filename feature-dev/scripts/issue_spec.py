@@ -1,23 +1,26 @@
 #!/usr/bin/env python3
-"""Helpers for turning a feature-dev SPEC-*.md into a GitHub issue body.
+"""Helpers for turning a feature-dev SPEC-*.md or PLAN-*.md into a GitHub issue body.
 
 Every subcommand's marker section is delimited by
 ``<!-- feature-dev:spec:start slug=... -->`` / ``<!-- feature-dev:spec:end -->``
-comments, so a spec's section can live inside a larger, human-edited issue body
-without disturbing the rest of it.
+comments (``--kind spec``, the default) or by
+``<!-- feature-dev:plan:start slug=... -->`` / ``<!-- feature-dev:plan:end -->``
+(``--kind plan``), so an artifact's section can live inside a larger,
+human-edited issue body without disturbing the rest of it. One body may hold
+one section of each kind; the two never interfere.
 
 Python 3 standard library only.
 
 Usage:
-    issue_spec.py section <artifact>
-    issue_spec.py extract <file|-> [--slug --fallback-title TITLE]
-    issue_spec.py fingerprint <file|->
-    issue_spec.py splice <body-file|-> <section-file>
+    issue_spec.py section <artifact> [--kind spec|plan]
+    issue_spec.py extract <file|-> [--kind spec|plan] [--slug --fallback-title TITLE]
+    issue_spec.py fingerprint <file|-> [--kind spec|plan]
+    issue_spec.py splice <body-file|-> <section-file> [--kind spec|plan]
 
 ``section`` reads ``<artifact>`` from disk, strips its frontmatter and
 ``## Decisions Log``, and prints the result wrapped in start/end markers whose
 slug comes from the frontmatter (or, if empty, from a sanitized ``feature``
-title, or "spec" as a last resort).
+title, or the kind name as a last resort).
 
 ``extract`` reads ``<file>`` (or stdin, with ``-``) and prints its single
 marker section, markers included. With ``--slug`` it prints the sanitized slug
@@ -29,9 +32,10 @@ prints the sha256 hex digest of the section's inner text (markers excluded,
 line endings normalized).
 
 ``splice`` reads ``<body-file>`` (or stdin, with ``-``) and ``<section-file>``,
-and prints ``<body-file>`` with its marker section replaced by
-``<section-file>``'s content. When ``<body-file>`` has no start marker, the
-section is appended instead (after a blank line, unless the body is empty).
+and prints ``<body-file>`` with its marker section of that kind replaced by
+``<section-file>``'s content. When ``<body-file>`` has no start marker of that
+kind, the section is appended instead (after a blank line, unless the body is
+empty); a section of the other kind is left where it is.
 
 Exit codes: 0 on success. 2 (usage error) when a subcommand's arguments are
 wrong, or when a body passed to ``extract``/``fingerprint``/``splice`` has a
@@ -50,27 +54,39 @@ from pathlib import Path
 
 EXIT_USAGE = 2
 
-SECTION_START = "<!-- feature-dev:spec:start slug={slug} -->"
-SECTION_END = "<!-- feature-dev:spec:end -->"
+KINDS = ("spec", "plan")
+SECTION_START = "<!-- feature-dev:{kind}:start slug={slug} -->"
+SECTION_END = "<!-- feature-dev:{kind}:end -->"
 
 _FRONTMATTER_KEY = re.compile(r"^([A-Za-z_][\w-]*):\s*(.*?)\s*(?:#.*)?$")
 # Ends at the next level-2 heading that is not a `## Decision — <slug>` entry
 # heading, so a log rebuilt from decision comments is stripped whole.
 _DECISIONS_LOG = re.compile(r"(?ms)^## Decisions Log\s*\n.*?(?=^## (?!Decision — )|\Z)")
-_SECTION_START_RE = re.compile(r"<!-- feature-dev:spec:start slug=[^ ]* -->")
-_SECTION_START_SLUG_RE = re.compile(r"<!-- feature-dev:spec:start slug=([^ ]*) -->")
+
+
+def _section_start_re(kind: str) -> re.Pattern[str]:
+    return re.compile(rf"<!-- feature-dev:{kind}:start slug=[^ ]* -->")
+
+
+def _section_start_slug_re(kind: str) -> re.Pattern[str]:
+    return re.compile(rf"<!-- feature-dev:{kind}:start slug=([^ ]*) -->")
+
+
+def _section_end(kind: str) -> str:
+    return SECTION_END.format(kind=kind)
 
 
 def _clean_slug(value: str) -> str:
     return re.sub(r"[^A-Za-z0-9._-]+", "-", value).strip("-.")
 
 
-def sanitize_slug(raw: str, fallback_title: str) -> str:
+def sanitize_slug(raw: str, fallback_title: str, last_resort: str = "spec") -> str:
     """Sanitize ``raw`` with review_server.artifact_slug's rule.
 
     Runs of characters outside ``[A-Za-z0-9._-]`` become a single ``-``, then
     leading/trailing ``-``/``.`` are stripped. If that yields nothing, the same
-    rule is applied to ``fallback_title``; if that is also empty, "spec" wins.
+    rule is applied to ``fallback_title``; if that is also empty,
+    ``last_resort`` (the kind name: "spec" or "plan") wins.
     """
     slug = _clean_slug(raw)
     if slug:
@@ -78,7 +94,7 @@ def sanitize_slug(raw: str, fallback_title: str) -> str:
     slug = _clean_slug(fallback_title)
     if slug:
         return slug
-    return "spec"
+    return last_resort
 
 
 def _split_frontmatter(text: str) -> tuple[dict[str, str], str]:
@@ -123,32 +139,33 @@ class SectionError(ValueError):
         self.kind = kind
 
 
-def _find_section_span(body: str) -> tuple[int, int]:
-    """Return the ``(start, end)`` indices of the single marker section in ``body``.
+def _find_section_span(body: str, kind: str = "spec") -> tuple[int, int]:
+    """Return the ``(start, end)`` indices of the single ``kind`` section in ``body``.
 
     ``end`` is exclusive and lands right after the end marker. Raises
-    SectionError if there is no start marker, more than one, or a start
-    marker with no following end marker.
+    SectionError if there is no start marker of that kind, more than one, or
+    a start marker with no following end marker.
     """
-    starts = list(_SECTION_START_RE.finditer(body))
+    starts = list(_section_start_re(kind).finditer(body))
     if not starts:
-        raise SectionError("no_start", "no start marker found")
+        raise SectionError("no_start", f"no start marker found (kind: {kind})")
     if len(starts) > 1:
-        raise SectionError("duplicate_start", "more than one start marker found")
+        raise SectionError("duplicate_start", f"more than one start marker found (kind: {kind})")
     start_match = starts[0]
-    end_index = body.find(SECTION_END, start_match.end())
+    end_marker = _section_end(kind)
+    end_index = body.find(end_marker, start_match.end())
     if end_index == -1:
-        raise SectionError("no_end", "start marker found but no end marker")
-    return start_match.start(), end_index + len(SECTION_END)
+        raise SectionError("no_end", f"start marker found but no end marker (kind: {kind})")
+    return start_match.start(), end_index + len(end_marker)
 
 
-def _extract_section(body: str) -> str:
-    """Return the single marker section of ``body``, markers included.
+def _extract_section(body: str, kind: str = "spec") -> str:
+    """Return the single ``kind`` marker section of ``body``, markers included.
 
-    Raises SectionError if there is no start marker, more than one, or a
-    start marker with no following end marker.
+    Raises SectionError if there is no start marker of that kind, more than
+    one, or a start marker with no following end marker.
     """
-    start, end = _find_section_span(body)
+    start, end = _find_section_span(body, kind)
     return body[start:end]
 
 
@@ -156,22 +173,22 @@ def cmd_section(args: argparse.Namespace) -> int:
     text = Path(args.artifact).read_text(encoding="utf-8")
     front, body = _split_frontmatter(text)
     body = _strip_decisions_log(body).strip("\n")
-    slug = sanitize_slug(front.get("slug", ""), front.get("feature", ""))
-    print(SECTION_START.format(slug=slug))
+    slug = sanitize_slug(front.get("slug", ""), front.get("feature", ""), args.kind)
+    print(SECTION_START.format(kind=args.kind, slug=slug))
     print(body)
-    print(SECTION_END)
+    print(_section_end(args.kind))
     return 0
 
 
-def _extract_or_report(text: str) -> str | None:
-    """Return the marker section of ``text``, or ``None`` after reporting the error.
+def _extract_or_report(text: str, kind: str) -> str | None:
+    """Return the ``kind`` section of ``text``, or ``None`` after reporting the error.
 
     Shared by every subcommand that needs an extracted section: on
     SectionError, prints the message to stderr and returns None so the
     caller can exit with EXIT_USAGE.
     """
     try:
-        return _extract_section(text)
+        return _extract_section(text, kind)
     except SectionError as exc:
         print(str(exc), file=sys.stderr)
         return None
@@ -179,14 +196,14 @@ def _extract_or_report(text: str) -> str | None:
 
 def cmd_extract(args: argparse.Namespace) -> int:
     body = _read_source(args.artifact)
-    section = _extract_or_report(body)
+    section = _extract_or_report(body, args.kind)
     if section is None:
         return EXIT_USAGE
     if args.slug:
         # _extract_section already guarantees `section` starts with a marker
         # matching this pattern, so the match always succeeds.
-        raw_slug = _SECTION_START_SLUG_RE.match(section).group(1)
-        print(sanitize_slug(raw_slug, args.fallback_title))
+        raw_slug = _section_start_slug_re(args.kind).match(section).group(1)
+        print(sanitize_slug(raw_slug, args.fallback_title, args.kind))
         return 0
     print(section)
     return 0
@@ -200,7 +217,7 @@ def _inner_text(section: str) -> str:
 
 def cmd_fingerprint(args: argparse.Namespace) -> int:
     text = _read_source(args.artifact).replace("\r\n", "\n").replace("\r", "\n")
-    section = _extract_or_report(text)
+    section = _extract_or_report(text, args.kind)
     if section is None:
         return EXIT_USAGE
     digest = hashlib.sha256(_inner_text(section).encode("utf-8")).hexdigest()
@@ -211,7 +228,7 @@ def cmd_fingerprint(args: argparse.Namespace) -> int:
 def cmd_splice(args: argparse.Namespace) -> int:
     body = _read_source(args.body)
     try:
-        start, end = _find_section_span(body)
+        start, end = _find_section_span(body, args.kind)
     except SectionError as exc:
         if exc.kind in ("duplicate_start", "no_end"):
             print(str(exc), file=sys.stderr)
@@ -258,6 +275,9 @@ def main(argv: list[str] | None = None) -> int:
     splice_parser.add_argument("body")
     splice_parser.add_argument("section")
     splice_parser.set_defaults(func=cmd_splice)
+
+    for p in (section_parser, extract_parser, fingerprint_parser, splice_parser):
+        p.add_argument("--kind", choices=KINDS, default="spec")
 
     args = parser.parse_args(argv)
     return args.func(args)

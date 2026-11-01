@@ -7,9 +7,11 @@ allowed-tools:
   - Agent
   - Workflow
   - Glob
+  - AskUserQuestion
   - Bash(gh auth status)
   - Bash(gh repo view --json nameWithOwner*)
   - Bash(gh issue view *)
+  - Bash(gh issue edit *)
   - Bash(git branch --show-current)
   - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/issue_spec.py *)
   - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/review_server.py snapshot *)
@@ -174,7 +176,16 @@ The **Plan review** group leads because a remaining Blocking finding is the one 
 
 Every Baseline row that gates a step — `hollow`, or `not-run` for `missing` — goes under **Unverified**, with a note that /tdd will ask about it before its first dispatch (fix the environment, give a replacement `Verify`, or accept the step as unverifiable by its gate). `not-run` for `slow` or `writes` goes there too, without the note: it does not gate, but nothing checked it on HEAD.
 
-3. End with the next commands, using the plan path from Phase 0, then stop:
+3. **Publish the plan** when the feature's `issue` in `list --json` is not null.
+   Ask once with AskUserQuestion: **Publish the plan to #N (Recommended)** /
+   **Keep it local**. Publishing runs [issue-store.md's Publish algorithm](../skills/spec-driven-development/references/issue-store.md#publish-ac-1-ac-2-ac-3-ac-4-ac-5-ac-7)
+   with kind `plan` against `PLAN-<slug>.md` and the feature's `#N`, start to
+   finish — its `gh` preflight, scratch file, `splice --kind plan` and
+   fingerprint verification. Do not restate those steps here — follow the
+   reference. The issue then carries both sections, and `/feature-dev:tdd #N`
+   on another checkout imports the plan with the spec. A failed publish is
+   reported; the local plan is untouched.
+4. End with the next commands, using the plan path from Phase 0, then stop:
 
    ```
    Next: answer the brief, then /clear and /feature-dev:tdd <plan path>   (a fresh context leaves /tdd's budget to the steps)

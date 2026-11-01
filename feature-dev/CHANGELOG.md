@@ -2,6 +2,9 @@
 
 ## 2.8.0 (2026-11-01)
 
+### Added
+- **A plan section in the issue store.** `issue_spec.py` takes `--kind spec|plan` on `section`, `extract`, `fingerprint` and `splice`; the plan lives in `<!-- feature-dev:plan:start slug=… -->` … `<!-- feature-dev:plan:end -->` next to the spec's section and the two never touch each other. `features.py link-issue … --kind plan` records `issue.plan_fingerprint`. Import rebuilds `PLAN-<slug>.md` from the section (recording the plan in the store with `features.py plan`), and `/feature-dev:explore-plan` offers to publish the plan to the feature's issue once it is written. A Decisions Log rebuilt from issue comments drops trailing `<!-- … -->` marker lines.
+
 ### Changed
 - **`/feature-dev:tdd`'s step loop moved to `references/step-loop.md`** (synced from `shared/step-loop/`, shared with the `factory` plugin): the resume re-verification, the step contract, the gate-blocked questions, the gates, routing, halt table, attribution rule and decision recording that were Phases 1b–3 of the command. The command follows the reference with its own inputs (gate policy `ask`, the coordinator routing, the progress and checkpoint lines, no commits between steps). Behaviour is unchanged; every former STOP is now a named `halt: <reason>` the caller records with `features.py step halt`, so a headless caller can map it instead of stopping for a person.
 - `references/review-loop.md` takes a `gate` input: `ask` (the default, unchanged for `/feature-dev:harden`) or `all-confirmed`, under which the loop never asks and hands four named conditions (`tree-changed`, `review-failed`, `fix-tests-red`, `rounds-exhausted`) back to the caller.
