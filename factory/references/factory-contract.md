@@ -82,10 +82,31 @@ A comment without a `factory:` marker is a human's, whichever login wrote it.
 | Marker | `factory-outcome.sh` | The daemon reads it |
 |---|---|---|
 | `<!-- factory:done stage=<s> sha=<head> run=<id> -->` | `done` | yes (next sub-stage) |
+| `<!-- factory:done stage=plan sha=<head> run=<id> files="src/a.py,tests/test_a.py" -->` | `done --files-file <f>` (`plan` only) | yes (open-PR gate, base-moved replan) |
 | `<!-- factory:question id=<uuid> stage=<s> from=<status label> run=<id> -->` | `question` | yes (answer protocol) |
 | `<!-- factory:parked stage=<s> reason=<slug> run=<id> -->` | `parked` | yes |
 | `<!-- factory:progress stage=<s> step=<n>/<T> sha=<head> run=<id> -->` | `progress` | no |
 | `<!-- factory:decision stage=<s> run=<id> -->` | `decision` | no |
+| `<!-- factory:replan by=daemon reason=base-moved sha=<old plan sha> base=<master sha> files="…" run=<daemon run id> -->` | never: the daemon writes it | the `plan` stage reads it (`factory-issue.sh replan`) |
+
+`files=` on the plan's done marker names every repo-relative path the plan
+creates, edits or deletes, tests included: sorted, deduplicated, comma-joined,
+always quoted, forward slashes, no leading `./`, no globs, no space, comma or
+quote inside a path. The stage writes the paths one per line to a scratch file
+and passes `--files-file`; the script validates (a bad line is `refused: bad
+path in --files-file: <line>`, exit 2, nothing posted), sorts and quotes. A
+plan with no files omits the attribute, which the daemon reads as "no gate".
+`--files-file` on any other stage is refused (exit 2). The daemon compares the
+list with the files of every open `factory/*` PR (the issue waits in
+`status:ready` while one overlaps) and with what moved on `origin/<default>`
+since `sha=` (the issue goes back to `status:needs-plan` with a `replan`
+comment).
+
+The `replan` marker is the one marker no stage types. It is not an outcome:
+`last-marker` ignores it, `answer` skips it, and it never makes an issue look
+answered or finished. Its first line is the marker like every other factory
+comment; `files=` lists only the plan files that moved, same encoding. Only
+the `plan` stage acts on it (its Resume).
 
 `sha` on a done marker is the clone's `HEAD`, read by the script itself
 (`git -C "${FACTORY_WORKDIR:-$PWD}" rev-parse HEAD`; a stage runs with the
@@ -116,7 +137,7 @@ one `factory-outcome.sh` call:
 
 | Outcome | Call | The comment | `status:*` flip |
 |---|---|---|---|
-| `done` | `factory-outcome.sh done <N> --stage <s> --run <id> --body-file <report>` (no `--sha`: the script reads the clone's HEAD, §3) | the marker, then the stage report | per the lane table below (the script derives it from `factory-issue.sh next-status`) |
+| `done` | `factory-outcome.sh done <N> --stage <s> --run <id> --body-file <report>` (no `--sha`: the script reads the clone's HEAD, §3; `plan` adds `--files-file <paths>`) | the marker, then the stage report | per the lane table below (the script derives it from `factory-issue.sh next-status`) |
 | `question` | `factory-outcome.sh question <N> --stage <s> --run <id> --from <status label> --body-file <questions>` | the marker, `**Question from the factory** (stage …)`, then the body: the question(s) and their `Options:` (§5) | current → `status:waiting-human` |
 | `parked` | `factory-outcome.sh parked <N> --stage <s> --run <id> --reason <slug> --from <status label> --body-file <text>` | the marker, `**Parked by the factory** (stage …, reason …)`, then the body: what happened, `git status --short` when the tree is dirty, and `How to recover:` with the exact commands | current → `status:needs-human` |
 
@@ -157,7 +178,10 @@ no-outcome park catches a run that could not write its outcome.
    stage's own `done` and the artifact the stage produces is already there
    (the body section for `spec`/`plan`; the branch state for the others), only
    `factory-outcome.sh flip <N> --stage <s>` runs, then stop: a crash between
-   the comment and the flip is the only way to get here.
+   the comment and the flip is the only way to get here. Exception, `plan`
+   only: `factory-issue.sh replan <N>` printing a pending replan (newer than
+   the plan's `done` and than any question) is a re-plan, not a restart; the
+   stage replaces the plan section and posts a new `done` (its Resume).
 4. **An answer.** When `last-marker` is a `question` of this stage,
    `factory-issue.sh answer <N>` prints the human comments after it (§5). Exit
    1 means the daemon re-ran the stage without an answer: `parked

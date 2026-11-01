@@ -133,6 +133,29 @@ run "answer: no question marker at all exits 1" 1 '' "$ISSUE" answer 7 "${R[@]}"
 state status:in-progress factory:auto -- 'bot|<!-- factory:parked stage=harden reason=fix-tests-red run=r4 -->\n**Parked by the factory**'
 run "last-marker: parked" 0 '^parked stage=harden reason=fix-tests-red run=r4$' "$ISSUE" last-marker 7 "${R[@]}"
 
+# --- factory-issue.sh replan (the daemon's base-moved comment) ---------------
+REPLAN='bot|<!-- factory:replan by=daemon reason=base-moved sha=abc1234 base=def5678 files="src/a.py" run=d9 -->\nThe plan from run r1 was written against abc1234; master has since changed src/a.py (PR #390). Re-running plan.'
+state status:needs-plan factory:auto
+run "replan: none without comments exits 1" 1 '' "$ISSUE" replan 7 "${R[@]}"
+state status:needs-plan factory:auto -- 'bot|<!-- factory:done stage=plan sha=abc1234 run=r1 files="src/a.py,src/b.py" -->\nreport' "$REPLAN"
+run "replan: newer than the plan done prints its attributes" 0 '^by=daemon reason=base-moved sha=abc1234 base=def5678 files="src/a.py" run=d9$' "$ISSUE" replan 7 "${R[@]}"
+check "replan: the comment body follows the attributes" bash -c 'cd "$0" && "$1" replan 7 --repo o/r | sed -n 2p | grep -q "PR #390"' "$work/repo" "$ISSUE"
+run "replan: last-marker ignores it (not an outcome)" 0 '^done stage=plan sha=abc1234 run=r1 files="src/a.py,src/b.py"$' "$ISSUE" last-marker 7 "${R[@]}"
+state status:needs-plan factory:auto -- "$REPLAN"
+run "replan: with no plan done at all still prints" 0 '^by=daemon' "$ISSUE" replan 7 "${R[@]}"
+state status:ready factory:auto -- "$REPLAN" 'bot|<!-- factory:done stage=plan sha=def5678 run=r2 files="src/a.py" -->\nreport'
+run "replan: a newer plan done clears it (exit 1)" 1 '' "$ISSUE" replan 7 "${R[@]}"
+state status:waiting-human factory:auto -- 'bot|<!-- factory:done stage=plan sha=abc1234 run=r1 -->\nreport' "$REPLAN" \
+  'bot|<!-- factory:question id=u2 stage=plan from=status:needs-plan run=r2 -->\nWhich?'
+run "replan: a newer question wins (exit 1): the re-plan asked and waits" 1 '' "$ISSUE" replan 7 "${R[@]}"
+state status:needs-plan factory:auto -- 'bot|<!-- factory:done stage=plan sha=abc1234 run=r1 -->\nreport' "$REPLAN" \
+  'bot|<!-- factory:parked stage=plan reason=dirty-tree run=r2 -->\nparked'
+run "replan: a newer parked does not clear it (the re-plan is still owed)" 0 '^by=daemon' "$ISSUE" replan 7 "${R[@]}"
+state status:needs-plan factory:auto -- 'bot|<!-- factory:done stage=implement sha=abc1234 run=r1 -->\nreport' "$REPLAN"
+run "replan: only a plan done counts as newer" 0 '^by=daemon' "$ISSUE" replan 7 "${R[@]}"
+state status:needs-plan factory:auto -- 'bot|<!-- factory:question id=u1 stage=plan from=status:needs-plan run=r2 -->\nWhich?' "$REPLAN" 'owner|Option 1'
+check "replan: answer skips the replan comment (it carries a marker)" bash -c 'cd "$0" && ! "$1" answer 7 --repo o/r | grep -q "Re-running plan"' "$work/repo" "$ISSUE"
+
 # --- factory-issue.sh next-status (the lane table) ---------------------------
 state status:needs-spec factory:auto;      run "next-status: spec/auto -> needs-plan" 0 '^status:needs-plan$' "$ISSUE" next-status 7 spec "${R[@]}"
 state status:needs-spec factory:spec-gate; run "next-status: spec/spec-gate -> spec-review" 0 '^status:spec-review$' "$ISSUE" next-status 7 spec "${R[@]}"
@@ -191,6 +214,69 @@ run "done: empty body file exits 2" 2 '' "$OUT" done 7 --stage spec --run r1 --b
 run "done: bad stage exits 2" 2 '' "$OUT" done 7 --stage deploy --run r1 --body-file "$work/body.md" "${R[@]}"
 run "done: missing --run exits 2" 2 '' "$OUT" done 7 --stage spec --body-file "$work/body.md" "${R[@]}"
 check "done: argument errors post nothing" eq "$(comment_count)" 0
+
+# --- factory-outcome.sh done --files-file (the plan's files= attribute) ------
+printf 'src/b.py\nsrc/a.py\n\ntests/test_a.py\nsrc/a.py\n\n' >"$work/files.txt"
+state status:needs-plan factory:auto
+run "files: posts and flips (plan/auto)" 0 'flipped status:needs-plan -> status:ready' "$OUT" done 7 --stage plan --run r1 --body-file "$work/body.md" --files-file "$work/files.txt" "${R[@]}"
+check "files: marker first, sorted, deduped, quoted, blank lines ignored" eq "$(last_comment | head -1)" "<!-- factory:done stage=plan sha=$head_sha run=r1 files=\"src/a.py,src/b.py,tests/test_a.py\" -->"
+check "files: body follows the marker" bash -c 'printf "%s" "$(last_comment)" | sed -n 2p | grep -q "^## Spec written$"'
+check "files: last-marker reads the marker with files=" eq "$(cd "$work/repo" && "$ISSUE" last-marker 7 "${R[@]}")" "done stage=plan sha=$head_sha run=r1 files=\"src/a.py,src/b.py,tests/test_a.py\""
+state status:needs-plan factory:auto
+run "files: empty file omits the attribute" 0 'flipped' "$OUT" done 7 --stage plan --run r1 --body-file "$work/body.md" --files-file /dev/null "${R[@]}"
+check "files: marker shape unchanged without files" eq "$(last_comment | head -1)" "<!-- factory:done stage=plan sha=$head_sha run=r1 -->"
+printf '\n\n' >"$work/blank.txt"
+state status:needs-plan factory:auto
+run "files: a file of blank lines omits the attribute" 0 'flipped' "$OUT" done 7 --stage plan --run r1 --body-file "$work/body.md" --files-file "$work/blank.txt" "${R[@]}"
+check "files: marker shape unchanged for blank lines" eq "$(last_comment | head -1)" "<!-- factory:done stage=plan sha=$head_sha run=r1 -->"
+printf 'docs/a-b_c.D/@x+y~.md\n' >"$work/one.txt"
+state status:needs-plan factory:auto
+run "files: one path, unusual but legal characters" 0 'flipped' "$OUT" done 7 --stage plan --run r1 --body-file "$work/body.md" --files-file "$work/one.txt" "${R[@]}"
+check "files: single path quoted, no trailing comma" eq "$(last_comment | head -1)" "<!-- factory:done stage=plan sha=$head_sha run=r1 files=\"docs/a-b_c.D/@x+y~.md\" -->"
+printf 'b\na\n' >"$work/noeol.txt"; printf 'c' >>"$work/noeol.txt"
+state status:needs-plan factory:auto
+run "files: last line without a newline is kept" 0 'flipped' "$OUT" done 7 --stage plan --run r1 --body-file "$work/body.md" --files-file "$work/noeol.txt" "${R[@]}"
+check "files: byte-order sort includes the unterminated line" eq "$(last_comment | head -1)" "<!-- factory:done stage=plan sha=$head_sha run=r1 files=\"a,b,c\" -->"
+bad_path() {  # bad_path <name> <line>: refused, exit 2, nothing posted
+  printf 'src/ok.py\n%s\n' "$2" >"$work/bad.txt"
+  state status:needs-plan factory:auto
+  run "files: refused: $1" 2 '' "$OUT" done 7 --stage plan --run r1 --body-file "$work/body.md" --files-file "$work/bad.txt" "${R[@]}"
+  check "files: refusal names the line ($1)" grep -qF -- "refused: bad path in --files-file: $2" "$work/err"
+  check "files: nothing posted ($1)" eq "$(comment_count)" 0
+}
+bad_path "leading slash" "/etc/passwd"
+bad_path "leading ./" "./src/a.py"
+bad_path ".. segment" "src/../secrets.py"
+bad_path "bare .." ".."
+bad_path ". segment" "src/./a.py"
+bad_path "empty segment" "src//a.py"
+bad_path "trailing slash" "src/"
+bad_path "space" "src/my file.py"
+bad_path "comma" "src/a.py,src/b.py"
+bad_path "double quote" 'src/"a".py'
+bad_path "glob *" "src/*.py"
+bad_path "glob ?" "src/a?.py"
+bad_path "angle bracket" "src/a>b.py"
+bad_path "backslash" 'src\\a.py'
+bad_path "tab" "$(printf 'src/a\tb.py')"
+bad_path "carriage return (CRLF line)" "$(printf 'src/a.py\r')"
+state status:in-progress factory:auto
+run "files: refused on a non-plan stage (exit 2)" 2 '' "$OUT" done 7 --stage harden --run r1 --body-file "$work/body.md" --files-file "$work/files.txt" "${R[@]}"
+check "files: the non-plan refusal says files only on plan" grep -q 'files only on plan' "$work/err"
+check "files: nothing posted on a non-plan stage" eq "$(comment_count)" 0
+run "files: refused on spec too" 2 '' "$OUT" done 7 --stage spec --run r1 --body-file "$work/body.md" --files-file "$work/files.txt" "${R[@]}"
+run "files: missing file exits 2" 2 '' "$OUT" done 7 --stage plan --run r1 --body-file "$work/body.md" --files-file "$work/does-not-exist.txt" "${R[@]}"
+run "files: --files-file needs a value" 2 '' "$OUT" done 7 --stage plan --run r1 --body-file "$work/body.md" --files-file
+state status:needs-plan factory:auto
+run "files: --sha differing from HEAD is still refused with --files-file" 2 '' "$OUT" done 7 --stage plan --run r1 --body-file "$work/body.md" --files-file "$work/files.txt" --sha "$wrong_sha" "${R[@]}"
+check "files: the --sha refusal still names the cause" grep -q 'refused: --sha differs from git HEAD' "$work/err"
+check "files: nothing posted on a refused --sha" eq "$(comment_count)" 0
+run "files: --sha abbreviation of HEAD accepted with --files-file" 0 'flipped' "$OUT" done 7 --stage plan --run r1 --body-file "$work/body.md" --files-file "$work/files.txt" --sha "${head_sha:0:7}" "${R[@]}"
+check "files: full sha and files on the same marker" eq "$(last_comment | head -1)" "<!-- factory:done stage=plan sha=$head_sha run=r1 files=\"src/a.py,src/b.py,tests/test_a.py\" -->"
+run "files: not a git repository still dies with --files-file" 2 '' env FACTORY_WORKDIR="$work/norepo" "$OUT" done 7 --stage plan --run r1 --body-file "$work/body.md" --files-file "$work/files.txt" "${R[@]}"
+state status:needs-plan factory:auto
+run "files: bad path is refused before the sha check (nothing posted either way)" 2 '' "$OUT" done 7 --stage plan --run r1 --body-file "$work/body.md" --files-file "$work/bad.txt" --sha "$wrong_sha" "${R[@]}"
+check "files: argument errors post nothing" eq "$(comment_count)" 0
 
 # --- factory-outcome.sh question --------------------------------------------
 printf 'Which repos are in scope?\n\nOptions:\n1. API only (Recommended)\n2. API and the mobile app\n' >"$work/q.md"
