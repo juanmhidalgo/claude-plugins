@@ -111,6 +111,43 @@ Session retrospectives built on what the Claude Code logs actually measured — 
 
 - `gh` CLI installed and authenticated
 - GitHub token with repo scope
+- The `gh-feedback` extension, for the commands that read or act on PR comments (below)
+
+### The `gh-feedback` extension
+
+[`gh-feedback`](https://github.com/juanmhidalgo/gh-feedback) is a `gh`
+extension that fetches, dismisses and resolves PR review comments and waits
+for CI and Copilot. It is a single binary that uses the `gh` login you already
+have.
+
+```bash
+gh extension install juanmhidalgo/gh-feedback
+gh feedback --version
+```
+
+Upgrade it with `gh extension upgrade feedback`.
+
+| Plugin | Needs it for |
+|--------|--------------|
+| `code-review` | `/code-review:triage`, `:pipeline`, `:dismiss`, `:resolve-fixed` |
+| `ship` | waiting for CI and Copilot after the PR is open |
+
+Without the extension, those commands stop and print the install command.
+`/ship` still commits, pushes and opens the PR, then stops before waiting on
+CI.
+
+## Breaking changes
+
+Major versions that need you to do something. Each plugin's `CHANGELOG.md`
+has the full list.
+
+- **code-review 4.0.0** and **ship 2.0.0** (2026-10-31): the PR scripts are
+  gone, replaced by `gh-feedback`. Install it (above). `jq` is no longer
+  needed.
+- **feature-dev 2.0.0** (2026-10-14): specs and plans live in
+  `.feature-dev/features/<slug>/`. The old `specs/` and `plans/` folders are
+  no longer read and are not migrated, so move or delete them by hand. The
+  `artifacts_dir` and `review_band_window_hours` options are removed.
 
 ## Recommended permissions
 
