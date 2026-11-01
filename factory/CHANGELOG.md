@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.2 (2026-11-01)
+
+### Changed
+- **The factory never requests a Copilot review.** `/factory:ship` invokes `/ship` with `--skip-copilot-review`, and the close block says `Copilot: skipped (the factory does not request Copilot; the PR review is the human gate)`. The confirm-and-retry text from 0.3.1 stays in the `/ship` skill, which other repositories use with Copilot; it no longer applies to the stage. The contract (rule 9) and the README say so.
+
 ## 0.3.1 (2026-11-01)
 
 ### Fixed

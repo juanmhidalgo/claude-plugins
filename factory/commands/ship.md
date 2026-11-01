@@ -40,8 +40,9 @@ allowed-tools:
 # `/factory:ship` — last done = `harden` → the PR is open
 
 Stage `ship`. Caps are the daemon's (40 turns · 3 USD · 15 min). It does not
-wait for CI (daemon §15): the PR is opened, Copilot's review is requested, and
-the stage ends.
+wait for CI (daemon §15): the PR is opened, no Copilot review is requested
+(the factory never asks for one: the PR review is the human gate), and the
+stage ends.
 
 ## Context
 
@@ -69,7 +70,7 @@ stage=harden …` or this stage's own `done`. Then:
 ## Composition
 
 Invoke `/ship` with the Skill tool: `Skill("ship:ship", "--yes --no-watch
---no-notify --evidence-file <path>")`, where the evidence file holds one line
+--no-notify --skip-copilot-review --evidence-file <path>")`, where the evidence file holds one line
 per test run the earlier stages reported (implement's test run line, harden's
 test selection), taken from their done comments. The skill's `--yes` makes
 every gate a default; this stage adds what the PR body must lead with:
@@ -80,7 +81,7 @@ every gate a default; this stage adds what the PR body must lead with:
 | Phase 2 staging | Leftovers from `harden` (none expected) are staged per the contract's rule 4, excluded paths listed |
 | Phase 4 tests | The detected runner runs once; red → the skill stops before committing: `parked reason=tests-red` with the failing output, no PR (AC-21). No runner → continue, `Tests skipped (no test runner detected)` in Evidence |
 | Phase 5 push | `git push`; rejected → `parked reason=push-rejected` |
-| Phase 6 PR | base = the default branch; title = the issue title (under 70 characters: cut at a word and add `(#N)` only if room); body built by **The PR body** below, which replaces the skill's steps 3 and 7 (its steps 4–6 still produce the Evidence, Merge Danger and Rollback Triggers text that the body places): `Closes #<N>` first, then the factory's sections through the repo's PR template when the repo has one, in the factory layout otherwise. Written to a scratch file and created with `gh pr create --base <default> --title "<title>" --body-file <file>`. Copilot's review is requested and **confirmed** as the skill's step 8 says (the documented `gh pr edit <n> --add-reviewer @copilot`, then `reviewRequests`, the REST `requested_reviewers` and the timeline; one REST retry with `copilot-pull-request-reviewer[bot]`; never a third call). The close block's `Copilot:` line is `requested (<login>, seen in <listing>)` only when a listing shows it; otherwise `not requested` with why (the calls' exit codes and output, and that no listing shows it). A call that returned 0 proves nothing: in the first end-to-end run two accepted calls left no request |
+| Phase 6 PR | base = the default branch; title = the issue title (under 70 characters: cut at a word and add `(#N)` only if room); body built by **The PR body** below, which replaces the skill's steps 3 and 7 (its steps 4–6 still produce the Evidence, Merge Danger and Rollback Triggers text that the body places): `Closes #<N>` first, then the factory's sections through the repo's PR template when the repo has one, in the factory layout otherwise. Written to a scratch file and created with `gh pr create --base <default> --title "<title>" --body-file <file>`. No Copilot request: the skill runs with `--skip-copilot-review` (its step 8 is skipped), because the factory never asks for Copilot; the PR review is the human gate |
 | Phases 7–8 | Skipped (`--no-watch`) |
 
 ### The PR body
@@ -151,9 +152,8 @@ the person at the merge gate (GitHub shows mergeability on the PR).
 - The PR.
 - The `done` comment: the PR URL, the commit list (`git log --oneline
   origin/<default>..HEAD`), the test command and its result line (or `Tests
-  skipped`), the `Copilot:` line (`requested (<login>, seen in <listing>)`
-  or `not requested — <why>`, never "requested" on an exit code alone), and
-  the contract's §7 lines.
+  skipped`), the line `Copilot: skipped (the factory does not request
+  Copilot; the PR review is the human gate)`, and the contract's §7 lines.
 - The flip `status:in-progress → status:in-review`. The daemon's "PR opened"
   notification is fed by this flip.
 - The done call takes no `--sha`: the script reads the clone's HEAD, which is

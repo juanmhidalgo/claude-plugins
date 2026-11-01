@@ -21,7 +21,10 @@ five commands it types.
 | `/factory:plan #N` | `status:needs-plan` | the plan section in the body; `ready` or `plan-review` (`factory:plan-gate`) |
 | `/factory:implement #N` | `status:ready`, or `in-progress` with no done marker | one commit and one push per plan step on `factory/<N>-<slug>`, a progress comment each; `in-progress` |
 | `/factory:harden #N` | last done marker `implement` | the review loop with every confirmed finding fixed, one `fix:` commit per round (two at most); `in-progress` |
-| `/factory:ship #N` | last done marker `harden` | `/ship --yes`: the PR against the default branch; `in-review` |
+| `/factory:ship #N` | last done marker `harden` | `/ship --yes --skip-copilot-review`: the PR against the default branch; `in-review` |
+
+The factory never requests a Copilot review (`ship` passes
+`--skip-copilot-review`): the PR review is the human gate.
 
 Every command starts with [`references/factory-contract.md`](references/factory-contract.md):
 where the inputs come from (`FACTORY_*` variables from the daemon, or `#N`

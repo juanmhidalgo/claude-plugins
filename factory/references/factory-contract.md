@@ -212,6 +212,8 @@ question's `id=`; a second unmappable answer → `parked reason=unanswered-quest
 8. Caps are the daemon's (`--max-turns`, `--max-budget-usd`, wall clock). A
    stage does not budget itself, but it never leaves work that is not on
    GitHub or on `origin`: `implement` pushes after every step for this reason.
+9. Never request a Copilot review: `ship` passes `--skip-copilot-review` to
+   `/ship`. The PR review is the human gate.
 
 ## 7. The report
 
