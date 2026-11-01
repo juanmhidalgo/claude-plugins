@@ -1,5 +1,18 @@
 # Changelog
 
+## 4.0.0 (2026-10-31)
+
+### Changed (breaking)
+- **PR comments are read and acted on through the [`gh-feedback`](https://github.com/juanmhidalgo/gh-feedback) `gh` extension**, which replaces the bash scripts. `triage`, `pipeline`, `dismiss` and `resolve-fixed` need it installed (`gh extension install juanmhidalgo/gh-feedback`) and stop with that instruction when `gh feedback --version` fails. JSON output, statuses and exit codes (0/1/3/5/6) are unchanged; options are flags now (`--bots-only`, `--include-resolved`, `--split DIR`, `--seen N`, `--reason`) instead of positional booleans. **Why:** about 830 lines of bash, jq and GraphQL paging now have typed code and Go tests, and `jq` is no longer a requirement of these commands.
+
+### Removed
+- `scripts/pr-triage-comments.sh`, `pr-triage-split.sh`, `pr-resolve-comment.sh` and `tests/test-pr-scripts.sh` (ported, with their cases, to `gh-feedback`).
+- `scripts/pr-comments.sh` and `pr-review-summary.sh`: no command used them, and they still matched bots by substring and read only the first page.
+
+### Fixed (in `gh-feedback`)
+- `dismiss` and `resolve` on a reply inside a thread failed with "Could not find thread for comment": only a thread's first comment was matched. Any comment of the thread works now, and the reply goes to the thread's root comment.
+- Comments past the first 100 of a single thread are paged, so they keep their thread's resolution status.
+
 ## 3.16.0 (2026-10-30)
 
 ### Added

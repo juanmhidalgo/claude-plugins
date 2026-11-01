@@ -8,7 +8,7 @@ export const meta = {
 // args:
 //   repo:     "owner/repo"
 //   pr:       PR number
-//   comments: the `comments` array printed by pr-triage-split.sh —
+//   comments: the `comments` array printed by `gh feedback fetch --split` —
 //             [{ ref_id, type, author, is_bot, file, line, thread_comments, comment_file }]
 //             (thread_comments rides through to the results, for --seen)
 //

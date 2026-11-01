@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.15.0] - 2026-10-31
+
+### Added
+- **`/discuss:show-me`**: draws the flow, architecture, pipeline or sequence under discussion as an HTML page with inline SVG. It picks the form from the question (flow, topology, pipeline, sequence) and only draws what it can source: confirmed parts are solid, inferred or proposed ones are dashed and labelled. Under the diagram it puts a bold one-line takeaway, its sources and its gaps. It publishes as a private artifact when an artifact tool is available, and otherwise writes a local file. `--local` keeps it off claude.ai even when the artifact tool is there: it writes the file and opens it in your browser. Before delivering, it renders a headless-browser screenshot when one is available and fixes any label that overflows or overlaps. The model also triggers it when you ask to graph or draw something.
+
 ## [2.14.1] - 2026-10-28
 
 ### Changed

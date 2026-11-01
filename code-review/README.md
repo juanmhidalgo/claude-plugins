@@ -103,8 +103,8 @@ Under `claude -p` or the SDK, allow it with a `Workflow(code-review:review)` rul
 **`code-review:triage-comments` workflow** (`workflows/triage-comments.js`): one
 `comment-verifier` per comment in parallel, a re-run for a verifier that returns
 no verdict or an empty refutation, and `NEEDS INVESTIGATION` (never `FALSE
-POSITIVE`) for a comment whose verifier failed twice. `pr-triage-split.sh` writes
-each comment to its own file, and the verifiers read the bodies from there: the
+POSITIVE`) for a comment whose verifier failed twice. `gh feedback fetch --split`
+writes each comment to its own file, and the verifiers read the bodies from there: the
 comment text, which anyone who can comment on the PR wrote, never passes
 through the session that edits, commits and pushes. Allow it under `claude -p`
 with `Workflow(code-review:triage-comments)`.
@@ -236,32 +236,19 @@ session has been reasoning about the code for an hour.
 
 **AI feedback is NOT valid by default.** Every comment from AI reviewers (Copilot, Gemini, etc.) must be verified against actual code behavior before acting on it.
 
+## PR feedback: the `gh-feedback` extension
+
+`triage`, `pipeline`, `dismiss` and `resolve-fixed` read and act on PR comments
+through [`gh-feedback`](https://github.com/juanmhidalgo/gh-feedback), a `gh`
+extension (one binary, no MCP):
+
+- `gh feedback fetch <pr> [--split DIR]` - every comment, inline comment and review, every page; resolved threads left out, outdated ones marked. With `--split`, one JSON file per comment and the metadata without the bodies (used by `triage` and `pipeline`)
+- `gh feedback dismiss|resolve <pr> <ref_id> [--seen N]` - re-reads the thread first and skips one that changed since triage (exit 6); exit 5 is a reply that landed on a thread it could not resolve
+
 ## Scripts
 
-The plugin includes bash scripts for GitHub API operations (no MCP required):
-
-- `pr-triage-comments.sh` - Fetch PR comments optimized for triage (pages through every thread and comment, filters resolved threads, marks outdated ones)
-- `pr-triage-split.sh` - Runs `pr-triage-comments.sh`, writes one JSON file per comment, and prints the metadata without the bodies (used by `triage` and `pipeline`)
-- `pr-resolve-comment.sh` - Dismiss/resolve comments on GitHub. With `--seen N` it re-reads the thread first and skips one that changed since triage (exit 6); exit 5 is a reply that landed on a thread it could not resolve
-- `pr-comments.sh` - Full PR comments fetch
-- `pr-review-summary.sh` - Quick review status summary
 - `find-spec.sh` - Lists the spec sources for a review (`--base`, `--pr`, `--staged`, optional `--spec`): explicit argument, closing issues, commit keywords, feature-dev `branch:` frontmatter
 - `herdr-pane.sh` - Opens a Herdr pane or worktree with `claude`, runs a command there and collects its result (`--pane`). A synced copy of `shared/herdr-pane/herdr-pane.sh` in the marketplace repo
-
-### pr-triage-comments.sh
-
-```bash
-# Basic usage (bot comments only, excludes resolved)
-./scripts/pr-triage-comments.sh owner repo pr_number
-
-# Include human comments
-./scripts/pr-triage-comments.sh owner repo pr_number 1500 true
-
-# Include resolved threads
-./scripts/pr-triage-comments.sh owner repo pr_number 1500 false true
-```
-
-Output includes `resolved` and `outdated` status for inline comments, with stats on filtered items.
 
 ## Agents
 
@@ -297,7 +284,7 @@ Output includes `resolved` and `outdated` status for inline comments, with stats
 ## Needs
 
 - `gh`, installed and authenticated with repo scope, for every PR command (`pr`, `triage`, `pipeline`, `dismiss`, `resolve-fixed`) and the agents they spawn
-- `jq`, used by the `scripts/pr-*.sh` helpers
+- The `gh-feedback` extension, for `triage`, `pipeline`, `dismiss` and `resolve-fixed`: `gh extension install juanmhidalgo/gh-feedback`
 - For `coverage-gate`: the project's own test and coverage tooling (pytest-cov, jest, vitest, go test)
 - No MCP servers or browser
 - For `--pane`: [Herdr](https://herdr.dev) (this session running inside a Herdr pane), `claude` and `jq` in the PATH

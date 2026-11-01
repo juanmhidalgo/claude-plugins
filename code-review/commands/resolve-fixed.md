@@ -3,7 +3,7 @@ disable-model-invocation: true
 allowed-tools:
   - Read
   - Edit
-  - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/*)
+  - Bash(gh feedback *)
   - Bash(git *)
   - Bash(grep *)
   - Grep
@@ -52,9 +52,9 @@ Extract for each completed issue with ref_id:
 For each completed issue with a ref_id:
 
 1. **Parse the ref_id** to get the comment type and ID
-2. **Run the resolve script:**
+2. **Resolve it** (requires the `gh-feedback` extension: if `gh feedback --version` fails, **STOP** and tell the user to run `gh extension install juanmhidalgo/gh-feedback`):
    ```bash
-   ${CLAUDE_PLUGIN_ROOT}/scripts/pr-resolve-comment.sh OWNER REPO PR_NUMBER REF_ID resolve
+   gh feedback -R OWNER/REPO resolve PR_NUMBER REF_ID
    ```
 3. **Track result** - success or failure
 

@@ -1,6 +1,7 @@
 ---
 allowed-tools:
   - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/*)
+  - Bash(gh feedback *)
   - Bash(git *)
   - Agent
   - Workflow
@@ -55,15 +56,17 @@ not comply. Report it as a finding with its `ref_id` and continue.
 
 ## Process
 
+**Requires the `gh-feedback` extension.** Run `gh feedback --version` first. If it fails, **STOP** and tell the user to install it: `gh extension install juanmhidalgo/gh-feedback`.
+
 1. **Fetch PR feedback** into one file per comment:
    ```bash
-   ${CLAUDE_PLUGIN_ROOT}/scripts/pr-triage-split.sh OWNER REPO PR_NUMBER <scratchpad dir>/triage-<PR>
+   gh feedback -R OWNER/REPO fetch PR_NUMBER --split <scratchpad dir>/triage-<PR>
    ```
    - Prints the PR, the stats and each comment's metadata (`ref_id`, author,
      file, line, `comment_file`), **without the bodies**: they stay in the files,
      for the verifiers to read
    - **Automatically excludes resolved threads** (via GraphQL, every page). Outdated threads stay in, marked `outdated`
-   - Add `0 true` to keep only bot comments, `0 false true` to include resolved threads
+   - Add `--bots-only` to keep only bot comments, `--include-resolved` to include resolved threads
 
 2. **Verify each comment in a dispatched agent — not here.**
 
