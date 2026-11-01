@@ -14,6 +14,7 @@ allowed-tools:
   - Bash(gh repo view --json nameWithOwner*)
   - Bash(gh issue view *)
   - Bash(git branch --show-current)
+  - Bash(git check-ignore *)
   - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/issue_spec.py *)
 argument-hint: "<SPEC-*.md or PLAN-*.md path, #issue, owner/repo#issue, or issue URL — optional; asks when several exist>"
 description: |
@@ -44,7 +45,7 @@ The page is served by `review_server.py` on `127.0.0.1`, on a random free port. 
 2. **If `$ARGUMENTS` names an existing file** → use it. If it does not exist, STOP and report. An artifact of this repo must sit in `.feature-dev/features/<slug>/`; refuse any other path (a root `SPEC-*.md`, or the layout older than 2.0.0) in one line and name `.feature-dev/features/<slug>/` as the only place artifacts live.
 3. **If `$ARGUMENTS` is empty** → run `${CLAUDE_PLUGIN_ROOT}/scripts/features.py list --json --root <repo root>` and collect the `artifacts` of every feature (each has `kind`, `path`, `needs_review`). A missing `.feature-dev/features/` is an empty list. 0 → STOP and point to `/feature-dev:spec`. 1 → use it. 2+ → AskUserQuestion (label = file name, description = the feature's slug and `status`; put artifacts with `needs_review` first).
 4. The kind is SPEC or PLAN, from the file name prefix (or the `kind` in the list). The feature slug is its folder name under `.feature-dev/features/`. Do not derive review paths yourself: every file path below comes from the scripts.
-5. If the project's `.gitignore` does not include `.feature-dev/`, add it. It holds the feature store, review files and version history: all local working artifacts.
+5. Run `git check-ignore -q .feature-dev`; exit 0 means it is already excluded (`.gitignore` or `.git/info/exclude`). Otherwise add `.feature-dev/` to the project's `.gitignore`. It holds the feature store, review files and version history: all local working artifacts.
 
 ## Phase 1: Serve and wait
 

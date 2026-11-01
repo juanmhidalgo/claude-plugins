@@ -1,7 +1,7 @@
 ---
 description: |
   Use when you need to audit a CLAUDE.md file against Anthropic's best practices.
-  Do NOT use to apply changes — use /claude-md-toolkit:optimize-claude-md for that.
+  Do NOT use to apply changes — use /agents-md-toolkit:optimize-claude-md for that.
 argument-hint: "[path/to/CLAUDE.md]"
 keywords:
   - claude-md-analysis
@@ -19,7 +19,7 @@ hooks:
     once: true
     command: |
       echo "Analysis complete."
-      echo "  - /claude-md-toolkit:optimize-claude-md to apply optimizations"
+      echo "  - /agents-md-toolkit:optimize-claude-md to apply optimizations"
       echo "  - Review high-priority issues first"
 ---
 

@@ -1,6 +1,6 @@
-# `/claude-md-toolkit:optimize-claude-md` — Optimization Levels & Strategies
+# `/agents-md-toolkit:optimize-claude-md` — Optimization Levels & Strategies
 
-Loaded by `/claude-md-toolkit:optimize-claude-md`.
+Loaded by `/agents-md-toolkit:optimize-claude-md`.
 
 ## Levels
 
@@ -87,7 +87,7 @@ Ask the user:
 Do NOT proceed without explicit confirmation.
 
 ### Step 5 — Apply
-- If confirmed: write optimized content, show success metrics, suggest `/claude-md-toolkit:analyze-claude-md`.
+- If confirmed: write optimized content, show success metrics, suggest `/agents-md-toolkit:analyze-claude-md`.
 - If save-as-new: write to `[original].optimized.md`, keep original untouched.
 - If cancelled: delete backup, show "Cancelled, no changes made".
 
@@ -105,7 +105,7 @@ Do NOT proceed without explicit confirmation.
 
 **Next Steps**:
 1. Review changes
-2. Run `/claude-md-toolkit:analyze-claude-md` to verify
+2. Run `/agents-md-toolkit:analyze-claude-md` to verify
 3. Test with Claude Code
 4. Commit: `git add CLAUDE.md && git commit -m "Optimize CLAUDE.md"`
 5. Delete backup if satisfied: `rm [backup-path]`

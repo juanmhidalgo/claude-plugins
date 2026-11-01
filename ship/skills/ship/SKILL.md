@@ -6,7 +6,7 @@ description: |
   one go. Commits, pushes, opens the PR, then waits for CI and Copilot's review.
   Do NOT use when the user asks only to commit or only to push, or is asking whether
   the work is ready to ship rather than telling you to ship it.
-argument-hint: "[--skip-tests] [--no-pr] [--draft] [--skip-copilot-review] [--no-watch] [--no-notify]"
+argument-hint: "[--skip-tests] [--no-pr] [--draft] [--skip-copilot-review] [--no-watch] [--no-notify] [--yes] [--evidence-file <path>]"
 keywords:
   - ship
   - commit-push-pr
@@ -55,6 +55,22 @@ Execute these phases in order. Stop and report at any failure.
 
 When you invoked this skill from the conversation rather than the user typing `/ship`, read the flags from what the user said: "as a draft" → `--draft`, "no PR" → `--no-pr`, "skip tests" → `--skip-tests`, "don't wait" / "no need to watch CI" → `--no-watch`. Anything not mentioned keeps its default.
 
+## `--yes`: no questions
+
+`--yes` is for a caller that cannot answer (a headless stage, a command that invoked this skill with the Skill tool). It replaces every question in this workflow with the choice below and implies `--no-watch`. Nothing else changes: the tests still gate the commit, a rejected push still stops, secrets are still excluded.
+
+| Phase | Without `--yes` | With `--yes` |
+|---|---|---|
+| 1, on the default branch | asks whether to branch | **stops**: never branches and never pushes to the default branch; says so and ends. The caller decides |
+| 1, clean tree with commits ahead of the base | stops: nothing to ship | skips Phases 2–3 (nothing to stage or commit), runs Phase 4 against the files changed since the base (`git diff --name-only <default-branch>...HEAD` decides the non-code skip), pushes when the upstream is behind (Phase 5, step 2) and goes to Phase 6 |
+| 2, mixed concerns | asks which group to ship | stages every non-secret changed and untracked file, listing the excluded ones |
+| 4, no test runner found | asks whether to proceed | continues; Evidence says `Tests skipped (no test runner detected)` |
+| 6, feature branch | asks whether to create the PR | creates it, base = the default branch; when the repo has several PR templates, takes the first by file name |
+
+A caller that invoked this skill with content the PR body must lead with (a `Closes #N` line, a section of its own) puts it before Summary; the template's sections follow it. A PR that already exists for the branch is left exactly as it is: nothing is created and nothing is edited.
+
+**`--evidence-file <path>`**: lines of test evidence from earlier runs (a harden's scoped selection, an implement's suite), one per line, each `command — result`. Phase 6 appends them under Evidence as `- **Earlier runs:**`, verbatim, marked as reported by the caller: they are not runs this session made.
+
 ## Phase 1: Status & Branch Detection
 
 1. Run `git status` (never use `-uall`)
@@ -65,9 +81,9 @@ When you invoked this skill from the conversation rather than the user typing `/
    - **Default branch** (main, master, prod, or whatever the repo uses) → ask about branching (see below)
    - **Feature branch**: anything else → PR workflow
 
-If there are no changes (working tree clean, nothing staged), stop and inform the user.
+If there are no changes (working tree clean, nothing staged), stop and inform the user — unless `--yes` was passed and `git log <default-branch>..HEAD` shows commits: then skip Phases 2–3, run Phase 4 over the files changed since the base, and continue with Phase 5 step 2 (push if the upstream is behind) and Phase 6. A red suite still stops before the push.
 
-**If on the default branch**, ask user with AskUserQuestion:
+**If on the default branch** with `--yes`: stop here. Say that `--yes` never branches and never pushes to the default branch, and end; nothing is staged or committed. Otherwise ask user with AskUserQuestion:
 - "Create a new feature branch" — auto-generate a descriptive branch name from the changes (e.g., `fix/null-check-auth-middleware`, `feat/add-billing-export`). Use the conventional commit type as prefix. Create with `git checkout -b <name>`.
 - "Continue on current branch" — proceed with direct push workflow
 
@@ -90,7 +106,7 @@ If there are unstaged changes:
 4. **Branch based on analysis:**
 
    - **All changes are cohesive** (single concern): auto-stage all non-secret files. No question needed. Show `git diff --cached --stat` as confirmation.
-   - **Mixed concerns detected**: group changes by concern and present them to the user with AskUserQuestion. Example:
+   - **Mixed concerns detected** with `--yes`: stage every non-secret file; the commit message names the concerns. Without it, group changes by concern and present them to the user with AskUserQuestion. Example:
 
      > I detected changes belonging to different concerns:
      >
@@ -148,7 +164,7 @@ Otherwise:
 3. If tests **fail**: stop workflow, show failures, do NOT commit
 4. If tests **pass**: continue
 
-If no test runner is detected, warn the user and ask whether to proceed without tests.
+If no test runner is detected, warn the user and ask whether to proceed without tests (with `--yes`: continue, and Phase 6 writes `Tests skipped (no test runner detected)` as the After evidence).
 
 ## Phase 5: Commit & Push
 
@@ -184,17 +200,18 @@ Skip if:
 
 If on a feature branch:
 
-1. Ask user with AskUserQuestion whether to create a PR
+1. Ask user with AskUserQuestion whether to create a PR (with `--yes`: create it without asking)
 2. If yes:
    - Use the default branch detected in Phase 1 as the base
    - Run `git log <default-branch>..HEAD --oneline` to gather commit history
    - Generate a concise PR title (under 70 chars)
    - Generate the body with the template below, picking the Summary visual from [pr-body.md](references/pr-body.md)
-3. **Repo template first.** If the repo has a PR template (`.github/pull_request_template.md`, `.github/PULL_REQUEST_TEMPLATE.md`, `docs/pull_request_template.md`, `pull_request_template.md`, or a file in `.github/PULL_REQUEST_TEMPLATE/`; when that folder holds several, ask the user which one), keep its headings and their order and fill them using the rules below. Append **Merge Danger** and **Rollback Triggers** only when the template has no equivalent section.
+3. **Repo template first.** If the repo has a PR template (`.github/pull_request_template.md`, `.github/PULL_REQUEST_TEMPLATE.md`, `docs/pull_request_template.md`, `pull_request_template.md`, or a file in `.github/PULL_REQUEST_TEMPLATE/`; when that folder holds several, ask the user which one, or with `--yes` take the first by file name), keep its headings and their order and fill them using the rules below. Append **Merge Danger** and **Rollback Triggers** only when the template has no equivalent section.
 4. **Evidence is only what this session ran.**
    - **After**: the Phase 4 test command and its pass line. If Phase 4 was skipped, or no test runner was found and the user agreed to proceed, write `Tests skipped (<reason>)`.
    - **Before**: a failing run whose output appears verbatim in a Bash result in this conversation (the test name and its key failure line, copied, not retyped). A failure a subagent reported, or one remembered from a summary of earlier context, does not count. Otherwise write `not captured`.
    - Never check out the base, revert code, or re-run anything to manufacture a "before", and never present pseudo-output as real output. `not captured` is the honest answer, the same way `N/A` is for Rollback Triggers.
+   - **Earlier runs** (only with `--evidence-file <path>`): read the file and add its lines verbatim under Evidence as `- **Earlier runs (reported by the caller):**`, one bullet per line. They are the caller's claims, kept apart from Before and After.
 5. **Merge Danger** — one line each:
    - **Door**: `one-way` or `two-way`, with the reason. One-way: a migration that drops or rewrites data, a change to a published API or schema contract, external side effects (emails, payments, webhooks), a major dependency bump. Everything else is two-way.
    - **Blast radius**: one word, then who or what breaks if this is wrong.
@@ -227,20 +244,26 @@ If on a feature branch:
    )"
    ```
    - If `$ARGUMENTS` contains `--draft`, add the `--draft` flag to `gh pr create`
-8. **Request Copilot review** (unless `$ARGUMENTS` contains `--skip-copilot-review`):
+8. **Request Copilot review** (unless `$ARGUMENTS` contains `--skip-copilot-review`), with the form GitHub documents for the CLI:
    ```bash
-   gh pr edit --add-reviewer @copilot
+   gh pr edit <number> --add-reviewer @copilot
    ```
-   If it fails, retry once through the API, with `Copilot` capitalized (the lowercase login can resolve without triggering a review):
+   Then **confirm**: a call that returns 0 is not a landed request (two accepted calls on one PR left no trace at all). Check these listings; Copilot is requested when any of them names it (`copilot`, case-insensitive; the bot's login reads `Copilot` or `copilot-pull-request-reviewer[bot]` depending on the endpoint):
    ```bash
-   gh api repos/{owner}/{repo}/pulls/<number>/requested_reviewers -X POST -f 'reviewers[]=Copilot'
+   gh pr view <number> --json reviewRequests --jq '.reviewRequests[] | .login // .name'
+   gh api repos/{owner}/{repo}/pulls/<number>/requested_reviewers --jq '.users[].login'
+   gh api repos/{owner}/{repo}/issues/<number>/timeline --jq '.[] | select(.event=="review_requested") | .requested_reviewer.login'
    ```
-   `reviewRequests` and the POST's response never list bot reviewers, so an empty list there is not a failure — do not re-request on it. Confirm in the timeline instead: `gh api repos/{owner}/{repo}/issues/<number>/timeline --jq '.[] | select(.event=="review_requested") | .requested_reviewer.login'`. If both attempts fail (e.g., Copilot review not available on the repo's plan), warn the user and continue — do not fail the workflow. Remember whether the request landed: Phase 7 waits for Copilot only if it did.
+   If none names it, retry once through the REST API with the login GitHub documents for it, then check the three listings again:
+   ```bash
+   gh api repos/{owner}/{repo}/pulls/<number>/requested_reviewers -X POST -f 'reviewers[]=copilot-pull-request-reviewer[bot]'
+   ```
+   Still nothing → report `Copilot: not requested` with why (the exit code and output of both calls, and that none of the three listings shows it; the usual cause is Copilot code review not being available to the account or the repo's plan), warn the user and continue — do not fail the workflow and never issue a third request. Report `Copilot: requested (<login>, seen in <listing>)` otherwise. Phase 7 waits for Copilot only when it was confirmed.
 9. Report the PR URL
 
 ## Phase 7: Watch CI and Copilot (Feature Branches Only)
 
-Skip if `$ARGUMENTS` contains `--no-watch`, or if the branch has no open PR (none was created and none existed).
+Skip if `$ARGUMENTS` contains `--no-watch` or `--yes`, or if the branch has no open PR (none was created and none existed).
 
 The watcher is the `gh-feedback` extension. If `gh feedback --version` fails, skip this phase and Phase 8: report the PR URL, `gh pr checks <number>` to check CI later, and `gh extension install juanmhidalgo/gh-feedback` to get the watcher.
 

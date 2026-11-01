@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.1.1] - 2026-11-01
+
+### Fixed
+- **The Copilot request is confirmed, or reported as not requested.** A `gh pr edit --add-reviewer @copilot` (or the REST request) that returns 0 is not a landed request: on one PR two accepted calls left nothing in `reviewRequests`, in the REST `requested_reviewers` nor in the timeline. Phase 6 now checks those three listings after the request, retries once through the REST API with the login GitHub documents (`copilot-pull-request-reviewer[bot]`, the same bot account as `Copilot`), and reports `Copilot: requested (<login>, seen in <listing>)` or `Copilot: not requested` with why. Phase 7 waits for Copilot only when it was confirmed. The old text claimed the listings never show bot reviewers and told the model not to look; that hid the failure.
+
+## [2.1.0] - 2026-11-01
+
+### Added
+- **`--yes`**: no questions, for a headless caller (the `factory` plugin's `/factory:ship`, or a command invoking the skill). On the default branch it stops instead of asking to branch; with a clean tree ahead of the base it runs the tests and goes on to the push and the PR; mixed concerns stage every non-secret file; a missing test runner is reported in Evidence instead of asked about; the PR is created without asking (first template by name when several exist). Implies `--no-watch`. A caller that invoked the skill may name what the PR body must lead with; an existing PR is never touched.
+- **`--evidence-file <path>`**: test lines from earlier runs, added verbatim under Evidence as "Earlier runs (reported by the caller)", apart from Before and After.
+
 ## [2.0.0] - 2026-10-31
 
 ### Changed (breaking)

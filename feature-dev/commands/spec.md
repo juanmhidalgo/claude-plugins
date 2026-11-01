@@ -22,6 +22,7 @@ allowed-tools:
   - Edit
   - Agent
   - AskUserQuestion
+  - Bash(git check-ignore *)
   - Bash(gh auth status)
   - Bash(gh repo view --json nameWithOwner*)
   - Bash(gh issue view *)
@@ -122,7 +123,7 @@ Each phase that runs requires user approval before advancing.
 
    The feature's state (draft, approved, implemented) lives in `feature.json`, not in the frontmatter: after the user validates the spec in step 8, run `${CLAUDE_PLUGIN_ROOT}/scripts/features.py approve <feature-slug> --root <repo root>`.
 
-7. **Update `.gitignore`.** If the project's `.gitignore` does not already include `.feature-dev/` (features, review files and version history), add it. The spec is a local working artifact, not a repo deliverable — this prevents accidental commits via `git add .`. (Mirrors the same step performed by `/feature-dev:explore-plan` for the plan.)
+7. **Update `.gitignore`.** Run `git check-ignore -q .feature-dev` first: exit 0 means the folder is already excluded (by `.gitignore`, or by `.git/info/exclude` as a headless caller sets it) and nothing is edited. Otherwise add `.feature-dev/` to the project's `.gitignore` (features, review files and version history). The spec is a local working artifact, not a repo deliverable — this prevents accidental commits via `git add .`. (Mirrors the same step performed by `/feature-dev:explore-plan` for the plan.)
 
 8. **Present the review brief** (below) — not the spec itself. Do NOT proceed until the user approves.
 

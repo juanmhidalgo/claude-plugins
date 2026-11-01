@@ -1,6 +1,6 @@
-# `/claude-md-toolkit:init` — Standalone Mode: Detection & Templates
+# `/agents-md-toolkit:init` — Standalone Mode: Detection & Templates
 
-Loaded by `/claude-md-toolkit:init` when running with `--standalone`.
+Loaded by `/agents-md-toolkit:init` when running with `--standalone`.
 
 ## Project detection
 
@@ -32,7 +32,7 @@ fi
 
 ## Template selection
 
-Templates live in `claude-md-toolkit/templates/`:
+Templates live in `agents-md-toolkit/templates/`:
 - `generic-small.md` — generic project, <10K LOC
 - `django-small.md` — Django, <10K LOC
 - `fastapi-small.md` — FastAPI, <10K LOC
@@ -155,6 +155,6 @@ not done.
 **Next Steps**:
 1. Review and customize CLAUDE.md
 2. Add project-specific rules in <critical_rules>
-3. Run `/claude-md-toolkit:analyze-claude-md` to verify score
+3. Run `/agents-md-toolkit:analyze-claude-md` to verify score
 4. Commit
 ```

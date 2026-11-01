@@ -149,4 +149,4 @@ The downstream agents halt on a step that violates these. A plan that fails them
 
 ## Step 3: Update .gitignore
 
-If `.feature-dev/` is not in the project's .gitignore, add it (features, review files and version history).
+Run `git check-ignore -q .feature-dev` first. Exit 0 means the folder is already excluded — by `.gitignore` or by `.git/info/exclude`, as a headless caller sets it — and there is nothing to do. Otherwise add `.feature-dev/` to the project's `.gitignore` (features, review files and version history).

@@ -21,7 +21,7 @@ A "connector" is any external integration a plugin can use — typically the Git
 | `prd-toolkit` | ☑️ optional (`gh`) | ☑️ optional (ClickUp) |
 | `handoff` | ☑️ optional (`gh`) | — |
 | `intake` | — | ☑️ optional (ClickUp) |
-| `feature-dev`, `discuss`, `ship`, `debug`, `performance`, `security`, `second-opinion`, `claude-md-toolkit`, `onboard`, `refactor` | — | — |
+| `feature-dev`, `discuss`, `ship`, `debug`, `performance`, `security`, `second-opinion`, `agents-md-toolkit`, `onboard`, `refactor` | — | — |
 
 Legend: ✅ required, ☑️ optional, — not used
 

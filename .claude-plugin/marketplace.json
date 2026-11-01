@@ -31,10 +31,10 @@
       "category": "productivity"
     },
     {
-      "name": "claude-md-toolkit",
-      "source": "./claude-md-toolkit",
+      "name": "agents-md-toolkit",
+      "source": "./agents-md-toolkit",
       "description": "Analyze and optimize CLAUDE.md files using Anthropic's best practices for prompt engineering, XML tags, and memory patterns",
-      "version": "0.9.1",
+      "version": "0.10.0",
       "author": {
         "name": "Juan M. Hidalgo"
       },
@@ -89,7 +89,7 @@
       "name": "feature-dev",
       "source": "./feature-dev",
       "description": "Feature development workflows: test-driven development with coverage gates and parallel codebase exploration before planning",
-      "version": "2.7.1",
+      "version": "2.8.0",
       "author": {
         "name": "Juan M. Hidalgo"
       },
@@ -111,7 +111,7 @@
       "name": "ship",
       "source": "./ship",
       "description": "End-to-end shipping workflow: smart staging with change cohesion analysis, conventional commits, test gates, push, and optional PR creation",
-      "version": "2.0.0",
+      "version": "2.1.1",
       "author": {
         "name": "Juan M. Hidalgo"
       },
@@ -155,11 +155,22 @@
       "name": "github-issues",
       "source": "./github-issues",
       "description": "Work GitHub Issues — bugs, tech debt, refactors, follow-ups: verify each issue against the current code before planning and implementing, or triage a backlog read-only",
-      "version": "1.11.3",
+      "version": "1.11.4",
       "author": {
         "name": "Juan M. Hidalgo"
       },
       "keywords": ["github", "issue", "bug", "fix", "handoff", "multi-repo"],
+      "category": "development"
+    },
+    {
+      "name": "factory",
+      "source": "./factory",
+      "description": "Headless stage commands for the factory daemon: spec, plan, implement, harden and ship one GitHub issue each, composing feature-dev, code-review, ship and github-issues, with every outcome written back to the issue",
+      "version": "0.3.2",
+      "author": {
+        "name": "Juan M. Hidalgo"
+      },
+      "keywords": ["factory", "headless", "daemon", "github", "issue", "spec", "plan", "tdd", "review", "ship"],
       "category": "development"
     },
     {

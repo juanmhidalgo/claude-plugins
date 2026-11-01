@@ -15,7 +15,7 @@ Usage:
     features.py step <slug> resume [--root DIR]
     features.py step <slug> reopen <n> [--root DIR]
     features.py implemented <slug> [--root DIR]
-    features.py link-issue <slug> <owner/repo#N> <fingerprint> [--root DIR]
+    features.py link-issue <slug> <owner/repo#N> <fingerprint> [--kind spec|plan] [--root DIR]
     features.py list [--json] [--root DIR]
     features.py delete <slug> [--force] [--dry-run] [--root DIR]
 
@@ -265,12 +265,27 @@ def apply(root: Path, slug: str, event: str, **opts) -> Path:
     return folder
 
 
-def link_issue(root: Path, slug: str, ref: str, fingerprint: str) -> Path:
-    """Set ``issue`` in any state. Not a transition: status and the markdown files stay as they are."""
+def link_issue(root: Path, slug: str, ref: str, fingerprint: str, kind: str = "spec") -> Path:
+    """Set ``issue`` in any state. Not a transition: status and the markdown files stay as they are.
+
+    ``kind`` says which section's fingerprint is recorded: ``spec`` writes
+    ``issue.fingerprint``, ``plan`` writes ``issue.plan_fingerprint``. The other
+    kind's fingerprint survives when ``ref`` is the one already linked, and is
+    dropped when the link moves to another issue (it described that issue).
+    """
     if not ISSUE_REF.fullmatch(ref):
         raise UsageError(f"invalid issue ref: {ref!r} (expected owner/repo#N)")
+    if kind not in ("spec", "plan"):
+        raise UsageError(f"invalid kind: {kind!r} (expected spec or plan)")
     folder, data = require_feature(root, slug)
-    data["issue"] = {"ref": ref, "fingerprint": fingerprint}
+    previous = data.get("issue") if isinstance(data.get("issue"), dict) else {}
+    issue: dict = {"ref": ref}
+    if previous.get("ref") == ref:
+        for key in ("fingerprint", "plan_fingerprint"):
+            if key in previous:
+                issue[key] = previous[key]
+    issue["fingerprint" if kind == "spec" else "plan_fingerprint"] = fingerprint
+    data["issue"] = issue
     data["updated_at"] = now_utc()
     write_feature(folder, data)
     return folder
@@ -441,6 +456,7 @@ def main(argv: list[str] | None = None) -> int:
     p_link.add_argument("slug")
     p_link.add_argument("ref")
     p_link.add_argument("fingerprint")
+    p_link.add_argument("--kind", choices=["spec", "plan"], default="spec")
     p_list = sub.add_parser("list", help="list features")
     p_list.add_argument("--json", action="store_true")
     p_delete = sub.add_parser("delete", help="delete a feature folder")
@@ -478,7 +494,7 @@ def main(argv: list[str] | None = None) -> int:
             for path in delete_feature(root, args.slug, args.force, args.dry_run):
                 print(path.relative_to(root).as_posix())
         elif args.command == "link-issue":
-            link_issue(root, args.slug, args.ref, args.fingerprint)
+            link_issue(root, args.slug, args.ref, args.fingerprint, args.kind)
         else:
             apply(root, args.slug, "plan --replace" if args.replace else "plan",
                   steps=args.steps, from_spec=args.from_spec)

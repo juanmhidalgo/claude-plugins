@@ -388,6 +388,33 @@ class LinkIssueTest(CliCase):
                 self.assertNotEqual(data["updated_at"], "2026-01-01T00:00:00Z")
                 self.assertEqual([md.stat().st_mtime_ns for md in mds], [1_000_000_000] * len(mds))
 
+    def test_link_issue_kind_plan_records_plan_fingerprint_beside_the_spec_one(self):
+        self.make("foo", "planned", plan_md=True, plan=progress(2))
+        self.assertEqual(self.run_cli("link-issue", "foo", "owner/repo#7", "spec-fp").returncode, 0)
+        result = self.run_cli("link-issue", "foo", "owner/repo#7", "plan-fp", "--kind", "plan")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.feature("foo")["issue"],
+                         {"ref": "owner/repo#7", "fingerprint": "spec-fp", "plan_fingerprint": "plan-fp"})
+        # Re-recording the spec fingerprint keeps the plan one.
+        self.assertEqual(self.run_cli("link-issue", "foo", "owner/repo#7", "spec-fp2").returncode, 0)
+        self.assertEqual(self.feature("foo")["issue"],
+                         {"ref": "owner/repo#7", "fingerprint": "spec-fp2", "plan_fingerprint": "plan-fp"})
+        self.assertEqual(self.feature("foo")["status"], "planned")
+
+    def test_link_issue_to_another_issue_drops_the_other_kinds_fingerprint(self):
+        self.make("foo", "approved")
+        self.run_cli("link-issue", "foo", "owner/repo#7", "spec-fp")
+        self.run_cli("link-issue", "foo", "owner/repo#7", "plan-fp", "--kind", "plan")
+        self.assertEqual(self.run_cli("link-issue", "foo", "owner/repo#8", "plan-fp8", "--kind", "plan").returncode, 0)
+        self.assertEqual(self.feature("foo")["issue"], {"ref": "owner/repo#8", "plan_fingerprint": "plan-fp8"})
+
+    def test_link_issue_kind_plan_alone_leaves_no_spec_fingerprint(self):
+        self.make("foo", "approved")
+        self.assertEqual(self.run_cli("link-issue", "foo", "owner/repo#7", "plan-fp", "--kind", "plan").returncode, 0)
+        self.assertEqual(self.feature("foo")["issue"], {"ref": "owner/repo#7", "plan_fingerprint": "plan-fp"})
+        listing = json.loads(self.run_cli("list", "--json").stdout)
+        self.assertEqual(listing[0]["issue"], "owner/repo#7")
+
     def test_ac13_malformed_ref_exits_nonzero_and_leaves_feature_json_identical(self):
         folder = self.make("foo", "draft")
         before = (folder / "feature.json").read_bytes()
@@ -808,10 +835,15 @@ class CommandTextTest(unittest.TestCase):
     def test_tdd_md(self):
         text = self.command("tdd.md")
         self.assertIn("features.py list --json", text)
-        self.assertRegex(text, r"features\.py step \S+ done")
+        # The step calls moved to references/step-loop.md with the loop (2.8.0);
+        # tdd.md follows it, and still records the halt itself.
+        self.assertIn("references/step-loop.md", text)
         self.assertRegex(text, r"features\.py step \S+ halt \S+ --reason")
-        self.assertRegex(text, r"features\.py step \S+ resume")
-        self.assertRegex(text, r"features\.py step \S+ reopen")
+        loop = (SCRIPT.parent.parent / "references" / "step-loop.md").read_text(encoding="utf-8")
+        self.assertRegex(loop, r"features\.py step \S+ done")
+        self.assertRegex(loop, r"features\.py step \S+ halt \S+ --reason")
+        self.assertRegex(loop, r"features\.py step \S+ resume")
+        self.assertRegex(loop, r"features\.py step \S+ reopen")
         self.assertIn("features.py implemented", text)
         self.assertRegex(text, r"features\.py plan \S+ --steps [^\n]*--from-spec")
         self.assertAllowsFeatures(text)

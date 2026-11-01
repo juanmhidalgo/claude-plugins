@@ -1,4 +1,4 @@
-# claude-md-toolkit
+# agents-md-toolkit
 
 Analyze and optimize CLAUDE.md files using Anthropic's official best practices for prompt engineering, XML tags, and memory patterns.
 
@@ -119,10 +119,10 @@ Initialize or enhance a CLAUDE.md file with best practices baked in from the sta
 ```bash
 # Enhance mode - leverages /init from Claude Code
 /init                                # First, generate base CLAUDE.md (Anthropic's analysis)
-/claude-md-toolkit:init              # Then, enhance with best practices
+/agents-md-toolkit:init              # Then, enhance with best practices
 
 # Standalone mode - generate optimized from scratch
-/claude-md-toolkit:init --standalone  # Auto-detects framework and generates optimized file
+/agents-md-toolkit:init --standalone  # Auto-detects framework and generates optimized file
 ```
 
 **Why two modes?**
@@ -161,7 +161,7 @@ Features:
 Next Steps:
 1. Review and customize CLAUDE.md
 2. Add project-specific rules
-3. Run /claude-md-toolkit:analyze-claude-md to verify score
+3. Run /agents-md-toolkit:analyze-claude-md to verify score
 ```
 
 **Example output (enhance mode):**
@@ -195,7 +195,7 @@ Backup: CLAUDE.md.backup-20260107-133412
 /plugin marketplace add juanmhidalgo/claude-plugins
 
 # Install plugin
-/plugin install claude-md-toolkit@juanmhidalgo-plugins
+/plugin install agents-md-toolkit@juanmhidalgo-plugins
 ```
 
 ### Manual Installation
@@ -206,7 +206,7 @@ git clone https://github.com/juanmhidalgo/claude-plugins.git
 
 # Install plugin
 cd claude-plugins
-/plugin install ./claude-md-toolkit
+/plugin install ./agents-md-toolkit
 ```
 
 ## Skill: claude-md-best-practices
@@ -249,25 +249,25 @@ Run `/optimize-claude-md` when:
 
 **Option 1: Quick Start (Enhance Mode)**
 1. **Generate base**: Run `/init` to create initial CLAUDE.md (Anthropic's analysis)
-2. **Enhance**: Run `/claude-md-toolkit:init` to apply best practices
-3. **Verify**: Run `/claude-md-toolkit:analyze-claude-md` to confirm quality (should be 80-90+)
+2. **Enhance**: Run `/agents-md-toolkit:init` to apply best practices
+3. **Verify**: Run `/agents-md-toolkit:analyze-claude-md` to confirm quality (should be 80-90+)
 4. **Review**: Manually check changes in your editor
 5. **Test**: Use Claude Code to ensure behavior is correct
 6. **Commit**: Add to version control
 7. **Maintain**: Re-analyze quarterly or after major changes
 
 **Option 2: Standalone (From Scratch)**
-1. **Generate optimized**: Run `/claude-md-toolkit:init --standalone` (auto-detects framework)
+1. **Generate optimized**: Run `/agents-md-toolkit:init --standalone` (auto-detects framework)
 2. **Customize**: Add project-specific rules and context
-3. **Verify**: Run `/claude-md-toolkit:analyze-claude-md` to confirm quality
+3. **Verify**: Run `/agents-md-toolkit:analyze-claude-md` to confirm quality
 4. **Test**: Use Claude Code to ensure behavior is correct
 5. **Commit**: Add to version control
 6. **Maintain**: Re-analyze quarterly or after major changes
 
 **Option 3: Improve Existing (Legacy CLAUDE.md)**
-1. **Analyze**: Run `/claude-md-toolkit:analyze-claude-md` to get baseline score
-2. **Optimize**: Run `/claude-md-toolkit:optimize-claude-md --level=moderate`
-3. **Verify**: Run `/claude-md-toolkit:analyze-claude-md` again to confirm improvement
+1. **Analyze**: Run `/agents-md-toolkit:analyze-claude-md` to get baseline score
+2. **Optimize**: Run `/agents-md-toolkit:optimize-claude-md --level=moderate`
+3. **Verify**: Run `/agents-md-toolkit:analyze-claude-md` again to confirm improvement
 4. **Review**: Manually check changes in your editor
 5. **Test**: Use Claude Code to ensure behavior is correct
 6. **Commit**: Add to version control
