@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.0 (2026-11-01)
+
+### Changed
+- **`factory-outcome.sh done` reads the sha from git, never from the stage.** The marker's `sha=` is `git -C "${FACTORY_WORKDIR:-$PWD}" rev-parse HEAD`; outside a git repository `done` dies (exit 2). `--sha` is now optional and only a cross-check: a value that is not HEAD (or an abbreviation of it) is refused with `refused: --sha differs from git HEAD` (exit 2, nothing posted). In the first end-to-end run the implement stage typed a hash with one wrong character and needed a second done comment to correct it. The contract (§3, §4) and the three stage commands say the call takes no `--sha`. `test_factory_scripts.sh`: 81 → 95 tests (no `--sha`, equal, abbreviated, differing, mistyped, not a repository, `FACTORY_WORKDIR`).
+
 ## 0.1.0 (2026-11-01)
 
 ### Added

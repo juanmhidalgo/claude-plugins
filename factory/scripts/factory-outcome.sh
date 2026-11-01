@@ -10,7 +10,7 @@
 # only posts when it has none (or two): the park must land even on a malformed issue.
 #
 # Usage:
-#   factory-outcome.sh done      <N> --stage <s> --run <id> --body-file <f> [--sha <head>] [--to <label>]
+#   factory-outcome.sh done      <N> --stage <s> --run <id> --body-file <f> [--to <label>] [--sha <head>]
 #   factory-outcome.sh question  <N> --stage <s> --run <id> --body-file <f> --from <label> [--id <uuid>]
 #   factory-outcome.sh parked    <N> --stage <s> --run <id> --body-file <f> --reason <slug> [--from <label>]
 #   factory-outcome.sh progress  <N> --stage <s> --run <id> --step <n>/<T> [--sha <head>] [--body-file <f>]
@@ -18,7 +18,14 @@
 #   factory-outcome.sh flip      <N> --stage <s>
 #
 # Common: --repo <owner/name> (else FACTORY_REPO, else `gh repo view`). Bodies
-# are always files, never argv. --sha defaults to `git rev-parse HEAD`.
+# are always files, never argv.
+#
+# The sha of a done marker is read from git, never typed: `git -C
+# "${FACTORY_WORKDIR:-$PWD}" rev-parse HEAD` (the stage runs with the clone as
+# cwd). Outside a git repository done dies (exit 2). --sha is optional there
+# and only a cross-check: when given it must equal that HEAD (the full hash or
+# an abbreviation of it), else `refused: --sha differs from git HEAD` (exit 2),
+# nothing posted. progress keeps --sha as an override and defaults to the same HEAD.
 #
 # Markers:
 #   <!-- factory:done stage=<s> sha=<head> run=<id> -->
@@ -67,9 +74,19 @@ if [ -z "$repo" ]; then
 fi
 need_run() { [[ $run =~ ^[A-Za-z0-9._:-]+$ ]] || die "--run <id> is required ([A-Za-z0-9._:-])"; }
 need_body() { [ -n "$body" ] && [ -s "$body" ] || die "--body-file must name a non-empty file"; }
-need_sha() {
-  [ -n "$sha" ] || sha=$(git rev-parse HEAD 2>/dev/null) || die "--sha is required outside a git repository"
+git_head() { git -C "${FACTORY_WORKDIR:-$PWD}" rev-parse HEAD 2>/dev/null; }
+need_sha() {  # progress: --sha, else HEAD
+  [ -n "$sha" ] || sha=$(git_head) || die "--sha is required outside a git repository"
   [[ $sha =~ ^[0-9a-f]{7,40}$ ]] || die "--sha must be a commit hash"
+}
+head_sha() {  # done: always HEAD; --sha, when given, must be HEAD or an abbreviation of it
+  local head
+  head=$(git_head) || die "refused: ${FACTORY_WORKDIR:-$PWD} is not a git repository (the done sha is read from git HEAD)"
+  if [ -n "$sha" ]; then
+    [[ $sha =~ ^[0-9a-f]{7,40}$ ]] || die "--sha must be a commit hash"
+    [[ $head == "$sha"* ]] || die "refused: --sha differs from git HEAD ($sha vs $head); the sha is read from git, drop --sha"
+  fi
+  sha=$head
 }
 label_ok() { [[ $1 =~ ^status:[a-z-]+$ ]] || die "$2 must be a status:* label, got '$1'"; }
 
@@ -97,7 +114,7 @@ flip() {  # flip <from> <to>: no call when equal
 
 case $cmd in
   done)
-    need_run; need_body; need_sha
+    need_run; need_body; head_sha
     current=$("$here/factory-issue.sh" status "$issue" --repo "$repo")
     if [ -z "$to" ]; then
       to=$("$here/factory-issue.sh" next-status "$issue" "$stage" --repo "$repo") || {

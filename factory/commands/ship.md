@@ -100,6 +100,9 @@ the person at the merge gate (GitHub shows mergeability on the PR).
   lines.
 - The flip `status:in-progress → status:in-review`. The daemon's "PR opened"
   notification is fed by this flip.
+- The done call takes no `--sha`: the script reads the clone's HEAD, which is
+  the PR's head after `/ship`'s push. A typed hash that differs is refused, so
+  never type one.
 
 ## Cannot decide
 

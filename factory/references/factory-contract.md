@@ -87,10 +87,17 @@ A comment without a `factory:` marker is a human's, whichever login wrote it.
 | `<!-- factory:progress stage=<s> step=<n>/<T> sha=<head> run=<id> -->` | `progress` | no |
 | `<!-- factory:decision stage=<s> run=<id> -->` | `decision` | no |
 
-`sha` is the branch head after the stage's last push (`spec` and `plan` push
-nothing: the clone's `HEAD`, which the script takes from `git rev-parse HEAD`
-when `--sha` is omitted). `from=` is the `status:*` label the issue had when
-the stage started; the daemon restores it once a human answers.
+`sha` on a done marker is the clone's `HEAD`, read by the script itself
+(`git -C "${FACTORY_WORKDIR:-$PWD}" rev-parse HEAD`; a stage runs with the
+clone as cwd) and never typed by the stage: the last push of a stage happens
+before its done call, so that HEAD is the branch head on `origin` (`spec` and
+`plan` push nothing: it is the base they read). A stage passes no `--sha`.
+Given anyway, it is only a cross-check: a value that is not HEAD (or an
+abbreviation of it) makes the script refuse with `refused: --sha differs from
+git HEAD` (exit 2, nothing posted), and outside a git repository `done` dies
+the same way. A progress marker's `sha` defaults to the same HEAD. `from=` is
+the `status:*` label the issue had when the stage started; the daemon restores
+it once a human answers.
 
 Bodies are always files, never `--body` on argv: write the text to the
 session scratchpad (or `/tmp` when none is listed) and pass `--body-file`. A
@@ -109,7 +116,7 @@ one `factory-outcome.sh` call:
 
 | Outcome | Call | The comment | `status:*` flip |
 |---|---|---|---|
-| `done` | `factory-outcome.sh done <N> --stage <s> --run <id> --body-file <report> [--sha <head>]` | the marker, then the stage report | per the lane table below (the script derives it from `factory-issue.sh next-status`) |
+| `done` | `factory-outcome.sh done <N> --stage <s> --run <id> --body-file <report>` (no `--sha`: the script reads the clone's HEAD, §3) | the marker, then the stage report | per the lane table below (the script derives it from `factory-issue.sh next-status`) |
 | `question` | `factory-outcome.sh question <N> --stage <s> --run <id> --from <status label> --body-file <questions>` | the marker, `**Question from the factory** (stage …)`, then the body: the question(s) and their `Options:` (§5) | current → `status:waiting-human` |
 | `parked` | `factory-outcome.sh parked <N> --stage <s> --run <id> --reason <slug> --from <status label> --body-file <text>` | the marker, `**Parked by the factory** (stage …, reason …)`, then the body: what happened, `git status --short` when the tree is dirty, and `How to recover:` with the exact commands | current → `status:needs-human` |
 

@@ -123,6 +123,9 @@ fix that needs them is left open with that reason.
   selection that ran, the round commits, and the contract's §7 lines. With
   no finding at all: `Harden #<N>: clean`, the axes line, and the selection.
 - No flip: the status stays `in-progress` (the script makes no edit call).
+- The done call takes no `--sha`: the script reads the clone's HEAD, which is
+  the last round's commit after its push (or implement's head when no round
+  ran). A typed hash that differs is refused, so never type one.
 
 ## Cannot decide
 

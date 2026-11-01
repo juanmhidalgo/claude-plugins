@@ -192,7 +192,10 @@ or no coverage tool), and `chore: lint and format` with `Factory-Step: lint`
 (none when nothing changed). A coverage target the run cannot meet is
 reported, not looped on (tdd's `/goal` offer has no reader here).
 
-Then `features.py implemented <slug>`, and the `done` comment: tdd's Phase 6
+Then `features.py implemented <slug>`, and the `done` comment, with the last
+push already made (the call takes no `--sha`: the script reads the clone's
+HEAD, which is what that push sent; a typed hash is refused when it differs,
+so never type one): tdd's Phase 6
 report (`## TDD Results`: criteria, the Acceptance criteria line, tests
 written, files, coverage, decisions, blockers `None`), the commit list
 (`git log --oneline origin/<default>..HEAD`), the re-verified and reopened

@@ -20,9 +20,10 @@ mkdir -p "$work/bin" "$work/repo"
 export GH_STATE="$work/state.json" GH_LOG="$work/gh.log" PATH="$work/bin:$PATH"
 unset FACTORY_REPO
 
-# A git repo so --sha can default to HEAD.
+# A git repo: done reads its sha from HEAD. $work/norepo is a plain directory.
 git -C "$work/repo" init -q && git -C "$work/repo" -c user.email=t@e.com -c user.name=t commit -q --allow-empty -m init
 head_sha=$(git -C "$work/repo" rev-parse HEAD)
+mkdir -p "$work/norepo"
 
 cat >"$work/bin/gh" <<'STUB'
 #!/usr/bin/env bash
@@ -156,9 +157,29 @@ check "done: comment starts with the marker, sha from HEAD" eq "$(last_comment |
 check "done: body follows the marker" bash -c 'printf "%s" "$(last_comment)" | grep -q "AC-1 ok"'
 check "done: the comment is posted before the flip" bash -c 'grep -n "issue comment" "$GH_LOG" | head -1 | cut -d: -f1 | xargs -I{} test {} -lt "$(grep -n "issue edit" "$GH_LOG" | head -1 | cut -d: -f1)"'
 state status:in-progress factory:auto
-run "done: harden leaves the status unchanged (no edit call)" 0 'status unchanged' "$OUT" done 7 --stage harden --run r1 --body-file "$work/body.md" --sha abc1234 "${R[@]}"
+run "done: harden leaves the status unchanged (no edit call)" 0 'status unchanged' "$OUT" done 7 --stage harden --run r1 --body-file "$work/body.md" "${R[@]}"
 check "done: no gh issue edit for an unchanged status" bash -c '! grep -q "issue edit" "$GH_LOG"'
-check "done: --sha overrides HEAD" eq "$(last_comment | head -1)" "<!-- factory:done stage=harden sha=abc1234 run=r1 -->"
+check "done: sha is git HEAD without --sha" eq "$(last_comment | head -1)" "<!-- factory:done stage=harden sha=$head_sha run=r1 -->"
+state status:in-progress factory:auto
+run "done: --sha equal to HEAD is accepted" 0 'status unchanged' "$OUT" done 7 --stage harden --run r1 --body-file "$work/body.md" --sha "$head_sha" "${R[@]}"
+check "done: the marker still carries HEAD" eq "$(last_comment | head -1)" "<!-- factory:done stage=harden sha=$head_sha run=r1 -->"
+state status:in-progress factory:auto
+run "done: --sha abbreviation of HEAD is accepted, marker gets the full hash" 0 'status unchanged' "$OUT" done 7 --stage harden --run r1 --body-file "$work/body.md" --sha "${head_sha:0:7}" "${R[@]}"
+check "done: abbreviated --sha expanded to HEAD" eq "$(last_comment | head -1)" "<!-- factory:done stage=harden sha=$head_sha run=r1 -->"
+state status:in-progress factory:auto
+flip_at() { local c=0; [ "${1:$2:1}" = 0 ] && c=1; printf '%s%s%s' "${1:0:$2}" "$c" "${1:$(($2+1))}"; }  # one hex char changed
+wrong_sha=$(flip_at "$head_sha" 39)
+run "done: --sha differing from HEAD is refused (exit 2)" 2 '' "$OUT" done 7 --stage harden --run r1 --body-file "$work/body.md" --sha "$wrong_sha" "${R[@]}"
+check "done: the refusal names the cause" grep -q 'refused: --sha differs from git HEAD' "$work/err"
+check "done: nothing posted on a refused --sha" eq "$(comment_count)" 0
+run "done: a mistyped --sha (one wrong char) is refused" 2 '' "$OUT" done 7 --stage harden --run r1 --body-file "$work/body.md" --sha "$(flip_at "$head_sha" 8)" "${R[@]}"
+run "done: not a git repository dies (exit 2)" 2 '' env FACTORY_WORKDIR="$work/norepo" "$OUT" done 7 --stage harden --run r1 --body-file "$work/body.md" "${R[@]}"
+check "done: the die names the directory" grep -q "refused: $work/norepo is not a git repository" "$work/err"
+check "done: nothing posted outside a git repository" eq "$(comment_count)" 0
+run "done: cwd outside the repo dies too" 2 '' bash -c 'cd "$1" && shift && exec "$@"' _ "$work/norepo" "$OUT" done 7 --stage harden --run r1 --body-file "$work/body.md" "${R[@]}"
+state status:in-progress factory:auto
+run "done: FACTORY_WORKDIR names the clone from elsewhere" 0 'status unchanged' bash -c 'cd "$1" && shift && exec "$@"' _ "$work/norepo" env FACTORY_WORKDIR="$work/repo" "$OUT" done 7 --stage harden --run r1 --body-file "$work/body.md" "${R[@]}"
+check "done: sha from FACTORY_WORKDIR's HEAD" eq "$(last_comment | head -1)" "<!-- factory:done stage=harden sha=$head_sha run=r1 -->"
 state status:in-progress factory:plan-gate
 run "done: --to overrides the lane table" 0 'flipped status:in-progress -> status:in-review' "$OUT" done 7 --stage ship --run r1 --body-file "$work/body.md" --to status:in-review "${R[@]}"
 state status:needs-plan factory:auto
