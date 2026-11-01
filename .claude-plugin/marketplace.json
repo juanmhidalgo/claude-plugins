@@ -89,7 +89,7 @@
       "name": "feature-dev",
       "source": "./feature-dev",
       "description": "Feature development workflows: test-driven development with coverage gates and parallel codebase exploration before planning",
-      "version": "2.7.1",
+      "version": "2.8.0",
       "author": {
         "name": "Juan M. Hidalgo"
       },
@@ -155,7 +155,7 @@
       "name": "github-issues",
       "source": "./github-issues",
       "description": "Work GitHub Issues — bugs, tech debt, refactors, follow-ups: verify each issue against the current code before planning and implementing, or triage a backlog read-only",
-      "version": "1.11.3",
+      "version": "1.11.4",
       "author": {
         "name": "Juan M. Hidalgo"
       },

@@ -808,10 +808,15 @@ class CommandTextTest(unittest.TestCase):
     def test_tdd_md(self):
         text = self.command("tdd.md")
         self.assertIn("features.py list --json", text)
-        self.assertRegex(text, r"features\.py step \S+ done")
+        # The step calls moved to references/step-loop.md with the loop (2.8.0);
+        # tdd.md follows it, and still records the halt itself.
+        self.assertIn("references/step-loop.md", text)
         self.assertRegex(text, r"features\.py step \S+ halt \S+ --reason")
-        self.assertRegex(text, r"features\.py step \S+ resume")
-        self.assertRegex(text, r"features\.py step \S+ reopen")
+        loop = (SCRIPT.parent.parent / "references" / "step-loop.md").read_text(encoding="utf-8")
+        self.assertRegex(loop, r"features\.py step \S+ done")
+        self.assertRegex(loop, r"features\.py step \S+ halt \S+ --reason")
+        self.assertRegex(loop, r"features\.py step \S+ resume")
+        self.assertRegex(loop, r"features\.py step \S+ reopen")
         self.assertIn("features.py implemented", text)
         self.assertRegex(text, r"features\.py plan \S+ --steps [^\n]*--from-spec")
         self.assertAllowsFeatures(text)

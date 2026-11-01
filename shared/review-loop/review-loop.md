@@ -1,10 +1,11 @@
 # The review loop
 
-Shared by `/feature-dev:harden` and `/github-issues:work` (canonical copy in
-`shared/review-loop/`; edit it there and run `shared/sync.sh --write`). It drives
-code-review's `code-review:review` workflow and owns the one decision the
-workflow cannot make: which findings to fix. A workflow takes no input mid-run,
-so each run is one stage and the approval happens here, between them.
+Shared by `/feature-dev:harden`, `/github-issues:work` and `/factory:harden`
+(canonical copy in `shared/review-loop/`; edit it there and run
+`shared/sync.sh --write`). It drives code-review's `code-review:review` workflow
+and owns the one decision the workflow cannot make: which findings to fix. A
+workflow takes no input mid-run, so each run is one stage and the approval
+happens here, between them.
 
 The reviewers run as workflow agents and never see this conversation, so pass
 scope, never a summary of the change or its intent.
@@ -19,6 +20,12 @@ The caller sets, before step 1:
   three: `defect`, `spec`, `debt`), and optionally **focus**: a short line the
   defect reviewer weighs more heavily.
 - **title** for the report, and what is out of bounds for a fix, if anything.
+- **gate**: `ask` (default) or `all-confirmed`. With `ask`, step 3 puts the
+  findings to the user. With `all-confirmed` nobody can answer (a headless
+  caller such as `/factory:harden`): step 3 takes **All confirmed** without
+  asking, and every other point where this loop would stop for a person is
+  instead handed back to the caller as a named condition (listed in step 5)
+  for the caller to map. Nothing in this loop asks under `all-confirmed`.
 
 ## 1. Review and verify
 
@@ -44,12 +51,15 @@ If the name does not resolve, the code-review plugin is missing or too old
 **A different hash means a reviewer or
 verifier changed the tree**: inside a workflow their read-only tool lists are
 not enforced for Bash. Stop, show `git status --short` and `git diff --stat`,
-and present nothing as a review result. The user decides what to keep.
+and present nothing as a review result. The user decides what to keep (under
+`gate: all-confirmed`: condition `tree-changed`, step 5).
 
 A `null` result, or an axis whose status is `failed`, is a review that did not
 run. Say so, offer to re-run that axis before the gate, and never present it as
 clean. A missing spec axis is the costly one: without it, a defect fix can lock
-in behaviour the spec rejects.
+in behaviour the spec rejects. (Under `gate: all-confirmed`: re-run that axis
+once without asking; if it fails again, condition `review-failed` with the axis
+named, step 5.)
 
 ## 2. Present
 
@@ -97,6 +107,11 @@ behaviour the approved plan chose, scope it fenced off) is not in "All
 confirmed": list it separately in the presentation as a question for the user,
 and fix it only when named.
 
+**`gate: all-confirmed`**: do not ask. The answer is **All confirmed**: every
+confirmed finding that is not out of bounds is fixed. Out-of-bounds confirmed
+findings and plausible findings are left open and listed as such (with the
+bound each one crosses) in the close block, for the person who reviews the PR.
+
 ## 4. Fix, then review the delta
 
 Launch the workflow with the approved findings exactly as step 1 returned them:
@@ -111,10 +126,13 @@ When it returns:
 1. `git diff --name-only` must hold only the approved findings' files and the
    test files covering them (each fixer may add the test for its fix). Anything
    else was touched by an agent that was told not to: show it and ask before
-   keeping it.
+   keeping it. Under `gate: all-confirmed`, revert that file
+   (`git checkout -- <file>`; `git clean -f -- <file>` for a new one) and report
+   the finding whose fixer touched it as `REFUSED: touched <file>`.
 2. Run the tests that cover the files the fixes touched — the project's runner,
    scoped to those modules. The full suite is CI's job; say which selection ran.
-   A failure stops here with the output.
+   A failure stops here with the output (under `gate: all-confirmed`: condition
+   `fix-tests-red`, step 5, with the fixes left in the working tree).
 3. Report each fix: `FIXED`, `REFUSED` (with reason) or `NO_CHANGE`.
 4. Review the delta, wrapped like step 1 (`tree-hash.sh` before the launch and after):
 
@@ -148,3 +166,20 @@ When it returns:
 
 When the loop ends, hand back to the caller: fixed, declined and left-open ids
 (with one-line titles), and the test selection that ran.
+
+## 5. Conditions handed to a headless caller
+
+Under `gate: all-confirmed` the loop never asks; where it would have, it ends
+and returns one of these to the caller, with the evidence named beside it. The
+caller decides what each one means (for `/factory:harden`, a park with that
+slug as the reason):
+
+| Condition | When | Evidence |
+|---|---|---|
+| `tree-changed` | the tree hash differs after a review run (step 1) | `git status --short`, `git diff --stat` |
+| `review-failed` | an axis returned `null` or `failed` twice (step 1) | the axis and the workflow's notes |
+| `fix-tests-red` | the scoped tests fail after a fix round (step 4, item 2) | the failing output; fixes left uncommitted |
+| `rounds-exhausted` | confirmed or plausible findings remain after the second fix round (step 4, item 6) | the ids left open |
+
+`rounds-exhausted` is not a failure: the caller reports what is left open and
+continues. The other three stop the caller's work on the tree as it stands.

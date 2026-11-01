@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.11.4 (2026-11-01)
+
+### Changed
+- `references/review-loop.md` (synced from `shared/review-loop/`) takes a `gate` input; `/github-issues:work` keeps the default `ask`, so nothing changes for it.
+
 ## 1.11.3 (2026-10-28)
 
 ### Fixed
