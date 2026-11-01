@@ -80,8 +80,63 @@ every gate a default; this stage adds what the PR body must lead with:
 | Phase 2 staging | Leftovers from `harden` (none expected) are staged per the contract's rule 4, excluded paths listed |
 | Phase 4 tests | The detected runner runs once; red → the skill stops before committing: `parked reason=tests-red` with the failing output, no PR (AC-21). No runner → continue, `Tests skipped (no test runner detected)` in Evidence |
 | Phase 5 push | `git push`; rejected → `parked reason=push-rejected` |
-| Phase 6 PR | base = the default branch; title = the issue title (under 70 characters: cut at a word and add `(#N)` only if room); body = `Closes #<N>` as its first line, then a `## Acceptance criteria` list copied from the spec section, then ship's template (Summary, Evidence, Merge Danger, Rollback Triggers), then `## Harden` with harden's close block, then `## Factory` with the run ids of every stage (from the done markers) and links to the stage comments. Copilot's review is requested as the skill does |
+| Phase 6 PR | base = the default branch; title = the issue title (under 70 characters: cut at a word and add `(#N)` only if room); body built by **The PR body** below, which replaces the skill's steps 3 and 7 (its steps 4–6 still produce the Evidence, Merge Danger and Rollback Triggers text that the body places): `Closes #<N>` first, then the factory's sections through the repo's PR template when the repo has one, in the factory layout otherwise. Written to a scratch file and created with `gh pr create --base <default> --title "<title>" --body-file <file>`. Copilot's review is requested as the skill does |
 | Phases 7–8 | Skipped (`--no-watch`) |
+
+### The PR body
+
+The stage has these pieces, in this order of precedence: the `Closes #<N>`
+line; **Summary** (ship's one sentence of why); **Acceptance criteria** (the
+spec section's list, copied); **Evidence** (ship's After line, its Before
+line, the `--evidence-file` lines as Earlier runs, and any lint or format run
+the stages reported); **Merge Danger**; **Rollback Triggers**; **Harden**
+(harden's close block, verbatim); **Factory** (a table with the run id of
+every stage, from the done markers, and the link to each stage comment).
+
+**With a repo template.** Look for, in this order, the first found wins:
+`.github/PULL_REQUEST_TEMPLATE.md`, `.github/pull_request_template.md`,
+`PULL_REQUEST_TEMPLATE.md`, `pull_request_template.md`,
+`docs/pull_request_template.md`, then the first file by name in
+`.github/PULL_REQUEST_TEMPLATE/`. Keep every heading of the template, in its
+order and at its level, and fill them with the pieces:
+
+1. **Line 1 is `Closes #<N>`**, before any heading. A `Closes #` placeholder
+   the template carries is removed, never left empty or duplicated.
+2. **The "what changes" heading** (the first heading that asks what the PR
+   does or why: `What changes`, `Qué cambia`, `Summary`, `Description`,
+   `Changes`, `Motivation`, `Context`, or alike) gets Summary, then a bold
+   `**Acceptance criteria**` line and the list.
+3. **A checklist heading** (`Checklist`, or the first heading whose template
+   body is `- [ ]` items) keeps the template's own items: tick one (`- [x]`)
+   only when an Evidence line is that command or plainly covers it (a full
+   `uv run pytest` run ticks a `make test` item whose target wraps it; a
+   lint run ticks the lint item); the others stay `- [ ]` as written, which
+   is the honest state. Then the Evidence bullets follow as ticked items,
+   one per line: `- [x] <command> — <result>`, Earlier runs ending with
+   `(reported by <stage>)`. A `not captured` Before is not an item: leave it
+   out.
+4. **A reviewer-notes heading** (`Notes for the reviewer`, `Notas para el
+   reviewer`, `Reviewer notes`, `Additional context`, `Review focus`, or
+   alike) gets Merge Danger (its two lines), Rollback Triggers and the harden
+   close block, each under a bold label (`**Merge Danger**`, `**Rollback
+   Triggers**`, `**Harden**`) or a heading one level below the template's.
+5. **`## Factory`** (at the template's heading level) is appended last, after
+   every template heading.
+6. **A heading with no mapping stays with its template text**, verbatim. The
+   template's `<!-- … -->` placeholder comments are dropped from a filled
+   section and kept in an unmapped one. Headings match case-insensitively in
+   any language; when two could take the same piece, the first wins and the
+   other stays as written. A piece with no heading to go to is appended under
+   its own heading (`## Merge Danger`, `## Rollback Triggers`, `## Harden`),
+   at the template's level, before `## Factory`.
+
+**Without a template**: `Closes #<N>`, `## Acceptance criteria`, then ship's
+sections (`## Summary`, `## Evidence`, `## Merge Danger`, `## Rollback
+Triggers`), `## Harden`, `## Factory`.
+
+Either way the body stays under ~60 lines (a long acceptance list or close
+block goes in a `<details>` block), with no preamble and nothing the pieces
+do not hold.
 
 The skill reports what it did; the stage reads the PR URL from it (or from
 `gh pr list --head FACTORY_BRANCH` when the output is unclear). A `/ship`

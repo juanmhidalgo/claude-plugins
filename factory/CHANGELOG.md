@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.0 (2026-11-01)
+
+### Added
+- **`/factory:ship` honours the repository's PR template.** When `.github/PULL_REQUEST_TEMPLATE.md` (or the other names `/ship` looks for) exists, the PR body keeps the template's headings in their order and maps the factory's pieces into them: `Closes #N` stays line 1, the "what changes" heading gets Summary and the acceptance criteria, a checklist heading keeps the template's items (ticked only when an Evidence line covers them) and gets the Evidence bullets as ticked items, a reviewer-notes heading gets Merge Danger, Rollback Triggers and the harden close block, and `## Factory` is appended last. Unmapped headings keep their template text. Without a template the layout is unchanged. In the first end-to-end run the stage ignored the repository's `Qué cambia` / `Checklist` / `Notas para el reviewer` template.
+
 ## 0.2.0 (2026-11-01)
 
 ### Changed
