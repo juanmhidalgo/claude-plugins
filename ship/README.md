@@ -35,8 +35,12 @@ Say "let's ship it" (or "ship it", "ship this") in the conversation, or type `/s
 /ship --draft            # Create PR as draft
 /ship --no-watch         # Don't wait for CI or Copilot after the PR
 /ship --no-notify        # Don't notify sibling sessions after push
+/ship --yes              # Never ask: for a headless caller (implies --no-watch)
+/ship --evidence-file f  # Add earlier test runs (one per line) under Evidence
 /ship --skip-tests --draft  # Combine flags
 ```
+
+`--yes` is for a caller that cannot answer, such as the `factory` plugin's stages or a command that invokes `/ship` with the Skill tool. It never branches (on the default branch it stops), stages every non-secret file when concerns are mixed, creates the PR without asking, continues without tests when no runner is found (saying so in Evidence), and with a clean tree that is ahead of the base runs the tests and goes on to the push and the PR. The watcher is skipped.
 
 ## The PR body
 

@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.1.0] - 2026-11-01
+
+### Added
+- **`--yes`**: no questions, for a headless caller (the `factory` plugin's `/factory:ship`, or a command invoking the skill). On the default branch it stops instead of asking to branch; with a clean tree ahead of the base it runs the tests and goes on to the push and the PR; mixed concerns stage every non-secret file; a missing test runner is reported in Evidence instead of asked about; the PR is created without asking (first template by name when several exist). Implies `--no-watch`. A caller that invoked the skill may name what the PR body must lead with; an existing PR is never touched.
+- **`--evidence-file <path>`**: test lines from earlier runs, added verbatim under Evidence as "Earlier runs (reported by the caller)", apart from Before and After.
+
 ## [2.0.0] - 2026-10-31
 
 ### Changed (breaking)
