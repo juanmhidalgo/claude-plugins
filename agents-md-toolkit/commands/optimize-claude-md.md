@@ -1,7 +1,7 @@
 ---
 description: |
   Use when you want to apply best-practice improvements to an existing CLAUDE.md file.
-  Do NOT use to create one from scratch — use /claude-md-toolkit:init instead.
+  Do NOT use to create one from scratch — use /agents-md-toolkit:init instead.
 argument-hint: "[path/to/CLAUDE.md] [--level=conservative|moderate|aggressive]"
 keywords:
   - claude-md-optimization
@@ -19,7 +19,7 @@ hooks:
     once: true
     command: |
       echo "Optimization complete."
-      echo "  - /claude-md-toolkit:analyze-claude-md to verify score"
+      echo "  - /agents-md-toolkit:analyze-claude-md to verify score"
       echo "  - Test with Claude Code before committing"
 ---
 
@@ -39,7 +39,7 @@ Apply Anthropic's best practices to optimize CLAUDE.md structure, conciseness, a
 
 **Level**: extract `--level=X` from `$ARGUMENTS`. Default: `moderate`. Valid values: `conservative`, `moderate`, `aggressive`.
 
-For each level's full scope (what is/isn't changed), see `@optimize-claude-md.references/levels-and-strategies.md`.
+For each level's full scope (what is/isn't changed), see `${CLAUDE_PLUGIN_ROOT}/references/optimize-levels-and-strategies.md` (read it with the Read tool).
 
 ## Workflow
 
@@ -50,7 +50,7 @@ For each level's full scope (what is/isn't changed), see `@optimize-claude-md.re
 5. **Apply** — write optimized content (or to `[original].optimized.md` if save-as-new), or delete backup if cancelled.
 6. **Post-optimization message** — print metrics, next steps, backup-restore command.
 
-For optimization-strategy details (XML structure target, conciseness moves, content enhancements, full success message, error handling), see `@optimize-claude-md.references/levels-and-strategies.md`.
+For optimization-strategy details (XML structure target, conciseness moves, content enhancements, full success message, error handling), see `${CLAUDE_PLUGIN_ROOT}/references/optimize-levels-and-strategies.md` (read it with the Read tool).
 
 ## Safety checks
 

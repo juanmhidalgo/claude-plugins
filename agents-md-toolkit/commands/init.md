@@ -1,7 +1,7 @@
 ---
 description: |
   Use when creating a new CLAUDE.md or bootstrapping one for a project that doesn't have one yet.
-  Do NOT use to improve an existing CLAUDE.md — use /claude-md-toolkit:optimize-claude-md instead.
+  Do NOT use to improve an existing CLAUDE.md — use /agents-md-toolkit:optimize-claude-md instead.
 argument-hint: "[--standalone]"
 keywords:
   - claude-md-init
@@ -19,7 +19,7 @@ hooks:
     once: true
     command: |
       echo "CLAUDE.md initialized."
-      echo "  - /claude-md-toolkit:analyze-claude-md to verify quality"
+      echo "  - /agents-md-toolkit:analyze-claude-md to verify quality"
       echo "  - Review and customize for your project"
 ---
 
@@ -59,10 +59,10 @@ Please run Claude Code's built-in /init command first to generate a base CLAUDE.
 
 Workflow:
 1. /init                          # Generate base CLAUDE.md
-2. /claude-md-toolkit:init        # Enhance with best practices
+2. /agents-md-toolkit:init        # Enhance with best practices
 
 Alternatively, generate from scratch:
-/claude-md-toolkit:init --standalone
+/agents-md-toolkit:init --standalone
 ```
 
 ### Step 2: analyze existing CLAUDE.md
@@ -117,7 +117,7 @@ Apply the same optimization logic as `/optimize-claude-md` at `--level=moderate`
 
 Generate an optimized `CLAUDE.md` from scratch, without requiring `/init`. The workflow detects the project's framework, size, and selects an appropriate template.
 
-For detection commands, template selection logic, the generic-small template body, error handling, and the success message, see `@init.references/standalone-detection-and-templates.md`.
+For detection commands, template selection logic, the generic-small template body, error handling, and the success message, see `${CLAUDE_PLUGIN_ROOT}/references/init-standalone-detection-and-templates.md` (read it with the Read tool).
 
 ---
 
