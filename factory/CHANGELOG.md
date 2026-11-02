@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.4.0 (2026-11-01)
+## 0.5.0 (2026-11-02)
 
 ### Added
 - **Every stage reads the run's real caps.** The daemon now exports `FACTORY_MAX_TURNS`, `FACTORY_BUDGET_USD` and `FACTORY_TIMEOUT_MINUTES` (per-repo overrides applied); each command shows them in its Context as `Caps for this run` and sizes long steps (test suites, review rounds) against them. The numbers in the commands' `Caps are the daemon's (defaults …)` sentence are defaults only; unset variables (manual mode) mean the defaults.
@@ -13,6 +13,11 @@
 
 ### Fixed
 - `factory-outcome.sh`: an option given as the last argument without its value now exits 2 with `<option> needs a value` instead of dying on an unbound variable (exit 1).
+
+## 0.4.0 (2026-11-01)
+
+### Added
+- **Adversarial review axis in `/factory:spec` and `/factory:plan`.** After the validator pass and before Publish, each stage dispatches `discuss:doc-adversary` on the SPEC (sources: the repo root) or the PLAN (sources: the repo root and the SPEC) — paths only, never content, report read from `OUTPUT_PATH` first, one `Evidence` reference spot-checked against the clone. A HIGH finding is a `question` quoting its `Decision at risk`; a MEDIUM finding gets one fix pass (an `A-<n>` assumption in the spec, a rewritten Key Decision in the plan, with the finding's Evidence as basis) and the adversary runs once more, a MEDIUM that survives being a question too; a `do not implement as written` verdict and a `Needs to be resolved` item are questions; no report twice → `parked reason=adversary-unreviewed`. The done comment carries an **Adversarial review** block (verdict, re-run, findings and how each was resolved, falsification attempts). The step runs under all three lanes; a re-run after an answer runs the adversary once with no fix pass. New dependency: `discuss`. Caps raised to pay for it: spec 60 turns · 4 USD · 20 min → 80 · 6 · 30, plan 80 · 6 · 30 → 100 · 9 · 40.
 
 ## 0.3.2 (2026-11-01)
 

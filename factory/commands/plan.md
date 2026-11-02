@@ -38,7 +38,7 @@ allowed-tools:
 
 # `/factory:plan` — `status:needs-plan` → the plan section in the body
 
-Stage `plan`. Caps are the daemon's (defaults 80 turns · 6 USD · 30 min; the real numbers for this run, per-repo overrides included, are the `Caps for this run` line under Context: size long steps against those, never against the defaults). No branch
+Stage `plan`. Caps are the daemon's (defaults 100 turns · 9 USD · 40 min; the real numbers for this run, per-repo overrides included, are the `Caps for this run` line under Context: size long steps against those, never against the defaults). No branch
 exists yet: the plan's Baseline must run on the base, so the clone is put on
 `origin/<default>` first.
 
@@ -137,12 +137,48 @@ once and follow it with these substitutions:
    and its replan (Resume) brings the plan back here once master moved on a
    file the plan names. A listed PR is also a Risk row: what the overlap is
    and which side should land first.
-7. **Publish the plan section** to `#N` (issue-store.md's Publish with
+
+7. **Adversarial review.** After step 6 (the validator's fixes, the Key
+   Decisions and the Open PRs section are already in the plan) and before
+   Publish. Spawn
+   `discuss:doc-adversary` (no `name`, never backgrounded; read
+   `${CLAUDE_PLUGIN_ROOT}/../discuss/skills/adversarial-doc-review/SKILL.md`
+   §Dispatch once). The prompt is paths, never content — no summary, no
+   excerpt, no mention of who wrote the document:
+
+   ```
+   DOC_PATH: <PLAN path>
+   MODE: design
+   SOURCES: <repo root>, <SPEC path>
+   OUTPUT_PATH: <session scratchpad, or /tmp when none is listed>/doc-adversary-<slug>-plan-r<n>.md
+   ```
+
+   Read `OUTPUT_PATH` first; use whatever came back inline only when the file
+   is missing or empty. Before trusting a finding, spot-check one of its
+   `Evidence` references (`path:line` or grep) against the clone.
+
+   | Adversary report item | Headless rule |
+   |---|---|
+   | No report (file empty and nothing inline), or no findings **and** no Falsification attempts | the review did not happen: re-run once with a new `OUTPUT_PATH`; still nothing → `parked reason=adversary-unreviewed` |
+   | A finding whose spot-checked `Evidence` does not hold | not a gate: kept in the report under Unverified with the check that failed |
+   | A **HIGH** finding | **question**: the finding's title, `Decision at risk` and `What would be decided wrong`, verbatim; options: the reading the finding implies (recommended) / the document's reading / re-scope |
+   | A **MEDIUM** finding | one fix pass: the reading the finding implies is written into the plan as a Key Decision, rewritten with the finding's Evidence as its basis — unless it changes a data model, a public contract or user-visible behaviour **and** has no basis in the issue, `docs/` or the code, which is a **question** as the HIGH row. After the fix pass the adversary runs **once more** (the skill's after-fixes rule) with a new `OUTPUT_PATH`; a MEDIUM that survives the re-run → **question** as the HIGH row |
+   | Verdict `do not implement as written` with no HIGH finding | **question** anyway; options: re-scope (recommended) / proceed as written / close the issue |
+   | An item under `Needs to be resolved` not covered by a finding's question | **question**, options taken from the item |
+   | Verdict `no material findings` with Falsification attempts present | proceed; the report carries the verdict and the attempt count |
+
+   Questions from this step count toward the four of the contract (§5); more
+   than four in the run → `parked reason=too-many-questions`.
+
+   The step runs under every lane. Under `spec-gate` / `plan-gate` the owner
+   sees the adversary's block in the done comment before flipping.
+
+8. **Publish the plan section** to `#N` (issue-store.md's Publish with
    `--kind plan`, after the answers below are written into the plan). The
    `features.py` state stays in the clone. Publish is an upsert: `issue_spec.py
    splice` replaces the existing `feature-dev:plan:start`/`:end` section in
    place, so a re-run (and a re-plan) never leaves two plan sections.
-8. **The files list.** Write the same paths as step 6, one per line, to a
+9. **The files list.** Write the same paths as step 6, one per line, to a
    file in the session scratchpad (`/tmp` when none is listed), and pass it as
    `--files-file` on the `done` call: `factory-outcome.sh done <N> --stage
    plan --run <id> --body-file <report> --files-file <paths>`. The script
@@ -160,28 +196,43 @@ once and follow it with these substitutions:
   area`.
 - The `done` comment, with `files="…"` on its marker: explore-plan's Phase 3
   brief (the `Degraded exploration` line first when present, the **Plan
-  review** line, Decided, Assumed, Unverified, Out of scope), the explorer
+  review** line, Decided, Assumed, Unverified, Out of scope), the
+  **Adversarial review** block of step 7 right after it, the explorer
   selection, whether the workflow or the fallback ran, `Files: <n>` (the
   count of paths passed with `--files-file`), `Open PRs: none` or `Open PRs:
   #<n> (<k> shared)` per PR, `Re-planned after <daemon run id>: …` on a
-  re-plan (Resume), and the contract's §7 lines.
+  re-plan (Resume), and the contract's §7 lines. The block:
+
+  ```
+  Adversarial review: <verdict line verbatim> — re-run: yes|no
+  Material findings: <n> (<m> HIGH)
+  - [HIGH|MEDIUM] <title> — decided (Key Decision <k>) | asked | unverified: <failed check>
+  Falsification attempts: <k>
+  ```
 - The flip of the lane table (`ready`, or `plan-review` under `factory:plan-gate`).
 
 ## Cannot decide → question
 
 A surviving Blocking finding; a gate-blocked Baseline row; a Key Decision
 whose options differ in data model or contract and whose recommendation the
-spec contradicts. The plan is **not published** when the stage ends in a
-question: the local cache keeps it for the re-run.
+spec contradicts; a HIGH adversary finding; a MEDIUM finding that survives
+the re-run; a `do not implement as written` verdict; a `Needs to be resolved`
+item. The plan is **not published** when the stage ends in a question: the
+local cache keeps it for the re-run.
 
 ## Resume
 
 A re-run after an answer writes it into the plan the way the step loop
 expects — `accepted by user: <answer>` appended to the Baseline row's Detail,
 or the step's `Verify:` line replaced and the row re-run once — or applies
-the chosen fix, then continues from step 5 and publishes, so `implement`
-never re-asks. A re-run with a plan section already published and the done
-marker latest runs only the flip.
+the chosen fix, then continues from step 5 through step 8 and publishes, so
+`implement` never re-asks. A re-run with a plan section already published
+and the done marker latest runs only the flip.
+
+A re-run after an answer applies the answer, then runs the adversary **once**
+(no fix pass). A finding that names a decision the answer already settled is
+listed as `decided by owner` and never re-asked; a new HIGH finding is a
+question like any other.
 
 **Re-plan.** A `factory:replan` comment newer than the plan's `done` (Inputs
 step 5 prints it; first line `<!-- factory:replan by=daemon
@@ -199,10 +250,10 @@ factory PR merged. Then, instead of the flip:
    step the merge already did is dropped, a step whose `Impl:`/`Test:` moved
    follows it, a conflict a merge would raise is resolved in the plan, not
    left for `implement`.
-3. **Replace** the published plan section (Composition step 7: Publish is an
+3. **Replace** the published plan section (Composition step 8: Publish is an
    upsert, the old section is spliced out) and post a fresh `done` with the
    new `sha` (the script reads HEAD, which is the new base) and the new
-   `files="…"` (Composition step 8). The old `done` stays in the thread; the
+   `files="…"` (Composition step 9). The old `done` stays in the thread; the
    daemon reads the latest.
 
 The flip-only rule above applies to every other re-run: a done marker that
