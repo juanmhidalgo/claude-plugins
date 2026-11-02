@@ -45,7 +45,7 @@ allowed-tools:
 
 # `/factory:harden` — last done = `implement` → review fixes committed
 
-Stage `harden`. Caps are the daemon's (100 turns · 8 USD · 40 min). It runs
+Stage `harden`. Caps are the daemon's (defaults 100 turns · 8 USD · 40 min; the real numbers for this run, per-repo overrides included, are the `Caps for this run` line under Context: size long steps against those, never against the defaults). It runs
 `${CLAUDE_PLUGIN_ROOT}/references/review-loop.md` with `gate: all-confirmed`
 on the branch, commits each fix round, and never asks: an out-of-bounds
 finding is left open for the PR review, which is the human's gate.
@@ -54,6 +54,7 @@ finding is left open for the PR review, which is the human's gate.
 
 - **Arguments**: $ARGUMENTS
 - **Stage variable set**: !`echo "${#FACTORY_STAGE}"`
+- **Caps for this run**: !`echo "turns=${FACTORY_MAX_TURNS:-default} budget_usd=${FACTORY_BUDGET_USD:-default} timeout_min=${FACTORY_TIMEOUT_MINUTES:-default}"`
 - **Current branch**: !`git branch --show-current`
 - **Working tree**: !`git status --short | head -20`
 

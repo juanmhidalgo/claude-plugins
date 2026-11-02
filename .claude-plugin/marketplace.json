@@ -166,7 +166,7 @@
       "name": "factory",
       "source": "./factory",
       "description": "Headless stage commands for the factory daemon: spec, plan, implement, harden and ship one GitHub issue each, composing feature-dev, code-review, ship, github-issues and discuss, with every outcome written back to the issue",
-      "version": "0.4.0",
+      "version": "0.5.0",
       "author": {
         "name": "Juan M. Hidalgo"
       },

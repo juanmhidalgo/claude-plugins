@@ -21,7 +21,7 @@ five commands it types.
 | Command | Starts from | Ends with |
 |---|---|---|
 | `/factory:spec #N` | `status:needs-spec` | the spec section in the body; `needs-plan` (`factory:auto`) or `spec-review` (a gate lane) |
-| `/factory:plan #N` | `status:needs-plan` | the plan section in the body; `ready` or `plan-review` (`factory:plan-gate`) |
+| `/factory:plan #N` | `status:needs-plan` (first time, or again after the daemon's `replan` comment) | the plan section in the body, ending with `## Open PRs touching this area`; the done marker's `files="…"`; `ready` or `plan-review` (`factory:plan-gate`) |
 | `/factory:implement #N` | `status:ready`, or `in-progress` with no done marker | one commit and one push per plan step on `factory/<N>-<slug>`, a progress comment each; `in-progress` |
 | `/factory:harden #N` | last done marker `implement` | the review loop with every confirmed finding fixed, one `fix:` commit per round (two at most); `in-progress` |
 | `/factory:ship #N` | last done marker `harden` | `/ship --yes --skip-copilot-review`: the PR against the default branch; `in-review` |
@@ -44,7 +44,7 @@ A stage ends in exactly one of three outcomes, written to the issue by
 
 | Outcome | Comment starts with | `status:*` |
 |---|---|---|
-| done | `<!-- factory:done stage=… sha=… run=… -->` then the stage report | the next status for the lane |
+| done | `<!-- factory:done stage=… sha=… run=… -->` then the stage report; the plan's marker adds `files="<sorted, comma-joined repo paths the plan touches>"` (`--files-file`) | the next status for the lane |
 | question | `<!-- factory:question id=… stage=… from=… run=… -->` then up to four numbered questions with 2–4 options each, one `(Recommended)` | `waiting-human`; a human comment after it is the answer, and the daemon re-runs the stage |
 | parked | `<!-- factory:parked stage=… reason=… run=… -->` then what happened and a `How to recover:` block | `needs-human` |
 
@@ -52,6 +52,17 @@ A comment without a `<!-- factory:… -->` marker is a human's, whichever login
 wrote it. The flip refuses when the status moved meanwhile (a human relabelled
 the issue): the stage then parks with `reason=status-moved` and the human's
 label wins.
+
+One marker is the daemon's, not a stage's: `<!-- factory:replan by=daemon
+reason=base-moved sha=… base=… files="…" run=… -->`, posted when the default
+branch moved on files the plan names (another factory PR merged) and the
+issue went back to `needs-plan`. It is not an outcome. `/factory:plan` reads
+it (`scripts/factory-issue.sh replan`), reads the merged change on those
+files, re-explores, replaces the plan section and posts a new done with the
+new `sha` and `files`. The daemon's other use of `files=` is its open-PR gate:
+an issue whose plan shares a file with an open `factory/*` PR waits in `ready`
+until that PR merges or closes, and the plan itself lists those PRs under
+`## Open PRs touching this area`.
 
 ## Testing a stage by hand
 

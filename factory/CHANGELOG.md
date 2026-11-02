@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.5.0 (2026-11-02)
+
+### Added
+- **Every stage reads the run's real caps.** The daemon now exports `FACTORY_MAX_TURNS`, `FACTORY_BUDGET_USD` and `FACTORY_TIMEOUT_MINUTES` (per-repo overrides applied); each command shows them in its Context as `Caps for this run` and sizes long steps (test suites, review rounds) against them. The numbers in the commands' `Caps are the daemon's (defaults …)` sentence are defaults only; unset variables (manual mode) mean the defaults.
+- **`factory-outcome.sh done … --files-file <f>`**: one repo-relative path per line (blank lines ignored) becomes `files="…"` on the done marker, sorted (byte order), deduplicated, always quoted; `plan` only (another stage: exit 2, "files only on plan"); an empty file omits the attribute. A path with a leading `/` or `./`, a `.`/`..`/empty segment, a trailing `/`, a space, comma, double quote, `*`, `?`, `<`, `>`, backslash or control character is `refused: bad path in --files-file: <line>` (exit 2, nothing posted). The `--sha` cross-check is unchanged and runs after the path check.
+- **`factory-issue.sh replan <N>`**: prints the attributes and body of the daemon's `<!-- factory:replan by=daemon reason=base-moved sha=… base=… files="…" run=… -->` comment when it is newer than the plan's `done` and than any `question` marker (exit 1 otherwise). `last-marker` ignores it and `answer` skips it: it is not an outcome.
+- **`/factory:plan` lists the open factory PRs that touch its area.** Before exploring it runs `gh pr list --state open --json number,headRefName,title,files` (new `allowed-tools` entry), keeps the `factory/*` heads, intersects their files with the plan's, and ends the plan with `## Open PRs touching this area` (`#n <title> — <shared paths>`, or `none`). The plan is still written against `origin/<default>`; the daemon's gate holds the issue while a listed PR is open.
+- **`/factory:plan` passes its files to the done marker.** Every path in `Files to Modify`, `Files to Create`, each step's `Impl:`/`Test:` and each deletion goes to a scratch file and `--files-file`; the done comment says `Files: <n>`.
+- **`/factory:plan` re-plans on the daemon's `replan` comment.** When one is newer than the plan's `done`, the stage reads the merged change on the files the marker names (`git log -p <sha>..HEAD -- <paths>`), re-explores against the current clone, replaces the published plan section (Publish is an upsert) and posts a fresh `done` with the new `sha` and `files`. The flip-only rule stays for every other re-run; when a `question` and a `replan` are both present the newest marker wins.
+- `references/factory-contract.md` §3 documents `files=` and the `replan` marker (daemon-written, not an outcome) and §4 step 3 the re-plan exception; README and the script headers list the new marker. `test_factory_scripts.sh`: 95 → 179 tests.
+
+### Fixed
+- `factory-outcome.sh`: an option given as the last argument without its value now exits 2 with `<option> needs a value` instead of dying on an unbound variable (exit 1).
+
 ## 0.4.0 (2026-11-01)
 
 ### Added

@@ -52,7 +52,7 @@ allowed-tools:
 
 # `/factory:implement` — `status:ready` / `in-progress` → commits on the branch
 
-Stage `implement`. Caps are the daemon's (200 turns · 15 USD · 90 min). This
+Stage `implement`. Caps are the daemon's (defaults 200 turns · 15 USD · 90 min; the real numbers for this run, per-repo overrides included, are the `Caps for this run` line under Context: size long steps against those, never against the defaults). This
 stage runs the plan's Implementation Order through
 `${CLAUDE_PLUGIN_ROOT}/references/step-loop.md` with one commit and one push
 per step, so a killed run loses at most one step and resume is `git log`.
@@ -61,6 +61,7 @@ per step, so a killed run loses at most one step and resume is `git log`.
 
 - **Arguments**: $ARGUMENTS
 - **Stage variable set**: !`echo "${#FACTORY_STAGE}"`
+- **Caps for this run**: !`echo "turns=${FACTORY_MAX_TURNS:-default} budget_usd=${FACTORY_BUDGET_USD:-default} timeout_min=${FACTORY_TIMEOUT_MINUTES:-default}"`
 - **Branch variable set**: !`echo "${#FACTORY_BRANCH}"`
 - **Current branch**: !`git branch --show-current`
 - **Working tree**: !`git status --short | head -20`

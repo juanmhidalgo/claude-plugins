@@ -11,18 +11,27 @@
 #   factory-issue.sh lane <N>                   auto | spec-gate | plan-gate (none: exit 2)
 #   factory-issue.sh last-marker <N>            "done stage=… sha=… run=…" | "question …" | "parked …" | "none"
 #   factory-issue.sh answer <N>                 human comments after the latest question marker, newest last (none: exit 1)
+#   factory-issue.sh replan <N>                 the daemon's pending replan: "by=daemon reason=… sha=… base=… files="…" run=…",
+#                                               then the comment's body (none pending: exit 1)
 #   factory-issue.sh next-status <N> <stage>    the status:* label a done outcome of <stage> flips to
 #
 # Options (before the subcommand or after it): --repo <owner/name>. Without it,
 # FACTORY_REPO is used, then `gh repo view --json nameWithOwner`.
 #
-# Exit codes: 0 ok · 1 answer: nothing to read · 2 bad arguments or an issue
+# Exit codes: 0 ok · 1 answer / replan: nothing to read · 2 bad arguments or an issue
 # that is not in a state the factory handles (no status, two statuses, no lane)
 # · 3 next-status: the issue's status is not the one <stage> starts from
 # (status-moved) · gh's own code when a gh call fails.
 #
 # The marker rule: a comment whose first line is `<!-- factory:… -->` was
 # written by a stage; any other comment is a human's, whichever login wrote it.
+#
+# `<!-- factory:replan by=daemon … -->` is the daemon's, not a stage's, and not
+# an outcome: last-marker ignores it and answer skips it. A replan is pending
+# when it is newer than the latest `done stage=plan` and than the latest
+# question marker (the newest marker wins: a question asked after the replan
+# means the re-plan already ran and now waits for its answer). A parked comment
+# after it does not clear it: the re-plan is still owed.
 
 set -euo pipefail
 
@@ -93,6 +102,17 @@ case $cmd in
       | if $q == null then empty
         else .[$q+1:] | map(select(.first | test("^<!-- factory:") | not))
           | .[] | "--- " + .login + " " + .created + "\n" + .body + "\n" end')
+    [ -n "$out" ] || exit 1
+    printf '%s\n' "$out" ;;
+  replan)
+    out=$(view | jq -r "$comments_jq"'
+      | (map(.first | test("^<!-- factory:replan ")) | rindex(true)) as $r
+      | (map(.first | test("^<!-- factory:done stage=plan[ >]")) | rindex(true)) as $d
+      | (map(.first | test("^<!-- factory:question[ >]")) | rindex(true)) as $q
+      | if $r == null or ($d != null and $d > $r) or ($q != null and $q > $r) then empty
+        else .[$r]
+          | (.first | capture("^<!-- factory:replan(?<rest>( [^>]*)?) -->\\s*$") | .rest | ltrimstr(" ")),
+            (.body | split("\n") | .[1:] | join("\n")) end')
     [ -n "$out" ] || exit 1
     printf '%s\n' "$out" ;;
   next-status)

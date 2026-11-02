@@ -10,7 +10,7 @@
 # only posts when it has none (or two): the park must land even on a malformed issue.
 #
 # Usage:
-#   factory-outcome.sh done      <N> --stage <s> --run <id> --body-file <f> [--to <label>] [--sha <head>]
+#   factory-outcome.sh done      <N> --stage <s> --run <id> --body-file <f> [--to <label>] [--sha <head>] [--files-file <f>]
 #   factory-outcome.sh question  <N> --stage <s> --run <id> --body-file <f> --from <label> [--id <uuid>]
 #   factory-outcome.sh parked    <N> --stage <s> --run <id> --body-file <f> --reason <slug> [--from <label>]
 #   factory-outcome.sh progress  <N> --stage <s> --run <id> --step <n>/<T> [--sha <head>] [--body-file <f>]
@@ -27,12 +27,30 @@
 # an abbreviation of it), else `refused: --sha differs from git HEAD` (exit 2),
 # nothing posted. progress keeps --sha as an override and defaults to the same HEAD.
 #
+# --files-file <f> (done, --stage plan only; any other stage: exit 2, "files only
+# on plan") names a file with one repo-relative path per line, blank lines
+# ignored: every file the plan creates, edits or deletes, tests included. Each
+# path must be relative (no leading / or ./), have no . or .. or empty segment,
+# no trailing /, and contain no space, comma, double quote, *, ?, <, >, backslash
+# or control character. One bad line → `refused: bad path in --files-file:
+# <line>` (exit 2, nothing posted). The paths are sorted (byte order), deduped,
+# joined with commas and appended to the marker as files="…", always quoted;
+# an empty file omits the attribute. The daemon reads files= for its open-PR
+# gate and its base-moved replan.
+#
 # Markers:
 #   <!-- factory:done stage=<s> sha=<head> run=<id> -->
+#   <!-- factory:done stage=plan sha=<head> run=<id> files="src/a.py,tests/test_a.py" -->   (plan, with --files-file)
 #   <!-- factory:question id=<uuid> stage=<s> from=<label> run=<id> -->
 #   <!-- factory:parked stage=<s> reason=<slug> run=<id> -->
 #   <!-- factory:progress stage=<s> step=<n>/<T> sha=<head> run=<id> -->
 #   <!-- factory:decision stage=<s> run=<id> -->          (first line too: the marker rule has no exception)
+#
+# One marker is never typed here: `<!-- factory:replan by=daemon reason=base-moved
+# sha=<old plan sha> base=<master sha> files="…" run=<daemon run id> -->` is the
+# daemon's, posted when master moved on files the plan names. It is not an
+# outcome (last-marker ignores it); factory-issue.sh replan reads it for the
+# plan stage.
 #
 # The flip is `gh issue edit --remove-label <from> --add-label <to>`, refused
 # (exit 3, nothing posted) when <from> is not on the issue: a human moved it
@@ -55,16 +73,18 @@ die() { echo "factory-outcome: $*" >&2; exit "${2:-2}"; }
 cmd=$1; issue=$2; shift 2
 [[ $issue =~ ^[1-9][0-9]*$ ]] || die "issue number expected, got '$issue'"
 
-repo=${FACTORY_REPO:-} stage= run= body= sha= to= from= qid= reason= step=
+repo=${FACTORY_REPO:-} stage= run= body= sha= to= from= qid= reason= step= files_file= files=
 while [ $# -gt 0 ]; do
+  case $1 in
+    -h|--help) usage ;;
+    --*) [ $# -ge 2 ] || die "$1 needs a value" ;;
+  esac
   case $1 in
     --repo) repo=$2 ;; --stage) stage=$2 ;; --run) run=$2 ;; --body-file) body=$2 ;;
     --sha) sha=$2 ;; --to) to=$2 ;; --from) from=$2 ;; --id) qid=$2 ;;
-    --reason) reason=$2 ;; --step) step=$2 ;;
-    -h|--help) usage ;;
+    --reason) reason=$2 ;; --step) step=$2 ;; --files-file) files_file=$2 ;;
     *) die "unknown option '$1'" ;;
   esac
-  [ $# -ge 2 ] || die "$1 needs a value"
   shift 2
 done
 
@@ -90,6 +110,31 @@ head_sha() {  # done: always HEAD; --sha, when given, must be HEAD or an abbrevi
 }
 label_ok() { [[ $1 =~ ^status:[a-z-]+$ ]] || die "$2 must be a status:* label, got '$1'"; }
 
+path_ok() {  # path_ok <p>: 0 when <p> is a canonical repo-relative path the marker can carry
+  local p=$1
+  [ -n "$p" ] || return 1
+  case $p in
+    /*|./*|*/) return 1 ;;
+    *' '*|*,*|*\"*|*\**|*\?*|*'<'*|*'>'*|*\\*) return 1 ;;
+  esac
+  [[ $p =~ [[:cntrl:]] ]] && return 1
+  case "/$p/" in */../*|*/./*|*//*) return 1 ;; esac
+  return 0
+}
+files_attr() {  # done --files-file: one path per line → files=' files="a,b"' (sorted, deduped); '' when the file is empty
+  local line list
+  [ -n "$files_file" ] || return 0
+  [ "$stage" = plan ] || die "refused: --files-file is accepted with --stage plan only (files only on plan)"
+  [ -r "$files_file" ] && [ ! -d "$files_file" ] || die "--files-file must name a readable file"
+  while IFS= read -r line || [ -n "$line" ]; do
+    [ -n "$line" ] || continue
+    path_ok "$line" || die "refused: bad path in --files-file: $line"
+  done <"$files_file"
+  list=$({ grep -v '^$' -- "$files_file" || true; } | LC_ALL=C sort -u | paste -sd, -)
+  [ -n "$list" ] || return 0
+  files=" files=\"$list\""
+}
+
 has_label() {  # has_label <label>: 0 when the issue carries it
   gh issue view "$issue" --repo "$repo" --json labels -q '.labels[].name' | grep -qx -- "$1"
 }
@@ -114,7 +159,7 @@ flip() {  # flip <from> <to>: no call when equal
 
 case $cmd in
   done)
-    need_run; need_body; head_sha
+    need_run; need_body; files_attr; head_sha
     current=$("$here/factory-issue.sh" status "$issue" --repo "$repo")
     if [ -z "$to" ]; then
       to=$("$here/factory-issue.sh" next-status "$issue" "$stage" --repo "$repo") || {
@@ -122,7 +167,7 @@ case $cmd in
     else
       label_ok "$to" --to
     fi
-    post "<!-- factory:done stage=$stage sha=$sha run=$run -->" "$body" ""
+    post "<!-- factory:done stage=$stage sha=$sha run=$run$files -->" "$body" ""
     flip "$current" "$to" ;;
   question)
     need_run; need_body; [ -n "$from" ] || die "--from <status label> is required"; label_ok "$from" --from
