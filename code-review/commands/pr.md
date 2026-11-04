@@ -74,8 +74,10 @@ drop them (and the value after `--spec`) before reading `$1` and `$2`.
 
 ## Herdr pane
 
-The pane is worth most here: Step 4's parallel reviewers fan out in a top-level
-session exactly as they do here, without filling this conversation.
+The `review` workflow already keeps the reviewers' output out of this
+conversation. What the pane adds is what it adds to `:branch` and `:staged`: a
+reviewer that has not seen this conversation, and a session that is not
+blocked while it runs.
 
 If `--pane` is in the arguments, or `review_in_pane` is configured `true`
 (`${user_config.review_in_pane}`), run this review in a Herdr pane in

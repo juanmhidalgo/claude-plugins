@@ -51,22 +51,45 @@ skills:
 ## Phase 0: Validate
 
 `--pane` / `--no-pane` are flags: drop them, and read the PR number from what
-remains.
+remains. No PR number: **STOP**. With `--pane`, that is all of Phase 0 here:
+the rest runs in the pane, against its worktree.
 
-1. PR number was provided (from `$ARGUMENTS`)
-2. Working tree is clean. If dirty, **STOP** and ask user to commit or stash.
-3. PR is open: `gh pr view $ARGUMENTS --json state -q '.state'` must be `OPEN`. If draft/closed/merged, **STOP**.
-4. The `gh-feedback` extension is installed: `gh feedback --version` succeeds. Otherwise **STOP** and tell the user to run `gh extension install juanmhidalgo/gh-feedback`.
-5. The checkout is the PR's head: `gh pr view $ARGUMENTS --json headRefName,headRefOid`. The current branch must be `headRefName` and `git rev-parse HEAD` must be `headRefOid`. Otherwise **STOP** and say which: a push from another branch never reaches the PR, and a HEAD with commits the PR lacks would push them along with the fixes. In a `--pane` worktree this runs there, after checkout.
+Otherwise run, once:
+
+```bash
+${CLAUDE_PLUGIN_ROOT}/scripts/pipeline-branch.sh enter <PR>
+```
+
+It checks the preconditions and puts this checkout on the PR's head. You do not
+need to be on the PR branch: from any branch with a clean tree it runs
+`gh pr checkout`, remembers where it was, and `leave` (the last step of every
+run, see Phase 8) brings the checkout back. On the PR branch but behind its
+head, it fast-forwards. It prints one JSON line (`switched`, `original`,
+`fast_forwarded`, `head_ref`, `head_oid`).
+
+| Exit | Meaning | Do |
+|------|---------|----|
+| `0` | Ready, HEAD is the PR head | Continue. Say in one line where the checkout was and that it comes back at the end, if `switched` is `true` |
+| `2` | Working tree not clean | **STOP**, ask the user to commit or stash (the files are on stderr) |
+| `3` | PR not open, or a draft | **STOP** |
+| `4` | `gh-feedback` not installed | **STOP**: `gh extension install juanmhidalgo/gh-feedback` |
+| `5` | `gh pr checkout` failed | **STOP**, quote its message. Nothing was changed |
+| `6` | HEAD has commits the PR head lacks | **STOP**: a push would carry them along with the fixes. It already switched back if it had switched |
+| `7` | git or gh failed | **STOP**, quote the message |
+
+If `Workflow` is not available, **STOP** and say so: Phase 1 runs as a
+workflow, and under `claude -p` or the SDK it needs a
+`Workflow(code-review:triage-comments)` allow rule.
 
 ## Herdr pane
 
-With `--pane`, after Phase 0 passes, run the pipeline in a Herdr pane in
-**worktree** mode on the PR's branch, so its fixes, commit and push happen in
-their own checkout while you keep working in this one. Follow
-`${CLAUDE_PLUGIN_ROOT}/references/herdr-pane.md`. In the pane, Phase 0's
-clean-tree check runs against the new worktree, so a dirty tree here does not
-block it; say that in your one line.
+With `--pane`, run the pipeline in a Herdr pane in **worktree** mode on the
+PR's branch, so its fixes, commit and push happen in their own checkout while
+you keep working in this one. Follow
+`${CLAUDE_PLUGIN_ROOT}/references/herdr-pane.md`. The pane runs Phase 0 against
+the new worktree (its `enter` finds the branch already checked out and reports
+`switched: false`), and the triage workflow and the fix agents run there too, so
+a dirty tree here does not block it; say that in your one line.
 
 - **Branch**: `gh pr view <PR> --json headRefName -q .headRefName`, then
   `open pipeline-<PR> <report> --worktree <branch>`. Exit `15` usually means the
@@ -123,9 +146,9 @@ outcomes, and only the user decides which one applies.
 
 ## Phase 1: Triage
 
-Fetch all PR comments into one file per comment and verify them with the `code-review:triage-comments` workflow: one `comment-verifier` per comment, in parallel. Collect the verdicts with `ref_id` preserved.
+Run the `code-review:triage-comments` workflow. It fetches every PR comment into one file per comment and verifies them, one `comment-verifier` per comment in parallel. Collect the verdicts with `ref_id` preserved.
 
-For the exact `gh feedback` invocation, the workflow call and the fallback when workflows are disabled, see `${CLAUDE_PLUGIN_ROOT}/references/pipeline-phase-details.md` (Phase 1 detail).
+For the workflow call and what comes back, see `${CLAUDE_PLUGIN_ROOT}/references/pipeline-phase-details.md` (Phase 1 detail).
 
 ## Phase 2: Dismiss false positives
 
@@ -173,4 +196,16 @@ For each `VALID BUG` that was fixed, run `gh feedback resolve <PR> <ref_id> --se
 
 ## Phase 8: Report
 
-Print a final summary covering Fixed, Dismissed, Threads Resolved, Tests, Coverage, and Commits. For the report template, see `${CLAUDE_PLUGIN_ROOT}/references/pipeline-phase-details.md` (Phase 8 detail).
+Print a final summary covering Fixed, Dismissed, Threads Resolved, Tests, Coverage, Commits and Checkout. For the report template, see `${CLAUDE_PLUGIN_ROOT}/references/pipeline-phase-details.md` (Phase 8 detail).
+
+**Last step of every run**, after the report or before any earlier **STOP**:
+
+```bash
+${CLAUDE_PLUGIN_ROOT}/scripts/pipeline-branch.sh leave
+```
+
+Exit `0`: the checkout is back where Phase 0 found it (`switched_back` says
+whether it moved). Exit `20`: the tree has uncommitted changes, usually fixes
+that did not pass tests, so the checkout **stays on the PR branch** and the state
+is kept; say so, with the branch, and leave the changes for the user. Report the
+result as the `Checkout:` line.

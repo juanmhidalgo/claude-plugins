@@ -29,33 +29,32 @@ Don't pause for input. Stop only on the conditions in this table and the contain
 
 ## Phase 1: Triage (detail)
 
-Fetch comments into one file per comment. The bodies stay in the files: this
-session edits, commits and pushes, and never needs to read them.
-```bash
-gh feedback -R OWNER/REPO fetch PR_NUMBER --split <scratchpad dir>/pipeline-<PR>
-```
-
-Launch the `code-review:triage-comments` workflow with the printed `comments`
-array and wait for its notification:
+Launch the `code-review:triage-comments` workflow and wait for its notification:
 ```
 Workflow({ name: "code-review:triage-comments", args: {
-  repo: "<owner/repo>", pr: <PR>, comments: [<the printed comments array>] } })
+  repo: "<owner/repo>", pr: <PR>, dir: "<scratchpad dir>/pipeline-<PR>" } })
 ```
 
-Each result carries `ref_id`, `verdict` (`VALID BUG`, `FALSE POSITIVE`,
-`REFUSED`, or `NEEDS INVESTIGATION`), `priority`, `file`, `title`, `reason`,
-`refutation`, `dismiss_reason` and `to_verify`. The workflow already enforces the two rules
-below; with workflows disabled, dispatch one `comment-verifier` per comment
-yourself (all in one response, each given its `ref_id`, `file:line`, author and
-`comment_file`) and enforce them here:
+Its first stage runs `gh feedback fetch --split` in a `comment-fetcher` agent:
+one JSON file per comment under `dir`, and the metadata without the bodies. The
+bodies stay in the files for the verifiers: this session edits, commits and
+pushes, and never reads them. Resolved threads are left out; outdated ones
+stay in, marked. A fetch that fails twice comes back as `error`: **STOP** and
+quote it.
 
-- An **empty `refutation`** — discard the verdict and re-run that verifier once.
-  A verdict with no refutation attempt is an impression in a verdict's format.
-- A **missing verdict** — that comment was not verified. Re-run it. If it fails
-  again, carry it as `NEEDS INVESTIGATION` and surface it in the Phase 8
-  report. **Never let a silent verifier resolve to FALSE POSITIVE**: that would
-  dismiss a comment on the strength of an agent that said nothing, and the
-  pipeline dismisses without asking.
+Each result carries `ref_id`, `thread_comments`, `verdict` (`VALID BUG`,
+`FALSE POSITIVE`, `REFUSED`, or `NEEDS INVESTIGATION`), `priority`, `file`,
+`title`, `reason`, `refutation`, `dismiss_reason` and `to_verify`, plus
+`stats` for the report. The workflow enforces two rules, so you never see a
+verdict that broke them:
+
+- An **empty `refutation`** is discarded and that verifier re-run once. A
+  verdict with no refutation attempt is an impression in a verdict's format.
+- A **missing verdict** is re-run once, and a comment whose verifier fails
+  twice comes back as `NEEDS INVESTIGATION`, surfaced in the Phase 8 report.
+  **A silent verifier never resolves to FALSE POSITIVE**: that would dismiss a
+  comment on the strength of an agent that said nothing, and the pipeline
+  dismisses without asking.
 
 `NEEDS INVESTIGATION` (the verifier could not settle it, or did not answer) is
 neither dismissed nor fixed: it goes in the Phase 8 report for the user, with
@@ -186,11 +185,13 @@ Same exit codes as Phase 2. Exit 6 here means someone wrote in the thread after 
 - [If applicable: files below threshold with current % vs required %]
 
 ### Commits: [commit hash] pushed to [branch]
+
+### Checkout: [back on <original branch> | stayed on <PR branch>: uncommitted changes | was already on <PR branch>]
 ```
 
 ## Future direction: agent-teams
 
-Phases 1 (parallel verifiers) and 4 (parallel fix-implementers) are natural fits for agent-teams (peer-to-peer messaging, shared task list). The current implementation uses subagent fan-out, which is the right choice today (agent-teams remain experimental and disabled by default per Claude Code docs). When agent-teams move out of experimental status, consider:
+Phases 1 (parallel verifiers) and 4 (parallel fix-implementers) are natural fits for agent-teams (peer-to-peer messaging, shared task list). Today Phase 1 runs as the `triage-comments` workflow and Phase 4 as subagent fan-out from this session; the `review` workflow's fix mode is the nearer step for Phase 4. Agent-teams remain experimental and disabled by default per Claude Code docs. When they move out of experimental status, consider:
 
 - Replacing the parallel verifier fan-out with an agent-team where verifiers can cross-check each other on overlapping concerns (e.g., a security verifier and a tech-debt verifier looking at the same change)
 - Replacing the parallel fix-implementer fan-out with an agent-team where implementers can coordinate on shared dependencies discovered mid-fix

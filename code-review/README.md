@@ -30,14 +30,15 @@ Comprehensive code review workflow for Claude Code: branch reviews, PR feedback 
 `/ship` (1.5.0+) runs it for you when Copilot comments on the PR it opened. Otherwise Claude starts it only when you ask for the pipeline by name. To look at the comments without fixing them, use `/code-review:triage`.
 
 **What it does in one pass:**
-1. Fetches and triages all bot/reviewer comments
-2. Dismisses false positives with justifications
-3. Implements valid fixes (parallel subagents for independent fixes)
-4. Runs full test suite (retries up to 2x on failure)
-5. Commits with structured message, pushes
-6. Resolves all GitHub threads
+1. Puts the checkout on the PR's head: from any branch with a clean tree it runs `gh pr checkout`, fast-forwards a branch that is behind, and comes back where it was at the end (`scripts/pipeline-branch.sh`)
+2. Fetches and triages all bot/reviewer comments (the `triage-comments` workflow)
+3. Dismisses false positives with justifications
+4. Implements valid fixes (parallel subagents for independent fixes)
+5. Runs full test suite (retries up to 2x on failure)
+6. Commits with structured message, pushes
+7. Resolves all GitHub threads
 
-Fully autonomous - only stops if tests fail after retries or coverage is below CI thresholds.
+Fully autonomous - only stops if tests fail after retries or coverage is below CI thresholds. Fixes that did not pass tests stay uncommitted on the PR branch; the checkout returns to the original branch only when the tree is clean.
 
 ### Multi-Agent PR Review (recommended)
 
@@ -51,8 +52,8 @@ Fully autonomous - only stops if tests fail after retries or coverage is below C
 2. CLAUDE.md discovery (via Glob)
 3. PR summary generation
 4. **Parallel reviews**, 2 to 5 dimensions depending on effort level
-5. Deduplicate findings across dimensions
-6. **Verification**: one `finding-verifier` per finding → CONFIRMED / PLAUSIBLE / REFUTED
+5. **Verification**: one `finding-verifier` per finding → CONFIRMED / PLAUSIBLE / REFUTED
+6. Findings that share a cause are merged when presented, never before verifying
 7. Filter by effort level
 8. **Report in this session** — nothing is written to GitHub
 
@@ -99,15 +100,19 @@ Under `claude -p` or the SDK, allow it with a `Workflow(code-review:review)` rul
 
 ### The `triage-comments` workflow
 
-`/code-review:triage` and `/code-review:pipeline` verify PR comments with the
-**`code-review:triage-comments` workflow** (`workflows/triage-comments.js`): one
+`/code-review:triage` and `/code-review:pipeline` fetch and verify PR comments
+with the **`code-review:triage-comments` workflow** (`workflows/triage-comments.js`),
+launched with `repo`, `pr` and `dir`. Its first stage runs
+`gh feedback fetch --split` in a `comment-fetcher` agent, which returns the
+metadata and is retried once when its count does not match the stats; then one
 `comment-verifier` per comment in parallel, a re-run for a verifier that returns
 no verdict or an empty refutation, and `NEEDS INVESTIGATION` (never `FALSE
-POSITIVE`) for a comment whose verifier failed twice. `gh feedback fetch --split`
-writes each comment to its own file, and the verifiers read the bodies from there: the
-comment text, which anyone who can comment on the PR wrote, never passes
-through the session that edits, commits and pushes. Allow it under `claude -p`
-with `Workflow(code-review:triage-comments)`.
+POSITIVE`) for a comment whose verifier failed twice. The verifiers read the
+bodies from the split files: the comment text, which anyone who can comment on
+the PR wrote, never passes through the session that edits, commits and pushes,
+nor through the workflow script. Both commands require the workflow (no
+in-session fallback); allow it under `claude -p` with
+`Workflow(code-review:triage-comments)`.
 
 ### Branch Review (before PR)
 ```
@@ -248,6 +253,7 @@ extension (one binary, no MCP):
 ## Scripts
 
 - `find-spec.sh` - Lists the spec sources for a review (`--base`, `--pr`, `--staged`, optional `--spec`): explicit argument, closing issues, commit keywords, feature-dev `branch:` frontmatter
+- `pipeline-branch.sh` - Phase 0 of `pipeline` as one step: `enter <PR>` checks gh-feedback, the clean tree and the open PR, checks the PR branch out from wherever the checkout is (fast-forwarding a branch that is behind) and remembers where it was; `leave` brings it back when the tree is clean. Exit codes in the script header; tests in `tests/test-pipeline-branch.sh`
 - `herdr-pane.sh` - Opens a Herdr pane or worktree with `claude`, runs a command there and collects its result (`--pane`). A synced copy of `shared/herdr-pane/herdr-pane.sh` in the marketplace repo
 
 ## Agents
@@ -268,6 +274,7 @@ extension (one binary, no MCP):
 
 ### Other Agents
 
+- **comment-fetcher** - Sonnet agent that runs `gh feedback fetch --split` and returns the metadata (first stage of the `triage-comments` workflow)
 - **comment-verifier** - Sonnet agent for parallel comment verification (used by pipeline and triage)
 - **fix-implementer** - Focused Sonnet agent for implementing individual fixes (used by pipeline)
 - **branch-reviewer** - Opus agent for branch and staged reviews (the single reviewer behind `branch`, `staged`, `staged-pipeline`)
@@ -285,6 +292,7 @@ extension (one binary, no MCP):
 
 - `gh`, installed and authenticated with repo scope, for every PR command (`pr`, `triage`, `pipeline`, `dismiss`, `resolve-fixed`) and the agents they spawn
 - The `gh-feedback` extension, for `triage`, `pipeline`, `dismiss` and `resolve-fixed`: `gh extension install juanmhidalgo/gh-feedback`
+- The `Workflow` tool, for `triage` and `pipeline` (under `claude -p` or the SDK, a `Workflow(code-review:triage-comments)` allow rule)
 - For `coverage-gate`: the project's own test and coverage tooling (pytest-cov, jest, vitest, go test)
 - No MCP servers or browser
 - For `--pane`: [Herdr](https://herdr.dev) (this session running inside a Herdr pane), `claude` and `jq` in the PATH

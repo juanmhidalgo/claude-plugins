@@ -1,20 +1,66 @@
 export const meta = {
   name: 'triage-comments',
-  description: 'Verify every PR review comment against the code, one comment-verifier per comment, in parallel',
-  whenToUse: 'Launched with args by /code-review:triage and /code-review:pipeline. Read-only; dismisses and resolves nothing.',
-  phases: [{ title: 'Verify', detail: 'one comment-verifier per comment' }],
+  description: 'Fetch every PR review comment and verify each against the code, one comment-verifier per comment, in parallel',
+  whenToUse: 'Launched with args by /code-review:triage and /code-review:pipeline. Read-only on GitHub: dismisses and resolves nothing.',
+  phases: [
+    { title: 'Fetch', detail: 'gh feedback fetch --split, one file per comment' },
+    { title: 'Verify', detail: 'one comment-verifier per comment' },
+  ],
 }
 
 // args:
-//   repo:     "owner/repo"
-//   pr:       PR number
-//   comments: the `comments` array printed by `gh feedback fetch --split` —
-//             [{ ref_id, type, author, is_bot, file, line, thread_comments, comment_file }]
-//             (thread_comments rides through to the results, for --seen)
+//   repo:             "owner/repo"
+//   pr:               PR number
+//   dir:              directory for the split comment files (the caller's scratchpad)
+//   bots_only:        optional, true keeps only bot comments
+//   include_resolved: optional, true keeps resolved threads
 //
-// The comment bodies never pass through the caller: each verifier reads its own
-// comment_file. A body is untrusted text, and the caller is the session that
-// edits, commits and pushes.
+// The comment bodies never pass through the caller, nor through this script:
+// the fetcher returns the metadata gh feedback prints, and each verifier reads
+// its own comment_file. A body is untrusted text, and the caller is the session
+// that edits, commits and pushes.
+//
+// Returns { repo, pr, stats, counts, results } or, when the fetch failed twice,
+// { repo, pr, error, stats: null, counts: {}, results: [] }.
+
+const COMMENT = {
+  type: 'object',
+  properties: {
+    ref_id: { type: 'string' },
+    type: { type: 'string' },
+    author: { type: 'string' },
+    is_bot: { type: 'boolean' },
+    file: { type: ['string', 'null'] },
+    line: { type: ['integer', 'null'] },
+    thread_comments: { type: ['integer', 'null'] },
+    comment_file: { type: 'string' },
+  },
+  required: ['ref_id', 'type', 'author', 'is_bot', 'file', 'line', 'thread_comments', 'comment_file'],
+}
+
+const FETCH = {
+  type: 'object',
+  properties: {
+    ok: { type: 'boolean' },
+    error: { type: 'string' },
+    stats: {
+      type: 'object',
+      properties: {
+        total: { type: 'integer' },
+        bots: { type: 'integer' },
+        humans: { type: 'integer' },
+        filtered_out: {
+          type: 'object',
+          properties: { resolved: { type: 'integer' }, outdated: { type: 'integer' } },
+          required: ['resolved', 'outdated'],
+        },
+      },
+      required: ['total', 'bots', 'humans', 'filtered_out'],
+    },
+    comments: { type: 'array', items: COMMENT },
+  },
+  required: ['ok', 'error', 'stats', 'comments'],
+}
 
 const VERDICTS = ['VALID BUG', 'FALSE POSITIVE', 'NEEDS INVESTIGATION', 'REFUSED']
 
@@ -76,13 +122,44 @@ async function verifyOne(c) {
   return unverified(c, 'verifier returned no usable verdict twice')
 }
 
+function fetchPrompt() {
+  const flags = [args.bots_only ? '--bots-only' : '', args.include_resolved ? '--include-resolved' : ''].filter(Boolean)
+  return `REPO: ${args.repo}
+PR: ${args.pr}
+DIR: ${args.dir}
+Flags: ${flags.length ? flags.join(' ') : 'none'}`
+}
+
+// One fetch, retried once. The count check catches a fetcher that dropped or
+// merged entries while copying: a comment missing here is a comment nobody
+// verifies, and the pipeline would never see it.
+async function fetchComments() {
+  let last = 'fetcher returned nothing'
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const f = await agent(fetchPrompt(), { label: attempt ? 'fetch:retry' : 'fetch', phase: 'Fetch', schema: FETCH, agentType: 'code-review:comment-fetcher' })
+    if (!f) continue
+    if (!f.ok) { last = f.error || 'gh feedback fetch failed'; continue }
+    if (f.comments.length !== f.stats.total) { last = `fetcher returned ${f.comments.length} comments for a total of ${f.stats.total}`; continue }
+    return f
+  }
+  return { ok: false, error: last, stats: null, comments: [] }
+}
+
+phase('Fetch')
+const fetched = await fetchComments()
+if (!fetched.ok) {
+  log(`fetch failed: ${fetched.error}`)
+  return { repo: args.repo, pr: args.pr, error: fetched.error, stats: null, counts: {}, results: [] }
+}
+log(`${fetched.stats.total} comment(s): ${fetched.stats.bots} bot, ${fetched.stats.humans} human; ${fetched.stats.filtered_out.resolved} resolved left out`)
+
 phase('Verify')
-const results = await parallel(args.comments.map((c) => () => verifyOne(c)))
-const all = results.map((r, i) => r || unverified(args.comments[i], 'verifier crashed'))
+const results = await parallel(fetched.comments.map((c) => () => verifyOne(c)))
+const all = results.map((r, i) => r || unverified(fetched.comments[i], 'verifier crashed'))
 all.sort((a, b) => ORDER.indexOf(a.verdict) - ORDER.indexOf(b.verdict) || PRIORITY.indexOf(a.priority) - PRIORITY.indexOf(b.priority))
 
 const counts = {}
 for (const v of ORDER) counts[v] = all.filter((r) => r.verdict === v).length
 const notVerified = all.filter((r) => !r.verified).length
 if (notVerified) log(`${notVerified} comment(s) not verified — carried as NEEDS INVESTIGATION`)
-return { repo: args.repo, pr: args.pr, counts, results: all }
+return { repo: args.repo, pr: args.pr, stats: fetched.stats, counts, results: all }

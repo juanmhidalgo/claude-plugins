@@ -1,5 +1,21 @@
 # Changelog
 
+## 4.1.0 (2026-11-04)
+
+### Added
+- **`/code-review:pipeline` no longer needs the PR branch checked out.** Phase 0 is now one script, `scripts/pipeline-branch.sh enter <PR>`: it checks gh-feedback, the clean tree and the open PR, and from any other branch runs `gh pr checkout`, remembering where the checkout was. A branch behind the PR head is fast-forwarded; a HEAD with commits the PR lacks is still a stop (exit 6), because a push would carry them. `leave`, the last step of every run, returns to the original branch when the tree is clean and otherwise stays on the PR branch with the uncommitted fixes (exit 20), reported as the new `Checkout:` line of the Phase 8 report. State lives in the git dir, so a `--pane` worktree keeps its own. 20 cases in `tests/test-pipeline-branch.sh`. **Why:** the pipeline stopped with "the checkout is not the PR's head" every time it was asked for from `master`, and the checkout is the one precondition the pipeline can satisfy itself.
+- **The `triage-comments` workflow fetches the comments itself.** A first `Fetch` stage runs `gh feedback fetch --split` in the new `comment-fetcher` agent (`Bash(gh feedback fetch *)` only, never reads a body) and the script fans out from what it returns. The workflow takes `repo`, `pr`, `dir` and the optional `bots_only` / `include_resolved`; a fetch whose comment count does not match `stats.total` is retried once, and a fetch that fails twice comes back as `error`. Results carry `stats` for the report. **Why:** the calling session used to transcribe the printed `comments` array into the workflow args by hand, N JSON objects that could be dropped or mangled on the way and sat twice in its context.
+
+### Removed
+- **The no-workflow fallback of `/code-review:triage` and `/code-review:pipeline` Phase 1.** Both stop when `Workflow` is not available and say which allow rule `claude -p` needs. **Why:** it was a second, untested path that re-created in the session exactly the fan-out the workflow exists to keep out of it.
+
+### Fixed
+- `/code-review:pr` justified `--pane` with the reviewers' fan-out, which the `review` workflow has kept out of the conversation since 3.15.0. It now names what the pane still adds: a reviewer that has not seen the conversation, and a session that is not blocked.
+- `pipeline-phase-details.md` said Phase 1 "uses subagent fan-out"; it has been the `triage-comments` workflow since 3.14.0.
+- `/code-review:pipeline`'s pane section now says what runs in the pane (Phase 0 against the worktree, the triage workflow, the fix agents) instead of implying Phase 0 ran here first, which would have switched this checkout to the PR branch and made the worktree fail with exit 15.
+- The README's PR review steps listed "deduplicate" before verifying; every finding is verified and findings that share a cause are merged when presented (3.15.0).
+- `/code-review:triage` allowed `scripts/*` and `Agent`, which it no longer uses.
+
 ## 4.0.0 (2026-10-31)
 
 ### Changed (breaking)
