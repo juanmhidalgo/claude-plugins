@@ -44,15 +44,18 @@ skills:
 ## Context
 - **Repository**: !`git remote get-url origin`
 - **Current branch**: !`git branch --show-current`
-- **PR Number**: $ARGUMENTS
+- **Arguments**: !`bash "${CLAUDE_PLUGIN_ROOT}/scripts/args.sh" '$ARGUMENTS'`
 - **Date**: !`date +%Y-%m-%d`
 - **Working tree clean**: !`git status --short`
 
 ## Phase 0: Validate
 
-`--pane` / `--no-pane` are flags: drop them, and read the PR number from what
-remains. No PR number: **STOP**. With `--pane`, that is all of Phase 0 here:
-the rest runs in the pane, against its worktree.
+The **Arguments** line above is `args.sh`'s parse of what the user typed: the
+PR number is `positional[0]` and the pane flag is `pane` (`true` for `--pane`,
+`false` for `--no-pane`, `null` for neither). An empty `positional`, or a
+`positional[0]` that is not a number: **STOP**, the PR number is missing. With
+`pane: true`, that is all of Phase 0 here: the rest runs in the pane, against
+its worktree.
 
 Otherwise run, once:
 
@@ -83,7 +86,7 @@ workflow, and under `claude -p` or the SDK it needs a
 
 ## Herdr pane
 
-With `--pane`, run the pipeline in a Herdr pane in **worktree** mode on the
+With `pane: true`, run the pipeline in a Herdr pane in **worktree** mode on the
 PR's branch, so its fixes, commit and push happen in their own checkout while
 you keep working in this one. Follow
 `${CLAUDE_PLUGIN_ROOT}/references/herdr-pane.md`. The pane runs Phase 0 against
@@ -157,26 +160,65 @@ For each `FALSE POSITIVE`, run `gh feedback dismiss <PR> <ref_id> --seen <thread
 ## Phase 3: Plan fixes
 
 For each `VALID BUG`:
-1. Read affected code
-2. Determine the minimal fix
-3. Note which files are affected
+1. Read the code at `file:line`
+2. Determine the minimal fix, in one or two sentences
+3. Build its finding for Phase 4 from the verdict: `id: ref_id`, `severity`
+   from `priority`, `file`, `line`, `title`, `description: reason`,
+   `counter_case: refutation`, `suggested_fix` = the fix from step 2,
+   `source: "pr-comment"`
 
-Group fixes by file. Fixes touching **different files** can run in parallel; fixes touching the **same file** run sequentially.
+The **fix plan** is the list of findings plus their files. A `VALID BUG` on a
+comment with no file (an issue comment or a review body) has nothing to
+contain a fix to: it is not fixed, it goes under **Needs investigation**. For
+the exact mapping, see `${CLAUDE_PLUGIN_ROOT}/references/pipeline-phase-details.md` (Phase 3 detail).
 
 ## Phase 4: Implement fixes
 
-- **Parallel** (different files) — spawn `fix-implementer` agents in parallel.
-- **Sequential** (same file) — run `fix-implementer` one at a time to avoid conflicts.
-- **After all fixes** — read each modified file to verify no syntax errors.
-- **Scope check** — discard auto-formatter-induced changes to files NOT in the fix plan via `git checkout -- <file>`; log the count.
+Run the `code-review:review` workflow in fix mode with the Phase 3 findings.
+It runs one `fix-implementer` per finding, **sequentially**, in the order
+given: determinism over speed, so every fix sees the tree the previous one left
+and two fixes in one file cannot race. The fixer is told the file, line, title
+and the verifier's description; the comment body never reaches it. The result
+is `fixes`, one per finding with its `id` (the `ref_id`), `status` (`FIXED`,
+`REFUSED`, `NO_CHANGE`), `file`, `change` and `reason`.
 
-For agent prompts, parallel-launch instructions, and the full scope-check procedure, see `${CLAUDE_PLUGIN_ROOT}/references/pipeline-phase-details.md` (Phase 4 detail).
+When it returns, in this session:
+
+- **Syntax read** — read each file the `FIXED` entries name and confirm it
+  parses (balanced blocks, no stray markers).
+- **Scope check** — `git diff --name-only`; any file not in the fix plan (nor
+  the test file a fixer named in `file`) was touched by an auto-formatter or an
+  agent told not to: `git checkout -- <file>`, and log the count.
+- `REFUSED` goes under **Refused (N)** with its `reason`; `NO_CHANGE` under
+  **Needs investigation** with its `reason`. Neither thread is resolved in Phase 7.
+
+For the workflow call and the scope-check procedure, see `${CLAUDE_PLUGIN_ROOT}/references/pipeline-phase-details.md` (Phase 4 detail).
 
 ## Phase 5: Run tests
 
-Skip if no code changes were made (go to Phase 8). Discover the project's test runner, run the suite, fix-and-retry on failure (up to 3 attempts, then STOP).
+Skip if no code changes were made (go to Phase 8). Otherwise run, saying
+**"Tests: attempt 1 of 3"**:
 
-For runner-discovery order and the failure handling sequence, see `${CLAUDE_PLUGIN_ROOT}/references/pipeline-phase-details.md` (Phase 5 detail).
+```bash
+${CLAUDE_PLUGIN_ROOT}/scripts/run-tests.sh
+```
+
+It finds the project's runner (Makefile `test` target, package.json `test`
+script via the lockfile's package manager, pytest, cargo, go), runs it with the
+output captured to a log, and prints one JSON line: `runner`, `command`,
+`exit`, `passed`, `log`, `tail` (the last 30 lines).
+
+| Exit | Meaning | Do |
+|------|---------|----|
+| `0` | `passed: true` | Phase 5b |
+| `1` | `passed: false` | Read `tail` (and `log` when it is not enough), fix the cause, run the script again saying **"Tests: attempt N of 3"**. Three attempts in all; after the third failure **STOP** and report `Tests: FAIL` with the last `tail` |
+| `10` | No runner found | Skip to Phase 5b; `Tests: SKIPPED (no runner)` in the report |
+| `11` | Runner found, command not installed | **STOP**: quote stderr. Nothing to fix in the code |
+
+Pass `--runner <make|npm|pnpm|yarn|pytest|cargo|go>` only when the project's
+CI visibly uses another runner than the one it picked. The attempt count is
+yours to keep: the script does not know about earlier runs. For the retry rule
+and what a fix between attempts may touch, see `${CLAUDE_PLUGIN_ROOT}/references/pipeline-phase-details.md` (Phase 5 detail).
 
 ## Phase 5b: Coverage gate
 

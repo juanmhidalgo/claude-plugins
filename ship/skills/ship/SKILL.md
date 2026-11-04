@@ -23,6 +23,7 @@ triggers:
   - "push and create PR"
   - "commit push and PR"
 allowed-tools:
+  - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/*)
   - Bash(git *)
   - Bash(gh *)
   - Bash(npm test*)
@@ -48,10 +49,9 @@ Execute these phases in order. Stop and report at any failure.
 
 ## Context
 
-- **Branch**: !`git branch --show-current`
-- **Remote tracking**: !`git rev-parse --abbrev-ref @{upstream} 2>/dev/null || echo "no upstream"`
-- **Uncommitted changes**: !`git status --short | head -20`
 - **Arguments**: $ARGUMENTS
+
+The branch, the remote, the dirty tree and the rest of the repository state come from the preflight script in Phase 1, not from commands you run yourself.
 
 When you invoked this skill from the conversation rather than the user typing `/ship`, read the flags from what the user said: "as a draft" → `--draft`, "no PR" → `--no-pr`, "skip tests" → `--skip-tests`, "don't wait" / "no need to watch CI" → `--no-watch`. Anything not mentioned keeps its default.
 
@@ -61,8 +61,8 @@ When you invoked this skill from the conversation rather than the user typing `/
 
 | Phase | Without `--yes` | With `--yes` |
 |---|---|---|
-| 1, on the default branch | asks whether to branch | **stops**: never branches and never pushes to the default branch; says so and ends. The caller decides |
-| 1, clean tree with commits ahead of the base | stops: nothing to ship | skips Phases 2–3 (nothing to stage or commit), runs Phase 4 against the files changed since the base (`git diff --name-only <default-branch>...HEAD` decides the non-code skip), pushes when the upstream is behind (Phase 5, step 2) and goes to Phase 6 |
+| 1, on the default branch | asks whether to branch | **stops** (preflight exit `3`): never branches and never pushes to the default branch; says so and ends. The caller decides |
+| 1, clean tree with commits ahead of the base | stops: nothing to ship (preflight exit `2`) | preflight reports `mode` `push`: skips Phases 2–3 (nothing to stage or commit), runs Phase 4 against the files changed since the base (`git diff --name-only <default-branch>...HEAD` decides the non-code skip), pushes when the upstream is behind (Phase 5, step 2) and goes to Phase 6 |
 | 2, mixed concerns | asks which group to ship | stages every non-secret changed and untracked file, listing the excluded ones |
 | 4, no test runner found | asks whether to proceed | continues; Evidence says `Tests skipped (no test runner detected)` |
 | 6, feature branch | asks whether to create the PR | creates it, base = the default branch; when the repo has several PR templates, takes the first by file name |
@@ -71,29 +71,50 @@ A caller that invoked this skill with content the PR body must lead with (a `Clo
 
 **`--evidence-file <path>`**: lines of test evidence from earlier runs (a harden's scoped selection, an implement's suite), one per line, each `command — result`. Phase 6 appends them under Evidence as `- **Earlier runs:**`, verbatim, marked as reported by the caller: they are not runs this session made.
 
-## Phase 1: Status & Branch Detection
+## Phase 1: Preflight
 
-1. Run `git status` (never use `-uall`)
-2. Run `git diff --stat` for unstaged changes summary
-3. Run `git diff --cached --stat` for already-staged changes
-4. Detect the repo's default branch: `gh repo view --json defaultBranchRef -q .defaultBranchRef.name 2>/dev/null || echo "main"`
-5. Detect branch type:
-   - **Default branch** (main, master, prod, or whatever the repo uses) → ask about branching (see below)
-   - **Feature branch**: anything else → PR workflow
+Run once, adding `--yes` when `$ARGUMENTS` contains it:
 
-If there are no changes (working tree clean, nothing staged), stop and inform the user — unless `--yes` was passed and `git log <default-branch>..HEAD` shows commits: then skip Phases 2–3, run Phase 4 over the files changed since the base, and continue with Phase 5 step 2 (push if the upstream is behind) and Phase 6. A red suite still stops before the push.
+```bash
+${CLAUDE_PLUGIN_ROOT}/scripts/ship-preflight.sh [--yes]
+```
 
-**If on the default branch** with `--yes`: stop here. Say that `--yes` never branches and never pushes to the default branch, and end; nothing is staged or committed. Otherwise ask user with AskUserQuestion:
-- "Create a new feature branch" — auto-generate a descriptive branch name from the changes (e.g., `fix/null-check-auth-middleware`, `feat/add-billing-export`). Use the conventional commit type as prefix. Create with `git checkout -b <name>`.
+It reads the repository state this phase used to work out by hand, changes nothing, and prints one JSON line:
+
+| Field | Meaning |
+|-------|---------|
+| `branch`, `default_branch`, `on_default_branch` | the current branch and the repo's default one (`default_branch_source` says where it came from: `gh`, `origin-head`, `local`, or `guess` when nothing answered and `main` was assumed) |
+| `remote`, `upstream` | the remote to push to, and the tracking branch (`null` when the branch has none) |
+| `ahead`, `behind` | commits vs the upstream as git knows it, without fetching |
+| `ahead_of_base` | commits in `<default_branch>..HEAD` |
+| `staged`, `unstaged`, `untracked` | counts from `git status` |
+| `mode` | `commit` (something to stage or commit) or `push` (clean tree ahead of the base, `--yes` only) |
+| `gh`, `gh_feedback` | `ok`, `missing` or `unauthenticated`; whether the `gh-feedback` extension is installed |
+| `pr` | the open PR for this branch (`number`, `url`, `isDraft`), or `null` |
+| `pr_templates` | the repo's PR template paths, sorted (folder entries by file name) |
+
+Later phases read these fields; do not re-run the commands behind them.
+
+| Exit | Meaning | Do |
+|------|---------|----|
+| `0` | Ready | `on_default_branch` true → ask about branching (below). Then `mode` `commit` → Phase 2; `mode` `push` → skip Phases 2–3, run Phase 4 over `git diff --name-only <default_branch>...HEAD`, continue with Phase 5 step 2 (push when the upstream is behind) and Phase 6. A red suite still stops before the push |
+| `2` | Nothing to ship: clean tree, nothing staged (with `--yes`: and no commits ahead of the base either) | **STOP**, tell the user |
+| `3` | On the default branch with `--yes` | **STOP**: say that `--yes` never branches and never pushes to the default branch, and end. Nothing is staged or committed; the caller decides |
+| `4` | Detached HEAD | **STOP**, ask the user to check out a branch |
+| `5` | No remote configured | **STOP** before anything is staged: there is nothing to push to |
+| `7` | git failed (not a repository, or the message on stderr) | **STOP**, quote the message |
+
+**On the default branch** (exit `0` with `on_default_branch` true; `--yes` never gets here): ask the user with AskUserQuestion:
+- "Create a new feature branch" — auto-generate a descriptive branch name from the changes (e.g., `fix/null-check-auth-middleware`, `feat/add-billing-export`). Use the conventional commit type as prefix. Create with `git checkout -b <name>`. The new branch has no upstream: Phase 5 pushes it with `-u`.
 - "Continue on current branch" — proceed with direct push workflow
 
 If the user creates a new branch, the rest of the workflow follows the **feature branch** path (PR offered at the end).
 
 ## Phase 2: Smart Staging
 
-If there are unstaged changes:
+If preflight counted unstaged or untracked files:
 
-1. List all changed and untracked files
+1. List them with `git status` (never use `-uall`) and `git diff --stat`; `git diff --cached --stat` shows what was already staged
 2. **Exclude secrets automatically**: skip `.env`, credentials, tokens, private keys — warn the user about excluded files
 3. **Analyze change cohesion** — determine if all changes relate to a single concern or multiple:
 
@@ -176,11 +197,11 @@ If no test runner is detected, warn the user and ask whether to proceed without 
    )"
    ```
 2. Push to remote:
-   - If upstream exists: `git push`
-   - If no upstream: `git push -u origin <branch-name>`
+   - Preflight's `upstream` is set: `git push`
+   - It is `null` (or Phase 1 created the branch): `git push -u <remote> <branch>`, with preflight's `remote`
 3. Verify with `git status`
 
-If push fails (rejected), inform the user and suggest `git pull --rebase`. Never force push.
+If push fails (rejected), inform the user and suggest `git pull --rebase`. Never force push. Preflight's `behind` > 0 already says the push will be rejected: say so before trying.
 
 ### Notify sibling sessions (default-branch pushes only, best-effort)
 
@@ -194,9 +215,10 @@ After a successful push **to the default branch**, tell other live sessions work
 ## Phase 6: Pull Request (Feature Branches Only)
 
 Skip if:
-- On the default branch (detected in Phase 1)
+- On the default branch (preflight's `on_default_branch`, unless Phase 1 created a branch)
 - `$ARGUMENTS` contains `--no-pr`
-- A PR already exists (`gh pr view` succeeds)
+- A PR already exists (preflight's `pr` is not `null`; Phase 7 watches it)
+- Preflight's `gh` is not `ok`: say how to open the PR by hand (`gh auth login` first when it is `unauthenticated`)
 
 If on a feature branch:
 
@@ -206,7 +228,7 @@ If on a feature branch:
    - Run `git log <default-branch>..HEAD --oneline` to gather commit history
    - Generate a concise PR title (under 70 chars)
    - Generate the body with the template below, picking the Summary visual from [pr-body.md](references/pr-body.md)
-3. **Repo template first.** If the repo has a PR template (`.github/pull_request_template.md`, `.github/PULL_REQUEST_TEMPLATE.md`, `docs/pull_request_template.md`, `pull_request_template.md`, or a file in `.github/PULL_REQUEST_TEMPLATE/`; when that folder holds several, ask the user which one, or with `--yes` take the first by file name), keep its headings and their order and fill them using the rules below. Append **Merge Danger** and **Rollback Triggers** only when the template has no equivalent section.
+3. **Repo template first.** If preflight's `pr_templates` is not empty (it lists `.github/pull_request_template.md`, `.github/PULL_REQUEST_TEMPLATE.md`, `docs/pull_request_template.md`, `pull_request_template.md` and the files in `.github/PULL_REQUEST_TEMPLATE/`; when it holds several, ask the user which one, or with `--yes` take the first), read the template, keep its headings and their order and fill them using the rules below. Append **Merge Danger** and **Rollback Triggers** only when the template has no equivalent section.
 4. **Evidence is only what this session ran.**
    - **After**: the Phase 4 test command and its pass line. If Phase 4 was skipped, or no test runner was found and the user agreed to proceed, write `Tests skipped (<reason>)`.
    - **Before**: a failing run whose output appears verbatim in a Bash result in this conversation (the test name and its key failure line, copied, not retyped). A failure a subagent reported, or one remembered from a summary of earlier context, does not count. Otherwise write `not captured`.
@@ -265,7 +287,7 @@ If on a feature branch:
 
 Skip if `$ARGUMENTS` contains `--no-watch` or `--yes`, or if the branch has no open PR (none was created and none existed).
 
-The watcher is the `gh-feedback` extension. If `gh feedback --version` fails, skip this phase and Phase 8: report the PR URL, `gh pr checks <number>` to check CI later, and `gh extension install juanmhidalgo/gh-feedback` to get the watcher.
+The watcher is the `gh-feedback` extension. If preflight's `gh_feedback` is `false`, skip this phase and Phase 8: report the PR URL, `gh pr checks <number>` to check CI later, and `gh extension install juanmhidalgo/gh-feedback` to get the watcher.
 
 Start the watcher **in the background** (Bash with `run_in_background`); you are re-invoked when it exits, so do not poll or sleep in the meantime:
 
@@ -297,9 +319,11 @@ End with a short report: branch, PR URL, CI result, and what happened to Copilot
 
 | Error | Action |
 |-------|--------|
-| Nothing to commit | Stop, inform user |
+| Nothing to commit | Preflight exit `2`: stop, inform user |
+| Detached HEAD | Preflight exit `4`: stop, ask for a branch |
+| No remote configured | Preflight exit `5`: stop before anything is staged, inform user |
 | Tests fail | Stop before commit, show failures |
 | Push rejected | Suggest `git pull --rebase`, never force push |
 | Pre-commit hook fails | Show error, do NOT use `--no-verify`, let user fix |
-| gh CLI not available | Skip PR step, suggest manual PR |
-| No remote configured | Stop before push, inform user |
+| gh CLI not available or not logged in | Preflight's `gh` is `missing` or `unauthenticated`: skip the PR step, suggest a manual PR (and `gh auth login`) |
+| `gh-feedback` not installed | Preflight's `gh_feedback` is `false`: skip the watcher, report the PR URL and how to install it |

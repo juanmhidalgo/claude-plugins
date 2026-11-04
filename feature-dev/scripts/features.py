@@ -18,10 +18,18 @@ Usage:
     features.py link-issue <slug> <owner/repo#N> <fingerprint> [--kind spec|plan] [--root DIR]
     features.py list [--json] [--root DIR]
     features.py delete <slug> [--force] [--dry-run] [--root DIR]
+    features.py resolve spec|plan [<argument>] [--branch NAME] [--skip-implemented] [--newest] [--root DIR]
 
 ``new --kind spec`` creates ``feature.json`` with status ``draft`` and prints
 the path of the SPEC the agent should write. It exits 1 when the feature
 already exists and 2 on a usage error (bad slug, bad arguments).
+
+``resolve`` is the preflight of the commands that take a SPEC or PLAN: it turns
+a raw argument (a path, an issue reference, a feature slug or title, or
+nothing) into one JSON line describing the artifact, and exits 0 (resolved),
+2 (not found; ``reason`` says what was searched), 3 (ambiguous; ``candidates``
+lists them) or 4 (the artifact or its ``feature.json`` is malformed). See
+``resolve_artifact``.
 """
 
 from __future__ import annotations
@@ -39,6 +47,10 @@ from pathlib import Path
 EXIT_OK = 0
 EXIT_REFUSED = 1
 EXIT_USAGE = 2
+# ``resolve`` only; 2 doubles as "not found" there (its stdout is JSON either way).
+EXIT_NOT_FOUND = 2
+EXIT_AMBIGUOUS = 3
+EXIT_MALFORMED = 4
 
 FEATURES_DIR = Path(".feature-dev") / "features"
 FEATURE_FILE = "feature.json"
@@ -421,6 +433,312 @@ def delete_feature(root: Path, slug: str, force: bool, dry_run: bool) -> list[Pa
     return paths
 
 
+# ---------------------------------------------------------------------------
+# resolve: the preflight of /explore-plan, /spec-review and /plan-review
+# ---------------------------------------------------------------------------
+
+ARTIFACT_TYPES = {"spec": "specification", "plan": "implementation-plan"}
+ISSUE_ARG = re.compile(
+    r"^(?:#?(?P<bare>[1-9][0-9]*)"
+    r"|(?P<repo>[A-Za-z0-9._-]+/[A-Za-z0-9._-]+)#(?P<num>[1-9][0-9]*)"
+    r"|https?://github\.com/(?P<url_repo>[A-Za-z0-9._-]+/[A-Za-z0-9._-]+)/issues/(?P<url_num>[1-9][0-9]*)/?)$"
+)
+FRONTMATTER_LINE = re.compile(r"^([A-Za-z_][\w-]*):\s*(.*?)\s*$")
+REPO_NAME_LINE = re.compile(r"^\s+-\s*name:\s*(.+?)\s*$")
+SOURCE_SPEC_LINE = re.compile(r"^\s*(?:[-*]\s*)?Source spec:\s*`?([^`\s]+)`?\s*$", re.MULTILINE)
+
+
+class Malformed(Exception):
+    """The artifact exists but cannot be read the way the commands need it."""
+
+
+class NotFound(Exception):
+    """Nothing resolved; ``reason`` is a short code the commands branch on."""
+
+    def __init__(self, reason: str, message: str, **extra):
+        super().__init__(message)
+        self.reason = reason
+        self.extra = extra
+
+
+class Ambiguous(Exception):
+    """Several artifacts match; ``candidates`` are newest first."""
+
+    def __init__(self, message: str, candidates: list[dict]):
+        super().__init__(message)
+        self.candidates = candidates
+
+
+def parse_frontmatter(text: str) -> tuple[dict[str, str], list[str]]:
+    """Return the flat ``key: value`` frontmatter and the names under ``repos:``.
+
+    Raises Malformed when the file does not start with ``---`` or the block is
+    never closed. Quotes around a value are stripped; nested keys other than
+    the ``repos`` entries' ``name`` are ignored.
+    """
+    lines = text.splitlines()
+    if not lines or lines[0].strip() != "---":
+        raise Malformed("no frontmatter block (the file must start with ---)")
+    front: dict[str, str] = {}
+    repos: list[str] = []
+    for line in lines[1:]:
+        if line.strip() == "---":
+            return front, repos
+        match = FRONTMATTER_LINE.match(line)
+        if match:
+            front[match.group(1)] = match.group(2).strip().strip("'\"")
+            continue
+        repo = REPO_NAME_LINE.match(line)
+        if repo:
+            repos.append(repo.group(1).strip("'\""))
+    raise Malformed("frontmatter block is not closed (no second ---)")
+
+
+def parse_issue_argument(argument: str) -> tuple[str | None, int] | None:
+    """``#N``, ``N``, ``owner/repo#N`` or an issue URL -> (owner/repo or None, N)."""
+    match = ISSUE_ARG.match(argument.strip())
+    if not match:
+        return None
+    if match.group("bare"):
+        return None, int(match.group("bare"))
+    if match.group("repo"):
+        return match.group("repo"), int(match.group("num"))
+    return match.group("url_repo"), int(match.group("url_num"))
+
+
+def _artifact_kind(path: Path) -> str | None:
+    for kind, prefix in ARTIFACT_KINDS:
+        if path.name.startswith(f"{prefix}-") and path.suffix == ".md":
+            return kind
+    return None
+
+
+def _kind_files(folder: Path, kind: str) -> list[Path]:
+    prefix = dict(ARTIFACT_KINDS)[kind]
+    return sorted(p for p in folder.glob(f"{prefix}-*.md") if p.is_file())
+
+
+def _store_root_of(path: Path) -> Path | None:
+    """The repo root whose ``.feature-dev/features/<slug>/`` holds ``path``, or None."""
+    folder = path.parent
+    if folder.parent.name == "features" and folder.parent.parent.name == ".feature-dev":
+        return folder.parent.parent.parent
+    return None
+
+
+def _display_path(root: Path, path: Path) -> str:
+    try:
+        return path.resolve().relative_to(root.resolve()).as_posix()
+    except ValueError:
+        return path.as_posix()
+
+
+def _current_branch(root: Path) -> str | None:
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(root), "branch", "--show-current"],
+            capture_output=True, text=True,
+        )
+    except OSError:
+        return None
+    if result.returncode != 0:
+        return None
+    return result.stdout.strip() or None
+
+
+def _candidate(root: Path, path: Path) -> dict:
+    """A short description for the ambiguity list; never raises on a bad file."""
+    folder = path.parent
+    data = load_feature(folder)
+    item = {
+        "path": _display_path(root, path),
+        "slug": folder.name,
+        "feature": None,
+        "branch": None,
+        "status": "invalid" if isinstance(data, Invalid) else data["status"],
+        "mtime": 0.0,
+    }
+    try:
+        item["mtime"] = path.stat().st_mtime
+        front, _ = parse_frontmatter(path.read_text(encoding="utf-8"))
+        item["feature"] = front.get("feature") or None
+        item["branch"] = front.get("branch") or None
+    except (OSError, UnicodeDecodeError, Malformed):
+        pass
+    return item
+
+
+def describe_artifact(root: Path, path: Path, kind: str, matched: str) -> dict:
+    """Everything the commands read about one artifact. Raises Malformed."""
+    store_root = _store_root_of(path)
+    if store_root is None:
+        raise Malformed(f"{path.as_posix()} is not inside a .feature-dev/features/<slug>/ folder")
+    try:
+        text = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as exc:
+        raise Malformed(f"cannot read {path.as_posix()}: {exc}") from None
+    front, repos = parse_frontmatter(text)
+    expected = ARTIFACT_TYPES[kind]
+    if front.get("type") != expected:
+        raise Malformed(f"frontmatter type is {front.get('type')!r}, expected {expected!r}")
+    if not front.get("feature"):
+        raise Malformed("frontmatter has no feature: title")
+    folder = path.parent
+    data = load_feature(folder)
+    if isinstance(data, Invalid):
+        raise Malformed(f"{folder.name}: {data.reason}")
+    other = "plan" if kind == "spec" else "spec"
+    siblings = _kind_files(folder, other)
+    issue = data.get("issue")
+    source_spec = SOURCE_SPEC_LINE.search(text) if kind == "plan" else None
+    return {
+        "kind": kind,
+        "path": _display_path(root, path),
+        "slug": folder.name,
+        "feature": front["feature"],
+        "type": front["type"],
+        "date": front.get("date") or None,
+        "branch": front.get("branch") or None,
+        "repos": repos,
+        "status": data["status"],
+        "plan": data.get("plan"),
+        "issue": issue.get("ref") if isinstance(issue, dict) else None,
+        "spec_path": _display_path(root, siblings[0]) if kind == "plan" and siblings else (
+            _display_path(root, path) if kind == "spec" else None),
+        "plan_path": _display_path(root, siblings[0]) if kind == "spec" and siblings else (
+            _display_path(root, path) if kind == "plan" else None),
+        "source_spec": source_spec.group(1) if source_spec else None,
+        "external": store_root.resolve() != root.resolve(),
+        "matched": matched,
+        "error": None,
+    }
+
+
+def _pick(root: Path, kind: str, files: list[Path], matched: str, what: str,
+          *, branch: str | None = None, newest: bool = False) -> tuple[Path, str]:
+    """Narrow ``files`` to one: by itself, by ``branch:``, or by mtime with ``newest``."""
+    if not files:
+        raise NotFound("no_candidates", f"no {kind} found: {what}", searched=[what])
+    if len(files) == 1:
+        return files[0], matched
+    candidates = sorted((_candidate(root, p) for p in files), key=lambda c: -c["mtime"])
+    if branch:
+        on_branch = [c for c in candidates if c["branch"] == branch]
+        if len(on_branch) == 1:
+            return next(p for p in files if _display_path(root, p) == on_branch[0]["path"]), "branch"
+    if newest:
+        return next(p for p in files if _display_path(root, p) == candidates[0]["path"]), "newest"
+    raise Ambiguous(f"{len(files)} {kind}s match: {what}", candidates)
+
+
+def _resolve_path(root: Path, kind: str, argument: str) -> tuple[Path, str]:
+    tries = [Path(argument)] if os.path.isabs(argument) else [root / argument, Path(argument)]
+    path = next((p for p in tries if p.is_file()), None)
+    if path is None:
+        raise NotFound("file", f"file not found: {argument}", searched=[p.as_posix() for p in tries])
+    if _store_root_of(path) is None:
+        raise NotFound(
+            "outside_store",
+            f"{argument} is not in a feature folder; artifacts live in .feature-dev/features/<slug>/",
+        )
+    file_kind = _artifact_kind(path)
+    if file_kind is None:
+        raise NotFound("outside_store", f"{argument} is not a SPEC-*.md or PLAN-*.md")
+    if file_kind == kind:
+        return path, "path"
+    folder = path.parent
+    siblings = _kind_files(folder, kind)
+    if not siblings:
+        raise NotFound("no_sibling", f"{argument} is a {file_kind}; its folder {folder.as_posix()} has no {kind}",
+                       searched=[(folder / f"{dict(ARTIFACT_KINDS)[kind]}-*.md").as_posix()])
+    return _pick(root, kind, siblings, "sibling", f"{kind} beside {argument}")
+
+
+def _resolve_issue(root: Path, kind: str, repo: str | None, number: int) -> tuple[Path, str]:
+    ref = f"{repo}#{number}" if repo else f"#{number}"
+    files: list[Path] = []
+    for item in list_features(root):
+        linked = item["issue"]
+        if not linked or not linked.endswith(f"#{number}"):
+            continue
+        if repo and linked != ref:
+            continue
+        files.extend(_kind_files(root / FEATURES_DIR / item["slug"], kind))
+    if not files:
+        raise NotFound("issue_unlinked", f"no feature in the store is linked to {ref}",
+                       issue={"repo": repo, "number": number}, searched=["feature.json issue.ref"])
+    return _pick(root, kind, files, "issue", f"linked to {ref}")
+
+
+def _resolve_name(root: Path, kind: str, argument: str) -> tuple[Path, str]:
+    base = root / FEATURES_DIR
+    folder = base / argument
+    if SAFE_SLUG.fullmatch(argument) and folder.is_dir():
+        files = _kind_files(folder, kind)
+        if not files:
+            raise NotFound("no_candidates", f"feature {argument} has no {kind}",
+                           searched=[(folder / f"{dict(ARTIFACT_KINDS)[kind]}-*.md").as_posix()])
+        return _pick(root, kind, files, "slug", f"{kind} of feature {argument}")
+    wanted = argument.strip().lower()
+    files = [
+        p for item in list_features(root)
+        for p in _kind_files(base / item["slug"], kind)
+        if (_candidate(root, p)["feature"] or "").lower() == wanted
+    ]
+    if not files:
+        raise NotFound("unknown_name", f"no feature slug or title matches {argument!r}",
+                       searched=[f"{FEATURES_DIR.as_posix()}/<slug>/", "frontmatter feature:"])
+    return _pick(root, kind, files, "feature", f"{kind} titled {argument!r}")
+
+
+def _looks_like_path(argument: str) -> bool:
+    return "/" in argument or "\\" in argument or argument.endswith(".md")
+
+
+def resolve_artifact(root: Path, kind: str, argument: str | None, *, branch: str | None = None,
+                     skip_implemented: bool = False, newest: bool = False) -> tuple[int, dict]:
+    """Resolve ``argument`` to one artifact of ``kind``; return (exit code, JSON payload).
+
+    The argument may be: empty (every feature's artifact of that kind is a
+    candidate, minus ``implemented`` ones with ``skip_implemented``; several
+    are narrowed by the current branch, then by ``newest``), a path (an
+    artifact of the other kind resolves to the one beside it), an issue
+    reference (the feature linked to it), or a feature slug or title. The
+    payload always carries ``kind``, ``argument`` and ``error``; a failure adds
+    ``reason`` (exit 2), ``candidates`` (exit 3) or nothing else (exit 4).
+    """
+    if kind not in ARTIFACT_TYPES:
+        raise UsageError(f"invalid kind: {kind!r} (expected spec or plan)")
+    argument = (argument or "").strip()
+    base = {"kind": kind, "argument": argument or None}
+    try:
+        if not argument:
+            files = [
+                root / item["path"]
+                for feature in list_features(root)
+                if not (skip_implemented and feature["status"] == "implemented")
+                for item in feature["artifacts"] if item["kind"] == kind
+            ]
+            what = f"{FEATURES_DIR.as_posix()}/*/{dict(ARTIFACT_KINDS)[kind]}-*.md"
+            if skip_implemented:
+                what += " (implemented features skipped)"
+            path, matched = _pick(root, kind, files, "only", what,
+                                  branch=branch or _current_branch(root), newest=newest)
+        elif (issue := parse_issue_argument(argument)) is not None:
+            path, matched = _resolve_issue(root, kind, *issue)
+        elif _looks_like_path(argument) or (root / argument).is_file():
+            path, matched = _resolve_path(root, kind, argument)
+        else:
+            path, matched = _resolve_name(root, kind, argument)
+        return EXIT_OK, {**base, **describe_artifact(root, path, kind, matched)}
+    except NotFound as exc:
+        return EXIT_NOT_FOUND, {**base, "error": str(exc), "reason": exc.reason, **exc.extra}
+    except Ambiguous as exc:
+        return EXIT_AMBIGUOUS, {**base, "error": str(exc), "candidates": exc.candidates}
+    except Malformed as exc:
+        return EXIT_MALFORMED, {**base, "error": str(exc)}
+
+
 def _list_line(item: dict) -> str:
     parts = [item["slug"], item["status"]]
     plan = item["plan"]
@@ -463,7 +781,13 @@ def main(argv: list[str] | None = None) -> int:
     p_delete.add_argument("slug")
     p_delete.add_argument("--force", action="store_true")
     p_delete.add_argument("--dry-run", action="store_true")
-    for p in (p_new, p_approve, p_plan, p_step, p_impl, p_link, p_list, p_delete):
+    p_resolve = sub.add_parser("resolve", help="find one SPEC or PLAN from a raw argument; prints one JSON line")
+    p_resolve.add_argument("kind", choices=["spec", "plan"])
+    p_resolve.add_argument("argument", nargs="?", default=None)
+    p_resolve.add_argument("--branch", help="narrow several candidates to this branch (default: git's current branch)")
+    p_resolve.add_argument("--skip-implemented", action="store_true", help="with no argument, ignore implemented features")
+    p_resolve.add_argument("--newest", action="store_true", help="when still ambiguous, take the newest file")
+    for p in (p_new, p_approve, p_plan, p_step, p_impl, p_link, p_list, p_delete, p_resolve):
         p.add_argument("--root", default=".")
     try:
         args = parser.parse_args(argv)
@@ -495,6 +819,13 @@ def main(argv: list[str] | None = None) -> int:
                 print(path.relative_to(root).as_posix())
         elif args.command == "link-issue":
             link_issue(root, args.slug, args.ref, args.fingerprint, args.kind)
+        elif args.command == "resolve":
+            code, payload = resolve_artifact(
+                root, args.kind, args.argument, branch=args.branch,
+                skip_implemented=args.skip_implemented, newest=args.newest,
+            )
+            print(json.dumps(payload))
+            return code
         else:
             apply(root, args.slug, "plan --replace" if args.replace else "plan",
                   steps=args.steps, from_spec=args.from_spec)

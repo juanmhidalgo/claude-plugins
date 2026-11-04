@@ -27,6 +27,8 @@ Claude Code plugins marketplace. Each top-level directory (e.g., `code-review/`,
 
 For deeper conventions (frontmatter fields, discoverability, progressive disclosure), see `.claude/rules/plugin-creation.md` (auto-loaded when working in a plugin directory). For skill testing, see `.claude/rules/skill-testing.md`.
 
+**Tests.** Workflow scripts (`<plugin>/workflows/*.js`) have unit tests under `tests/workflows/`: `node --test tests/workflows/` from the repo root (no dependencies). `harness.mjs` loads a script the way the Workflow tool does and injects stubbed globals; the test supplies `agent(prompt, opts)` and dispatches on `opts.label`, the harness provides `parallel`/`pipeline` with the tool's semantics and records every call. When you change a workflow's retry, aggregation or sort rules, update its test file. Shell scripts have bash tests next to them (`<plugin>/tests/test-*.sh`, `shared/args/tests/`, `scripts/test-release-check.sh`); run the ones for the scripts you touched.
+
 </architecture>
 
 <critical_rules>
@@ -42,7 +44,9 @@ When modifying any plugin:
 3. **Update the CHANGELOG.md** in the plugin's root with the changes made
 4. **Mirror the new version** in `.claude-plugin/marketplace.json` — the registry duplicates every plugin's version, and a stale entry pins installs to the old version
 
-NEVER skip version bumping. Two `PostToolUse` hooks enforce this: `version-bump-check.sh` warns when a plugin file is edited without a bump or CHANGELOG entry, and `marketplace-sync-check.sh` warns when a registry version drifts from its `plugin.json`. Bypass either with `SKIP_VERSION_CHECK=1` for genuinely in-progress work. After touching either hook, run `bash .claude/hooks/test-hooks.sh`.
+NEVER skip version bumping. Two `PostToolUse` hooks remind you mid-edit: `version-bump-check.sh` warns when a plugin file is edited without a bump or CHANGELOG entry, and `marketplace-sync-check.sh` warns when a registry version drifts from its `plugin.json`. Bypass either with `SKIP_VERSION_CHECK=1` for genuinely in-progress work. After touching either hook, run `bash .claude/hooks/test-hooks.sh`.
+
+**The commit gate enforces it.** `.githooks/pre-commit` runs `scripts/release-check.sh --staged`, which fails the commit when a staged plugin change keeps its HEAD version, the staged CHANGELOG has no heading for the new version, a registry version differs from its `plugin.json`, or `shared/sync.sh --check` reports drift (that one reads the working tree). It is not active until you run `git config core.hooksPath .githooks` once per clone. Bypass a single commit with `SKIP_VERSION_CHECK=1 git commit ...`; the gate prints that it was bypassed. Tests: `bash scripts/test-release-check.sh`.
 
 When editing `marketplace.json`, change the version lines in place. Re-serializing the file (e.g. `json.dump`) reflows every inline `keywords` array and turns a 3-line change into a 120-line diff.
 

@@ -11,7 +11,7 @@ disallowed-tools:
   - Edit
   - Write
   - NotebookEdit
-argument-hint: "[low|medium|high|max] [--spec <path|#N>] [--pane|--no-pane]"
+argument-hint: "[low|medium|high|max] [--spec <path|#N>] [--pane|--no-pane]  (a --spec path cannot contain spaces)"
 description: |
   Use to review staged changes before committing, in a reviewer that has NOT seen this
   conversation — the right choice when this session wrote the code being staged.
@@ -44,7 +44,7 @@ hooks:
 ## Context
 - **Current branch**: !`git branch --show-current`
 - **Staged files**: !`git diff --cached --name-only`
-- **Effort level**: $1
+- **Arguments**: !`bash "${CLAUDE_PLUGIN_ROOT}/scripts/args.sh" '$ARGUMENTS'`
 - **All arguments**: $ARGUMENTS
 
 ## Staged Changes Summary
@@ -52,14 +52,19 @@ hooks:
 
 ## Effort level
 
-`--pane` / `--no-pane` and `--spec <value>` are flags (drop the value after `--spec` too), not the effort level: drop them first.
+The **Arguments** line is the parsed form of what the user typed: one JSON
+object with `pane`, `spec`, `effort` and `positional`. Read its fields; do not
+parse the raw arguments yourself. `spec` is `null` when none was given, and
+`find-spec.sh` then searches on its own; a path with spaces cannot be passed.
+This command takes no positional argument: anything in `positional` is a typo
+to mention, not a level.
 
-`$1` is one of `low | medium | high | max`, default `medium`. `low`/`medium`
+`effort` is one of `low | medium | high | max`, default `medium`. `low`/`medium`
 surface only findings verified against the code path; `high`/`max` add broader
 coverage including findings the reviewer could not fully confirm, each marked.
 
-If `$1` is empty, read `pr_effort:` from `.claude/code-review.local.md`; else
-`medium`.
+If `effort` is `null`, read `pr_effort:` from `.claude/code-review.local.md`;
+else `medium`.
 
 ## Why this is dispatched and not done inline
 
@@ -81,9 +86,10 @@ silently downgrade.
 
 ## Herdr pane
 
-If `--pane` is in the arguments, or `review_in_pane` is configured `true`
-(`${user_config.review_in_pane}`), run this review in a Herdr pane in
-**collect** mode: follow `${CLAUDE_PLUGIN_ROOT}/references/herdr-pane.md`
+Run this review in a Herdr pane when `pane` is `true`, or when `pane` is `null`
+and `review_in_pane` is configured `true` (`${user_config.review_in_pane}`).
+`pane: false` always wins: it is what the pane session itself receives. In the
+pane, run in **collect** mode: follow `${CLAUDE_PLUGIN_ROOT}/references/herdr-pane.md`
 instead of the Dispatch below. It falls back to the normal run outside Herdr.
 
 - **Command string**: `/code-review:staged <effort> [--spec <value>] --no-pane`
@@ -125,7 +131,7 @@ for the commit you are about to make.
 
 At effort `medium` and above, also review the change against the spec it was
 built from, following **`references/spec-axis.md` in the `branch-review`
-skill**: run `find-spec.sh --staged [--spec <value>]`, and if it finds a source, launch
+skill**: run `find-spec.sh --staged [--spec <spec>]` (the flag only when `spec` is not `null`), and if it finds a source, launch
 `code-review:spec-conformance-reviewer` in the same message as the reviewer
 above. Its findings are verified under the same trigger as the reviewer's and
 presented in their own `### Spec` section.

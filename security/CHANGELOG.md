@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.4.0] - 2026-11-04
+
+### Changed
+- **`/security:audit` reads its arguments from `scripts/args.sh`** (synced from `shared/args/`): the Context block carries the scope as `positional` and the Herdr flag as `pane`, as JSON, instead of prose that stripped `--pane` / `--no-pane` by hand. **Why:** measured on Claude Code 2.1.317, `$ARGUMENTS` is substituted as text into a command's `` !` `` block before the shell runs, so one shared parser replaces every hand-written "drop the flags first" across the plugins.
+
 ## [1.3.0] - 2026-10-06
 
 ### Added

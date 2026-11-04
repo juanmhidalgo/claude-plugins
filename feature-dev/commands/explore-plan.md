@@ -4,7 +4,6 @@ model: opus
 allowed-tools:
   - Read
   - Write
-  - Agent
   - Workflow
   - Glob
   - AskUserQuestion
@@ -14,7 +13,6 @@ allowed-tools:
   - Bash(gh issue edit *)
   - Bash(git branch --show-current)
   - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/issue_spec.py *)
-  - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/review_server.py snapshot *)
   - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/features.py *)
 argument-hint: "[SPEC-*.md path or feature description — optional; picks from the feature store if omitted]"
 description: |
@@ -43,27 +41,55 @@ triggers:
 
 ## Phase 0: Resolve Feature and Validate
 
-1. **Resolve the feature:**
-   - **If `$ARGUMENTS` is the path of an existing `SPEC-*.md`** → use that spec as if it had been auto-selected below (the closing lines of `/feature-dev:spec` and `/feature-dev:spec-review` print this form). A spec of **this** repo must sit in `.feature-dev/features/<slug>/`; refuse any other path (a root `SPEC-*.md`, or the layout older than 2.0.0) in one line and name `.feature-dev/features/<slug>/` as the only place specs live.
-   - **If `$ARGUMENTS` is `#N`, `owner/repo#N`, or an issue URL** → resolve it per [issue-store.md's Argument parsing](../skills/spec-driven-development/references/issue-store.md#argument-parsing), then run [issue-store.md's Import algorithm](../skills/spec-driven-development/references/issue-store.md#import-ac-8-ac-9-ac-10-ac-11-ac-12) against it, start to finish. Do not restate Import's steps here — follow the reference. A failed `gh` preflight, or a failed `gh issue view` call, stops here and names the issue that could not be read. On success, continue as if `$ARGUMENTS` had been the resulting `SPEC-<slug>.md` path (the reference's own step 6).
-   - **If `$ARGUMENTS` is any other text** → use it as the feature description. There is no spec: this is a plan-only feature (see step 3).
-   - **If `$ARGUMENTS` is empty** → run `${CLAUDE_PLUGIN_ROOT}/scripts/features.py list --json --root <repo root>` and keep the features that have a SPEC artifact and whose `status` is not `implemented` (those features are already shipped). A missing `.feature-dev/features/` is an empty list. From the remaining candidates:
-     - **0 specs** → **STOP** and ask the user for a feature description.
-     - **1 spec** → use it. Read its frontmatter, use `feature:` as the feature description, and take the spec path from its `artifacts`. Inform the user: "Auto-selected spec: `<spec path>` (feature: <name>, status: <status>)".
-     - **2+ specs** → use AskUserQuestion to let the user pick (label = `feature:` value, description = `<slug> — status: <status>`). Use the chosen spec's `feature:` as the feature description.
-2. **Check the chosen spec's state.** Read its `status` from `list --json`.
+**Requires the `Workflow` tool.** If it is not available, **STOP** and say so:
+Phase 1 runs as the `feature-dev:plan-fanout` workflow, and under `claude -p`
+or the SDK it needs a `Workflow(feature-dev:plan-fanout)` allow rule. There is
+no in-session fallback: a generator spawned from here cannot fan out to the
+explorers (a named spawn is a teammate, and a teammate cannot spawn agents),
+and a plan written by one reader that looks like eight cross-checked it is the
+failure the workflow exists to prevent.
+
+1. **Resolve the feature.** Run, once:
+
+   ```bash
+   ${CLAUDE_PLUGIN_ROOT}/scripts/features.py resolve spec '<argument>' --skip-implemented --root <repo root>
+   ```
+
+   `<argument>` is `$ARGUMENTS` as given (omit it when empty). The script takes
+   a `SPEC-*.md` path (a `PLAN-*.md` path resolves to the spec beside it), `#N`,
+   `owner/repo#N` or an issue URL, a feature slug or title, or nothing (every
+   feature with a spec, implemented ones skipped since they are already shipped;
+   several are narrowed to the current branch). It prints one JSON line. On
+   success: `path`, `slug`, `feature`, `branch`, `repos` (the names in the
+   frontmatter's `repos:` block), `status`, `plan` (progress, or null), `issue`
+   (ref, or null), `plan_path` (a PLAN already beside the spec, or null),
+   `external` (the spec sits in another repo's `.feature-dev/features/`) and
+   `matched` (how it was found). On failure: `error`, plus `reason` (exit 2) or
+   `candidates` (exit 3).
+
+   | Exit | Meaning | Do |
+   |------|---------|----|
+   | `0` | Resolved | Continue with the JSON. When `matched` is not `path`, say: "Auto-selected spec: `<path>` (feature: <feature>, status: <status>)" |
+   | `2` | `reason: issue_unlinked` | No local feature is linked to `issue` (`repo` null means this repo: resolve it per [issue-store.md's Argument parsing](../skills/spec-driven-development/references/issue-store.md#argument-parsing)). Run [issue-store.md's Import algorithm](../skills/spec-driven-development/references/issue-store.md#import-ac-8-ac-9-ac-10-ac-11-ac-12) against it, start to finish; do not restate Import's steps here. A failed `gh` preflight, or a failed `gh issue view` call, stops here and names the issue that could not be read. Then re-run `resolve spec` with the `SPEC-<slug>.md` path Import produced (the reference's own step 6) and read that result |
+   | `2` | `reason: unknown_name` | `$ARGUMENTS` is a feature description. There is no spec: this is a **plan-only feature** (step 3) |
+   | `2` | `reason: no_candidates` | **STOP** and ask the user for a feature description or a spec path |
+   | `2` | `reason: file`, `outside_store` or `no_sibling` | **STOP** and refuse it in one line, quoting `error`, naming `.feature-dev/features/<slug>/` as the only place specs live (a root `SPEC-*.md`, or the layout older than 2.0.0, is `outside_store`) |
+   | `3` | Ambiguous | AskUserQuestion over `candidates` (label = `feature`, description = `<slug> — status: <status>`), then re-run `resolve spec` with the chosen `path` |
+   | `4` | Malformed | **STOP** and quote `error`: the spec, or its `feature.json`, has to be fixed before planning |
+
+2. **Check the chosen spec's state**, from the JSON's `status` and `external`.
    - **If the spec's status is `draft`**:
      - Ask once with AskUserQuestion: "This spec is still a draft. Mark it approved and plan it?" (options: approve and continue / stop).
      - **Yes** → run `${CLAUDE_PLUGIN_ROOT}/scripts/features.py approve <slug> --root <repo root>` and continue.
      - **No** → **STOP** and point the user to `/feature-dev:review <spec path>` to approve it first. Never plan from `draft`.
-   - **If the spec lives in a sibling repo** (a path outside this repo's `.feature-dev/features/`, e.g. `../other-repo/.feature-dev/features/<slug>/SPEC-<slug>.md`):
+   - **If `external` is `true`** (the spec lives in a sibling repo, e.g. `../other-repo/.feature-dev/features/<slug>/SPEC-<slug>.md`):
      - Treat it as a plan-only feature: run `new <slug> --kind plan` without `--spec` (step 3), because the spec has no folder here.
      - Read the sibling spec for the feature description and ACs, and reference it by path in the PLAN body (a `Source spec: <path>` line under the Summary). The path is a reference, not a key.
    - **Any other status** (`approved`, `planned`, `running`, `halted`) → continue.
-3. Parse the feature into a one-line summary for agent prompts. Pick the slug: lowercase, hyphenated, max 4 words from the feature name (E.g., `scheduled-notifications`); with a spec in this repo, reuse its `slug:` value. The **plan path** comes from the script, never composed by hand:
-   - **Spec in this repo, no plan yet** → `${CLAUDE_PLUGIN_ROOT}/scripts/features.py new <slug> --kind plan --spec <spec-slug> --root <repo root>` prints `.feature-dev/features/<spec-slug>/PLAN-<slug>.md`.
-   - **Plan-only feature** (description only, or a sibling-repo spec) → `features.py new <slug> --kind plan --root <repo root>` prints the path in its own folder.
-   - **A plan already exists** (the feature's `artifacts` in `list --json` lists a PLAN) → that path is rewritten in place and `new` is not called.
+3. Parse the feature into a one-line summary for agent prompts. Pick the slug: lowercase, hyphenated, max 4 words from the feature name (E.g., `scheduled-notifications`); with a spec in this repo, reuse the JSON's `slug`. The **plan path** comes from the script, never composed by hand:
+   - **Spec in this repo, no plan yet** (`plan_path` is null) → `${CLAUDE_PLUGIN_ROOT}/scripts/features.py new <slug> --kind plan --spec <spec-slug> --root <repo root>` prints `.feature-dev/features/<spec-slug>/PLAN-<slug>.md`.
+   - **Plan-only feature** (description only, or an external spec) → `features.py new <slug> --kind plan --root <repo root>` prints the path in its own folder.
+   - **A plan already exists** (`plan_path` is not null) → that path is rewritten in place and `new` is not called.
 
    Every `PLAN-<slug>.md` below means this path. A plan-only feature has no spec to hold decisions, so they go in a `## Decisions Log` section in the PLAN body.
 4. **Select the explorers.** Four always run: `backend-explorer`, `frontend-explorer`, `test-explorer`, `history-explorer`. Add any of the four below whose signal is present in the feature description or, if a spec was chosen, in the spec body (read it — the frontmatter alone is not enough signal).
@@ -72,7 +98,7 @@ triggers:
    |---|---|
    | `schema-explorer` | touches persistence: a new/changed model, table, column, index, constraint, or migration; a data backfill; anything with a storage shape |
    | `config-explorer` | introduces or reads a setting, an environment variable, a credential, or a feature flag; behaves differently per environment; needs a rollout toggle |
-   | `api-contract-explorer` | is consumed across a repo boundary: the spec's frontmatter has 2+ `repos:` entries, or the feature changes a declared contract (OpenAPI, GraphQL SDL, tRPC router, protobuf, JSON Schema) |
+   | `api-contract-explorer` | is consumed across a repo boundary: the JSON's `repos` has 2+ names, or the feature changes a declared contract (OpenAPI, GraphQL SDL, tRPC router, protobuf, JSON Schema) |
    | `observability-explorer` | ships something whose failure is silent: a background job, queue consumer, scheduled task, webhook handler, payment or auth path — anywhere post-ship visibility is how you learn it broke |
 
    These are cheap (read-only, parallel, `maxTurns: 30`) and the cost of omitting one is planning blind on the highest-risk layer. **When a signal is borderline, include the explorer.** Record the selected list; you pass it to the Phase 1 workflow as `explorers`.
@@ -116,38 +142,13 @@ conversation, only the plan file and the result.
 
 **Record the plan in the feature store** once the result is in: run
 `${CLAUDE_PLUGIN_ROOT}/scripts/features.py plan <slug> --steps <steps> --root <repo root>`.
-When the feature is already past `approved` (a plan existed, or it is a
-plan-only feature), add `--replace`. A refusal (`refused: …`) names the state
+When the feature is already past `approved` (`plan_path` was not null, or it
+is a plan-only feature), add `--replace`. A refusal (`refused: …`) names the state
 and the valid events; report it instead of editing `feature.json`.
 
-Keep `review` for Phase 3. Do not print the report in full.
+Keep `review` for Phase 2. Do not print the report in full.
 
-## Phase 2: Fallback when workflows are disabled
-
-Only when `Workflow` is not available. Say that the workflow path was not used.
-
-1. **Generate.** Launch one anonymous `general-purpose` Agent (do **not** pass
-   `name`: a named spawn is a teammate, and a teammate cannot spawn the
-   explorers). Its prompt gives the feature summary, repo, branch, plan path,
-   source spec, the selected explorers, `PLUGIN_ROOT: ${CLAUDE_PLUGIN_ROOT}` and
-   `RULES: ${CLAUDE_PLUGIN_ROOT}/references/plan-generation.md`, and tells it to:
-   - launch every selected explorer (`feature-dev:<name>-explorer`, prompt
-     "Explore <layer> for: <summary>") plus the four base ones in a single
-     response, none with `name`. A refused spawn is retried once without
-     `name`; if it is refused again, the generator explores that layer itself
-     and writes the `Degraded exploration` line, quoting the refusal;
-   - then follow Steps 2, 2b, 2c and 3 of RULES.
-2. **Review.** Spawn `feature-dev:spec-plan-validator` (no `name`) with
-   `artifact_type: plan` and `artifact_path: <plan path>`. On Blocking findings,
-   re-dispatch one anonymous `general-purpose` Agent with the plan path, the
-   Blocking findings verbatim, PLUGIN_ROOT and RULES: snapshot the plan with
-   `${CLAUDE_PLUGIN_ROOT}/scripts/review_server.py snapshot <plan path>`, fix
-   each finding in place touching only what it names, follow Steps 2b and 2c
-   for changed steps, leave a finding that needs a user decision. Then validate
-   once more. No second re-dispatch.
-3. **Record** the plan in the feature store as Phase 1 says.
-
-## Phase 3: Review Brief
+## Phase 2: Review Brief
 
 Read `PLAN-<slug>.md` from disk and end with a review brief instead of re-printing the plan. Users approve from the chat; a plan printed in full gets approved unread, while a short numbered list gets answered item by item. Give the full plan only on request.
 
@@ -176,7 +177,7 @@ The **Plan review** group leads because a remaining Blocking finding is the one 
 
 Every Baseline row that gates a step — `hollow`, or `not-run` for `missing` — goes under **Unverified**, with a note that /tdd will ask about it before its first dispatch (fix the environment, give a replacement `Verify`, or accept the step as unverifiable by its gate). `not-run` for `slow` or `writes` goes there too, without the note: it does not gate, but nothing checked it on HEAD.
 
-3. **Publish the plan** when the feature's `issue` in `list --json` is not null.
+3. **Publish the plan** when the Phase 0 JSON's `issue` is not null.
    Ask once with AskUserQuestion: **Publish the plan to #N (Recommended)** /
    **Keep it local**. Publishing runs [issue-store.md's Publish algorithm](../skills/spec-driven-development/references/issue-store.md#publish-ac-1-ac-2-ac-3-ac-4-ac-5-ac-7)
    with kind `plan` against `PLAN-<slug>.md` and the feature's `#N`, start to

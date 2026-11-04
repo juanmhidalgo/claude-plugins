@@ -1,5 +1,27 @@
 # Changelog
 
+## 4.2.0 (2026-11-04)
+
+### Added
+- **`scripts/pr-preflight.sh`: `/code-review:pr` Steps 1 and 3 as one deterministic `gh pr view --json` call.** Exit 0 eligible, 3 not open or draft, 7 gh failed, 8 bot author, 9 trivial; one JSON line with state, author, title, body, base/head, head SHA, the per-file stat and `trivial`. Trivial means only repository docs (`docs/`, README, CHANGELOG, CONTRIBUTING, LICENSE), editor/VCS config or lockfiles changed: any other `.md` counts as code, because in a repository like this one markdown is the code. `--allow-trivial` turns that verdict into eligible, for a review the user asked for by number. Tests in `tests/test-pr-preflight.sh` (29 cases, fake `gh`). **Why:** eligibility is a lookup, not a judgement; two haiku agents spent a model call each on data `gh` already returns, and could disagree with each other.
+- **`scripts/run-tests.sh`: `/code-review:pipeline` Phase 5 as one step.** It finds the project's runner (a Makefile `test` target first, then a package.json `test` script run by the lockfile's package manager, pytest via `uv run pytest` or `pytest`, `cargo test`, `go test ./...`), runs it with the output captured to `<git-dir>/code-review-tests/` and prints one JSON line with `passed`, the log path and the last 30 lines. Exit 10 means no runner (the phase is skipped and reported), exit 11 a runner whose command is not installed (a stop, not a failure to fix). The command keeps the three-attempt rule and says "attempt N of 3" at each run. 26 cases in `tests/test-run-tests.sh`. **Why:** runner discovery and the retry count were prose the model re-derived each run, and a test failure's output sat in the conversation instead of a file.
+- **`scripts/args.sh` (synced from `shared/args/`) parses the arguments of `pr`, `branch`, `staged`, `tech-debt`, `staged-pipeline` and `pipeline`**: their `## Context` block carries `pane`, `spec`, `effort` and `positional` as JSON. **Why:** measured on Claude Code 2.1.317, `$ARGUMENTS` is substituted as text into a command's `` !` `` block before the shell runs, `$N` in a command body is 0-indexed (so every "read `$1` and `$2`" was off by one), and `"$ARGUMENTS"` in double quotes is a shell injection; a single-quoted call to one parser is the one form measured safe, and it replaces the flag-stripping prose repeated in six commands.
+- **`evals/`: a `claude plugin eval` suite for `pipeline`'s Phase 0** (seven offline cases against a fake `gh`, deterministic graders only). Written and validated without a model; it has not completed a model run yet, because the eval runner's sandbox does not nest inside a Claude session. Run `evals/run.sh` from a terminal.
+
+### Changed
+- **`/code-review:pipeline` Phase 4 runs the `review` workflow in fix mode** instead of dispatching `fix-implementer` agents from the session. Phase 3 builds one finding per `VALID BUG` from the triage verdict (`id: ref_id`, severity from priority, the verifier's reason and refutation, the session's minimal fix; never the comment body) with `source: "pr-comment"`, and the workflow runs one fixer per finding, sequentially, in order. The syntax read and the scope check stay in the command after the workflow returns; `REFUSED` fixes are reported under Refused, `NO_CHANGE` under Needs investigation. `review.js`'s `findingText` leaves out empty optional fields and `fix()` tells a `pr-comment` fixer where the claim came from; review-mode callers see the same prompts as before. **Why:** parallel fixers in one session were the one fan-out the pipeline still ran by hand, and two fixes in one file could race; the workflow's sequential run is deterministic and the fix prompt is now the same one feature-dev and github-issues use.
+- `pr`, `branch`, `staged`, `tech-debt`, `staged-pipeline` and `pipeline` read the parsed JSON instead of positional `$N`: `effort` null falls back to the remembered level, `spec` null lets `find-spec.sh` search, `pane` null falls back to `review_in_pane` (false always wins). Argument hints note that a `--spec` path cannot contain spaces.
+- `pr` Step 3 feeds the `claudemd` axis the PR title, body and file stat verbatim instead of a model-written summary. **Why:** the reviewers read the diff themselves; a paraphrase only carried this session's framing into theirs.
+- `pr`, `staged-pipeline` and `workflow-path.md` require the `Workflow` tool and stop with the `Workflow(code-review:review)` allow rule when it is missing, as `triage` and `pipeline` do since 4.1.0. **Why:** the Agent-per-dimension fallback was a second, untested copy of the fan-out that drifted from the workflow.
+- `fix-implementer`'s description and output section name the workflow's structured fields (`status`, `file`, `change`, `reason`).
+
+### Removed
+- Agents `pr-eligibility-checker` and `pr-summarizer` (replaced by `pr-preflight.sh`).
+- The no-workflow Agent fallback in `pr` (dimension table, `OUTPUT_PATH` dispatch, "Deduplicate before verifying") and in `staged-pipeline` (branch-reviewer dispatch), and the "if workflows are disabled" sentence in `workflow-path.md`. `Agent` left `pr`'s allowed-tools; `branch`/`staged` keep their single `branch-reviewer` at `low`/`medium` by design.
+
+### Fixed
+- `pipeline-phase-details.md` Phase 5b still ran `gh pr view $ARGUMENTS`; it names the PR now. The decision table said two retries while Phase 5 said three attempts; it is three attempts in all everywhere.
+
 ## 4.1.0 (2026-11-04)
 
 ### Added

@@ -1,0 +1,43 @@
+schema_version: "1.1"
+name: pipeline-gh-feedback-missing
+description: >
+  Phase 0, exit 4: `gh feedback --version` fails. The pipeline must STOP and
+  print the install command the exit table names, and must not install
+  anything or go on to the PR lookup.
+tags: [pipeline, phase-0, exit-4]
+runs: 1
+
+context:
+  scaffold_script: scaffold.sh
+
+execution:
+  prompt: /code-review:pipeline 1
+  max_turns: 15
+  timeout_seconds: 300
+  allowed_tools: [Read, Glob, Grep, Bash, Agent, Workflow]
+
+graders:
+  - name: enter-run
+    type: tool_used
+    tool: Bash
+    input_match: 'pipeline-branch\.sh enter 1'
+  - name: triage-workflow-not-run
+    type: tool_used
+    tool: Workflow
+    min: 0
+    max: 0
+  - name: did-not-install
+    type: tool_used
+    tool: Bash
+    input_match: 'gh extension install'
+    min: 0
+    max: 0
+  - name: gh-never-looked-up-pr
+    type: regex
+    target: { source: file, path: .git/fake-gh.log }
+    match: not_contains
+    pattern: 'pr (view|checkout)'
+  - name: prints-install-command
+    type: regex
+    target: last_message
+    pattern: 'gh extension install juanmhidalgo/gh-feedback'

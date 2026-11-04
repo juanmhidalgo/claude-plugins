@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Fake `gh` for the ship eval suite. run.sh puts it first on PATH, so no call
+# reaches GitHub. It answers the read-only lookups the skill makes and refuses
+# every write. Every call is appended to <git-dir>/fake-gh.log.
+set -uo pipefail
+git_dir=$(git rev-parse --git-dir 2>/dev/null || echo .)
+printf '%s\n' "$*" >> "$git_dir/fake-gh.log"
+
+case "${1:-} ${2:-}" in
+  "--version ")            echo "gh version fake" ;;
+  "auth status")           echo "fake gh: logged in" ;;
+  "repo view")             echo master ;;
+  "pr view")               echo "no pull requests found for branch" >&2; exit 1 ;;
+  "pr list")               : ;;
+  "pr checks")             echo "no checks reported" >&2; exit 1 ;;
+  "extension list")        : ;;
+  "feedback --version")    exit 1 ;;
+  "pr create"|"pr edit"|"pr merge"|"pr close"|"pr comment"|"pr review"|"api "*|"api")
+    echo "fake gh: refused to write to GitHub: $*" >&2; exit 1 ;;
+  *) echo "fake gh: unexpected call: $*" >&2; exit 99 ;;
+esac

@@ -40,7 +40,7 @@ triggers:
 ## Context
 - **Current branch**: !`git branch --show-current`
 - **Working tree**: !`git status --short`
-- **Arguments**: $ARGUMENTS
+- **Arguments**: !`bash "${CLAUDE_PLUGIN_ROOT}/scripts/args.sh" '$ARGUMENTS'`
 
 This command resolves what to review, then runs the review loop: code-review's
 `code-review:review` workflow, an approval gate, fixes and a delta review. The
@@ -49,8 +49,11 @@ every reason it looks right.
 
 ## 1. Resolve the scope
 
-Strip `--base <branch>`, `--effort <level>` (default `high`) and `--spec <value>`
-first; what remains is the feature, possibly empty.
+Read the Arguments JSON from Context first. `spec` is the `--spec <value>`
+(null when absent) and `effort` is the level (`high` when null). Two flags the
+parser does not know stay in `positional`: `--base` followed by its branch
+(remove both), and a bare `--effort` left in front of its level (drop it). What
+remains of `positional`, joined with spaces, is the feature, possibly empty.
 
 - **`--base <branch>`** → the work is committed. Scope: `branch <current> vs base <branch>`.
   The working tree must be clean: fixes are told apart from the reviewed code
@@ -71,7 +74,7 @@ review reads.
 **Spec sources.** The spec axis needs `spec-file <path>` or `issue <N> closes`
 lines:
 
-1. `--spec <path>` → `spec-file <path>`; `--spec #N` → `issue <N> closes`.
+1. `spec` set: a path → `spec-file <path>`; `#N` → `issue <N> closes`.
 2. Else the feature: a slug or `SPEC-*.md` path in the arguments, or else the
    single entry of `${CLAUDE_PLUGIN_ROOT}/scripts/features.py list --json --root <repo root>`
    whose status is `implemented` or `running` (several → AskUserQuestion; none →
@@ -84,7 +87,7 @@ lines:
 
 Follow `${CLAUDE_PLUGIN_ROOT}/references/review-loop.md` with:
 
-- **scope** and **spec_sources** from step 1, **effort** from `--effort`
+- **scope** and **spec_sources** from step 1, **effort** from the Arguments JSON (`high` when null)
 - **axes**: all three; no **focus**
 - **title**: `Harden`
 

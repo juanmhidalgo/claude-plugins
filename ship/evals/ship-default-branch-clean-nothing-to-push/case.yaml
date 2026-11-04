@@ -1,0 +1,57 @@
+schema_version: "1.1"
+name: ship-default-branch-clean-nothing-to-push
+description: >
+  Phase 1, preflight exit 2 on the default branch: clean tree, master already
+  on origin. The skill must stop and say there is nothing to ship before the
+  branch question: no question, no branch, no commit, no push, no PR.
+tags: [ship, phase-1, exit-2, default-branch]
+runs: 1
+
+context:
+  scaffold_script: scaffold.sh
+
+execution:
+  prompt: /ship:ship
+  max_turns: 15
+  timeout_seconds: 300
+  allowed_tools: [Read, Glob, Grep, Bash, Skill, AskUserQuestion]
+
+graders:
+  - name: preflight-run
+    type: tool_used
+    tool: Bash
+    input_match: 'ship-preflight\.sh'
+  - name: no-question
+    type: tool_used
+    tool: AskUserQuestion
+    min: 0
+    max: 0
+  - name: no-commit
+    type: tool_used
+    tool: Bash
+    input_match: 'git commit'
+    min: 0
+    max: 0
+  - name: no-push
+    type: tool_used
+    tool: Bash
+    input_match: 'git push'
+    min: 0
+    max: 0
+  - name: no-branch-created
+    type: tool_used
+    tool: Bash
+    input_match: 'git (checkout -b|switch -c)'
+    min: 0
+    max: 0
+  - name: no-pr-created
+    type: tool_used
+    tool: Bash
+    input_match: 'gh pr create'
+    min: 0
+    max: 0
+  - name: says-nothing-to-ship
+    type: regex
+    target: last_message
+    flags: i
+    pattern: 'nothing to (commit|ship|push|stage)|no (changes|uncommitted|new commits)|(working tree|tree) (is )?clean|up[- ]to[- ]date|already pushed'

@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.2.0] - 2026-11-04
+
+### Added
+- **`scripts/ship-preflight.sh`: Phase 1 as one deterministic step.** It prints one JSON line (branch, default branch and where it came from, remote, upstream, ahead/behind, commits ahead of the base, staged/unstaged/untracked counts, `mode`, `gh` state, `gh-feedback`, the open PR for the branch, the PR templates) and exits 0 when /ship can go on, or with a distinct code for each early stop: 2 nothing to ship, 3 default branch with `--yes`, 4 detached HEAD, 5 no remote, 7 git failed. `--yes` is passed through so the script, not the model, applies the headless rules. Tests in `tests/test-ship-preflight.sh` (21 cases, fake `gh`, throwaway repo). **Why:** the skill decided its preconditions in prose, running `git status`, `gh repo view`, `gh pr view` and `gh feedback --version` and interpreting each; the same state could read differently from run to run, and a "no changes" or "already a PR" call was a judgement, not a fact.
+
+### Changed
+- **Phase 1 is a bash block and an exit-code table** (the shape of the pipeline's Phase 0); the later phases read the preflight fields (`upstream`/`remote` for the push form, `pr` to skip the PR, `pr_templates` for the template, `gh_feedback` for the watcher) instead of re-running those commands. The three `` !` `` git embeds in Context are gone.
+- **No remote stops before anything is staged** (preflight exit 5) instead of after the commit; a detached HEAD is now an explicit stop (exit 4). A branch behind its upstream is reported up front (`behind`), and the push-rejected path is unchanged.
+- `allowed-tools` gains `Bash(${CLAUDE_PLUGIN_ROOT}/scripts/*)`.
+- **`evals/`: a `claude plugin eval` suite for the early stops** (four offline cases against a fake `gh`, deterministic graders only). Written and validated without a model; it has not completed a model run yet, because the eval runner's sandbox does not nest inside a Claude session. Run `evals/run.sh` from a terminal.
+
 ## [2.1.1] - 2026-11-01
 
 ### Fixed

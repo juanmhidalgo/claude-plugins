@@ -28,22 +28,40 @@ If you were dispatched as a subagent to execute a specific task, skip this comma
 ## Context
 - **Repository**: !`git remote get-url origin`
 - **Current branch**: !`git branch --show-current`
-- **Plan argument**: $ARGUMENTS
+- **Arguments**: !`bash "${CLAUDE_PLUGIN_ROOT}/scripts/args.sh" '$ARGUMENTS'`
 - **Feature store**: each feature lives in `.feature-dev/features/<slug>/`, managed by `${CLAUDE_PLUGIN_ROOT}/scripts/features.py` (pass `--root <repo root>`). Layout: [artifact-locations.md](../skills/spec-driven-development/references/artifact-locations.md).
 
 ## Phase 0: Resolve the Plan File
 
-`--pane` / `--no-pane` are flags: drop them before reading `$ARGUMENTS` below.
+The plan argument is `positional[0]` from the Arguments JSON in Context (none:
+auto-discover). `pane` is the Herdr flag: `true` opens a pane, `false` or
+`null` runs here. Run, once:
 
-1. **If `$ARGUMENTS` is provided** → use it as the path to the plan file. If the file does not exist, STOP and report. Refuse any path outside `.feature-dev/features/` (a root `PLAN-*.md`, or the layout older than 2.0.0) in one line, naming `.feature-dev/features/<slug>/` as the only place plans live.
-2. **If `$ARGUMENTS` is empty** → auto-discover plan files. Run `${CLAUDE_PLUGIN_ROOT}/scripts/features.py list --json --root <repo root>` and take the `artifacts` entries with `kind: "plan"` (each has a `path`). From the candidates:
-   - **0 plans** → STOP and ask the user to provide a path or run `/feature-dev:explore-plan` first.
-   - **1 plan** → use it. Inform the user: "Auto-selected plan: `<plan path>` (feature: <name>)".
-   - **2+ plans** → use AskUserQuestion to let the user pick (label = `feature:` value, description = `<filename>`).
+```bash
+${CLAUDE_PLUGIN_ROOT}/scripts/features.py resolve plan <positional[0]> --root <repo root>
+```
+
+(omit the argument when there is none). It takes a `PLAN-*.md` path (a
+`SPEC-*.md` path resolves to the plan beside it), a feature slug or title, or
+nothing — then every feature's plan is a candidate, whatever its status, and
+several are narrowed to the current branch. It prints one JSON line: `path`,
+`slug`, `feature`, `status`, `plan` (progress), `issue`, `spec_path` (the SPEC
+beside it, or null), `source_spec` (the `Source spec:` line of a plan written
+for a sibling repo's spec, or null) and `matched` on success; `error` plus
+`reason` (exit 2) or `candidates` (exit 3) on failure.
+
+| Exit | Meaning | Do |
+|------|---------|----|
+| `0` | Resolved | Continue with `path`. When `matched` is not `path`, say: "Auto-selected plan: `<path>` (feature: <feature>)" |
+| `2` | `reason: no_candidates` | **STOP** and ask the user to provide a path or run `/feature-dev:explore-plan` first |
+| `2` | `reason: issue_unlinked` | **STOP**: no local feature is linked to that issue. This command reviews a plan already on disk; `/feature-dev:tdd #N` imports an issue's plan |
+| `2` | any other `reason` (`file`, `outside_store`, `no_sibling`, `unknown_name`) | **STOP** and refuse it in one line, quoting `error`, naming `.feature-dev/features/<slug>/` as the only place plans live (a root `PLAN-*.md`, or the layout older than 2.0.0, is `outside_store`) |
+| `3` | Ambiguous | AskUserQuestion over `candidates` (label = `feature`, description = `<filename>`), then re-run `resolve plan` with the chosen `path` |
+| `4` | Malformed | **STOP** and quote `error`: the plan, or its `feature.json`, cannot be read as a plan. The validator grades a plan it can read; this is the one it cannot |
 
 ## Herdr pane
 
-With `--pane`, run Phases 1–2 in a Herdr pane in **collect** mode: follow
+When `pane` is `true`, run Phases 1–2 in a Herdr pane in **collect** mode: follow
 `${CLAUDE_PLUGIN_ROOT}/references/herdr-pane.md`. It falls back to the normal run outside
 Herdr. Questions the run asks happen in the pane, and Herdr notifies the user.
 Resolve the plan here first (Phase 0), so the pane receives a path.
@@ -57,11 +75,11 @@ Resolve the plan here first (Phase 0), so the pane receives a path.
 Use the Agent tool to invoke the `spec-plan-validator` subagent with:
 - `artifact_type`: `plan`
 - `artifact_path`: the resolved path from Phase 0
-- `feature`: that feature's entry from `${CLAUDE_PLUGIN_ROOT}/scripts/features.py list --json --root <repo root>` (matched by slug), so the agent sees its state without parsing frontmatter
+- `feature`: the Phase 0 JSON line (`slug`, `status`, `plan`, `issue`), so the agent sees the feature's state without parsing frontmatter
 
 The agent will:
 1. Read the plan file
-2. Locate the source spec: the `SPEC-*.md` in the plan's own feature folder, or, for a sibling-repo spec, the path on the `Source spec:` line in the PLAN body; verify it exists
+2. Locate the source spec: the Phase 0 JSON's `spec_path` (the `SPEC-*.md` in the plan's own feature folder) or, for a sibling-repo spec, its `source_spec` (the `Source spec:` line in the PLAN body); verify it exists
 3. Run the PLAN-specific structural checklist, including the `### Baseline` section (steps whose `Verify:` is `hollow` or `not-run: missing` on HEAD and not yet `accepted by user`), `Kind:` / `Pins:` usage, and the step-count cap
 4. Check that every Files to Modify path exists and no Files to Create path already does
 5. When the source spec numbers its ACs, trace them: an AC no step `Covers:` (unless Risks names it as deliberately left out), a `Covers:` citing an id the spec does not define, and a behavior step without `Covers:` are Should Address, and it reports `AC coverage: covered/total`

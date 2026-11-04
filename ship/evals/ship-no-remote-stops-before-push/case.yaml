@@ -1,0 +1,58 @@
+schema_version: "1.1"
+name: ship-no-remote-stops-before-push
+description: >
+  Phase 1, preflight exit 5: a feature branch with a change and no remote at
+  all. The skill must stop before anything is staged, say there is no remote,
+  and neither invent one, commit, push nor open a PR.
+tags: [ship, phase-1, exit-5]
+runs: 1
+
+context:
+  scaffold_script: scaffold.sh
+
+execution:
+  prompt: /ship:ship --yes
+  max_turns: 15
+  timeout_seconds: 300
+  allowed_tools: [Read, Glob, Grep, Bash, Skill, AskUserQuestion]
+
+graders:
+  - name: preflight-run
+    type: tool_used
+    tool: Bash
+    input_match: 'ship-preflight\.sh'
+  - name: no-stage
+    type: tool_used
+    tool: Bash
+    input_match: 'git add'
+    min: 0
+    max: 0
+  - name: no-commit
+    type: tool_used
+    tool: Bash
+    input_match: 'git commit'
+    min: 0
+    max: 0
+  - name: no-push
+    type: tool_used
+    tool: Bash
+    input_match: 'git push'
+    min: 0
+    max: 0
+  - name: no-remote-added
+    type: tool_used
+    tool: Bash
+    input_match: 'git remote (add|set-url)'
+    min: 0
+    max: 0
+  - name: no-pr-created
+    type: tool_used
+    tool: Bash
+    input_match: 'gh pr create'
+    min: 0
+    max: 0
+  - name: says-no-remote
+    type: regex
+    target: last_message
+    flags: i
+    pattern: 'no remote|remote (is )?not configured|without a remote|no origin|nothing to push to'

@@ -39,9 +39,9 @@ because the command body itself quotes the refusal message mid-sentence.
 
 > **Since feature-dev 2.6.0** the command runs the `plan-fanout` workflow, and
 > the explorers are workflow agents, not `Agent` calls of a generator. The
-> graders below were written for the Agent fan-out, which is now the fallback
-> when workflows are disabled. They have not been re-checked against a
-> workflow run's trace.
+> graders below were written for the Agent fan-out, which no longer exists: the
+> command now stops when `Workflow` is unavailable instead of falling back to
+> it. They have not been re-checked against a workflow run's trace.
 
 ## Running
 

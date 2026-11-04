@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.6.0] - 2026-11-04
+
+### Added
+- **`refactor` workflow** (`workflows/refactor.js`): runs the explorer (`refactor-analyzer` in `analyze` mode, `refactor-planner` in `plan` mode) and `conflict-scout` in parallel and returns both reports as structured data, `summary` first. Takes `mode`, `target`, `targets`, `symbols`, `base` and `skip_explore`. An agent that returns nothing or reports `completed: false` is retried once and otherwise comes back as a `failed` stage with a null report; a scout that did not run yields verdict `UNSCANNED`, never `CLEAR`. **Why:** `/refactor:analyze` and `/refactor:plan` dispatched the two agents by hand, counted the results and merged two free-text reports in the conversation; a scout that never reported looked like a clean scan.
+
+### Changed
+- **`/refactor:analyze` and `/refactor:plan` launch the `refactor` workflow** instead of dispatching the agents with the Agent tool. Both stop when `Workflow` is not available and name the `Workflow(refactor:refactor)` allow rule `claude -p` needs; there is no in-session fallback. `Agent` leaves their `allowed-tools`, `Workflow` joins. The Concurrent Work section and its blocking rule key on the scout's `verdict` (`UNSCANNED`) and `gh_available` fields. Report formats unchanged.
+- `refactor-analyzer`, `refactor-planner` and `conflict-scout` document the structured-output channel the workflow uses (`OUTPUT_PATH: none`): one field per section of their text format, no file. The scout's `gh_available` and `data_gaps` fields carry what its text format put under the Verdict.
+
 ## [1.5.1] - 2026-10-28
 
 ### Changed

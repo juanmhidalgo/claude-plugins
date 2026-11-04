@@ -73,12 +73,19 @@ weaker and why, and offer these fallbacks in order:
 Do not silently downgrade. The contamination is the single largest failure
 mode of this skill.
 
+## Context
+
+- **Arguments**: !`bash "${CLAUDE_PLUGIN_ROOT}/scripts/args.sh" '$ARGUMENTS'`
+
+The doc path is `positional[0]` (none: STOP and ask for one). The mode is
+`positional[1]` when it is `design` or `descriptive`; otherwise it is decided
+below. `pane` is the Herdr flag: `true` opens a pane, `false` or `null` runs here.
+
 ## Herdr pane
 
-With `--pane`, run the review in a Herdr pane in **collect** mode: follow
+When `pane` is `true`, run the review in a Herdr pane in **collect** mode: follow
 `${CLAUDE_PLUGIN_ROOT}/references/herdr-pane.md`. It falls back to the normal run outside
 Herdr. Questions the run asks happen in the pane, and Herdr notifies the user.
-`--pane` / `--no-pane` are flags, not the doc path or the mode: drop them first.
 
 - **Command string**: `/discuss:adversarial-doc-review <doc-path> <mode, if given> --no-pane`
 - **Report**: `<scratchpad dir>/doc-review-<doc name>.md`

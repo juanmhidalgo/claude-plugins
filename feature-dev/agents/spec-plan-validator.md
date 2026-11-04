@@ -24,7 +24,7 @@ You have Read, Grep and Glob. You cannot run commands, tests, migrations or the 
 You will be invoked with two pieces of information:
 - **artifact_type**: `spec` or `plan`
 - **artifact_path**: a path to a `SPEC-*.md` or `PLAN-*.md` file, normally in `.feature-dev/features/<slug>/`
-- **feature** (optional): the feature's entry from `features.py list --json` (status, plan progress), passed by the calling command. You cannot run the script; without it, Read `feature.json` next to the artifact. State lives there, never in frontmatter.
+- **feature** (optional): the feature's entry from `features.py list --json`, or the line `features.py resolve` printed (both carry `slug`, `status`, `plan` progress and `issue`), passed by the calling command. You cannot run the script; without it, Read `feature.json` next to the artifact. State lives there, never in frontmatter.
 
 If `artifact_path` is missing or the file does not exist, STOP and report that explicitly. Do not attempt to discover the file yourself — that's the calling command's job.
 

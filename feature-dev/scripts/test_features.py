@@ -718,6 +718,283 @@ COMMANDS_DIR = PLUGIN_DIR / "commands"
 ISSUE_STORE = PLUGIN_DIR / "skills" / "spec-driven-development" / "references" / "issue-store.md"
 FEATURES_TOOL = "Bash(${CLAUDE_PLUGIN_ROOT}/scripts/features.py *)"
 
+SPEC_FRONT = "---\ntype: specification\nfeature: {feature}\nslug: {slug}\ndate: 2026-01-01\nbranch: {branch}\n{extra}---\n\n# {feature}\n"
+PLAN_FRONT = "---\ntype: implementation-plan\nfeature: {feature}\nslug: {slug}\ndate: 2026-01-02\nbranch: {branch}\n{extra}---\n\n## Implementation Plan: {feature}\n{body}"
+
+
+class ResolveTest(CliCase):
+    """``resolve <kind> [argument]``: one JSON line, exit 0 / 2 / 3 / 4."""
+
+    def resolve(self, kind, *args) -> tuple[int, dict]:
+        result = self.run_cli("resolve", kind, *args)
+        self.assertNotIn("Traceback", result.stderr)
+        lines = result.stdout.splitlines()
+        self.assertEqual(len(lines), 1, result.stdout)
+        return result.returncode, json.loads(lines[0])
+
+    def artifact(self, slug, kind, *, status="approved", feature=None, branch="feat/x",
+                 extra="", body="", issue=None, name=None) -> Path:
+        folder = self.root / ".feature-dev" / "features" / slug
+        if not folder.exists():
+            folder.mkdir(parents=True)
+            data = {"version": 1, "slug": slug, "status": status, "spec": None,
+                    "plan": {"steps": 2, "completed": [], "halted_at": None, "halt_reason": None}
+                    if status in ("planned", "running", "halted", "implemented") else None,
+                    "issue": {"ref": issue, "fingerprint": "f"} if issue else None,
+                    "updated_at": "2026-01-01T00:00:00Z"}
+            (folder / "feature.json").write_text(json.dumps(data) + "\n", encoding="utf-8")
+        feature = feature or slug.replace("-", " ").title()
+        template = SPEC_FRONT if kind == "spec" else PLAN_FRONT
+        path = folder / (name or f"{'SPEC' if kind == 'spec' else 'PLAN'}-{slug}.md")
+        path.write_text(template.format(feature=feature, slug=slug, branch=branch, extra=extra, body=body),
+                        encoding="utf-8")
+        return path
+
+    # --- exit 0 -----------------------------------------------------------
+
+    def test_path_argument_resolves_with_every_field_the_commands_read(self):
+        self.artifact("alpha", "spec", status="planned", issue="o/r#7",
+                      extra="repos:\n  - name: backend\n    path: .\n    role: owns-contract\n"
+                            "  - name: frontend\n    path: ../fe\n    role: consumes-contract\n")
+        self.artifact("alpha", "plan")
+        code, out = self.resolve("spec", ".feature-dev/features/alpha/SPEC-alpha.md")
+        self.assertEqual(code, 0, out)
+        self.assertEqual(out["path"], ".feature-dev/features/alpha/SPEC-alpha.md")
+        self.assertEqual(out["slug"], "alpha")
+        self.assertEqual(out["feature"], "Alpha")
+        self.assertEqual(out["branch"], "feat/x")
+        self.assertEqual(out["date"], "2026-01-01")
+        self.assertEqual(out["status"], "planned")
+        self.assertEqual(out["issue"], "o/r#7")
+        self.assertEqual(out["plan"]["steps"], 2)
+        self.assertEqual(out["repos"], ["backend", "frontend"])
+        self.assertEqual(out["spec_path"], ".feature-dev/features/alpha/SPEC-alpha.md")
+        self.assertEqual(out["plan_path"], ".feature-dev/features/alpha/PLAN-alpha.md")
+        self.assertFalse(out["external"])
+        self.assertEqual(out["matched"], "path")
+        self.assertIsNone(out["error"])
+
+    def test_absolute_path_resolves_to_a_root_relative_path(self):
+        path = self.artifact("alpha", "spec")
+        code, out = self.resolve("spec", str(path))
+        self.assertEqual(code, 0, out)
+        self.assertEqual(out["path"], ".feature-dev/features/alpha/SPEC-alpha.md")
+
+    def test_plan_from_its_spec_path_and_spec_from_its_plan_path(self):
+        self.artifact("alpha", "spec")
+        self.artifact("alpha", "plan", body="### Summary\nSource spec: ../other/.feature-dev/features/alpha/SPEC-alpha.md\n")
+        code, out = self.resolve("plan", ".feature-dev/features/alpha/SPEC-alpha.md")
+        self.assertEqual(code, 0, out)
+        self.assertEqual(out["path"], ".feature-dev/features/alpha/PLAN-alpha.md")
+        self.assertEqual(out["matched"], "sibling")
+        self.assertEqual(out["spec_path"], ".feature-dev/features/alpha/SPEC-alpha.md")
+        self.assertEqual(out["source_spec"], "../other/.feature-dev/features/alpha/SPEC-alpha.md")
+        code, out = self.resolve("spec", ".feature-dev/features/alpha/PLAN-alpha.md")
+        self.assertEqual(code, 0, out)
+        self.assertEqual(out["path"], ".feature-dev/features/alpha/SPEC-alpha.md")
+
+    def test_plan_without_spec_has_null_spec_path(self):
+        self.artifact("solo", "plan", status="planned")
+        code, out = self.resolve("plan", "solo")
+        self.assertEqual(code, 0, out)
+        self.assertIsNone(out["spec_path"])
+        self.assertEqual(out["plan_path"], ".feature-dev/features/solo/PLAN-solo.md")
+        self.assertIsNone(out["source_spec"])
+
+    def test_issue_reference_in_every_form_resolves_the_linked_feature(self):
+        self.artifact("alpha", "spec", issue="owner/repo#12")
+        self.artifact("beta", "spec", issue="owner/repo#3")
+        for arg in ("#12", "12", "owner/repo#12", "https://github.com/owner/repo/issues/12"):
+            code, out = self.resolve("spec", arg)
+            self.assertEqual(code, 0, (arg, out))
+            self.assertEqual(out["slug"], "alpha", arg)
+            self.assertEqual(out["matched"], "issue", arg)
+
+    def test_slug_and_feature_title_resolve(self):
+        self.artifact("alpha", "spec", feature="Scheduled Notifications")
+        self.artifact("beta", "spec")
+        code, out = self.resolve("spec", "alpha")
+        self.assertEqual((code, out["slug"], out["matched"]), (0, "alpha", "slug"))
+        code, out = self.resolve("spec", "scheduled notifications")
+        self.assertEqual((code, out["slug"], out["matched"]), (0, "alpha", "feature"))
+
+    def test_no_argument_with_one_candidate_resolves_it(self):
+        self.artifact("alpha", "spec")
+        code, out = self.resolve("spec")
+        self.assertEqual(code, 0, out)
+        self.assertEqual(out["slug"], "alpha")
+        self.assertEqual(out["matched"], "only")
+        self.assertIsNone(out["argument"])
+
+    def test_no_argument_narrows_several_candidates_by_branch(self):
+        self.artifact("alpha", "spec", branch="feat/alpha")
+        self.artifact("beta", "spec", branch="feat/beta")
+        code, out = self.resolve("spec", "--branch", "feat/beta")
+        self.assertEqual(code, 0, out)
+        self.assertEqual(out["slug"], "beta")
+        self.assertEqual(out["matched"], "branch")
+
+    def test_no_argument_with_newest_takes_the_latest_file(self):
+        old = self.artifact("alpha", "spec", branch="x")
+        new = self.artifact("beta", "spec", branch="x")
+        os.utime(old, (1_700_000_000, 1_700_000_000))
+        os.utime(new, (1_700_000_100, 1_700_000_100))
+        code, out = self.resolve("spec", "--branch", "none", "--newest")
+        self.assertEqual(code, 0, out)
+        self.assertEqual(out["slug"], "beta")
+        self.assertEqual(out["matched"], "newest")
+
+    def test_skip_implemented_drops_shipped_features_from_the_candidates(self):
+        self.artifact("done", "spec", status="implemented")
+        self.artifact("open", "spec", status="approved")
+        code, out = self.resolve("spec", "--skip-implemented")
+        self.assertEqual(code, 0, out)
+        self.assertEqual(out["slug"], "open")
+        self.artifact("open", "spec", status="implemented")  # rewrite: file only, status stays
+        code, out = self.resolve("spec")
+        self.assertEqual(code, 3, out)
+
+    def test_skip_implemented_does_not_apply_to_an_explicit_argument(self):
+        self.artifact("done", "spec", status="implemented")
+        code, out = self.resolve("spec", "done", "--skip-implemented")
+        self.assertEqual(code, 0, out)
+        self.assertEqual(out["status"], "implemented")
+
+    def test_artifact_in_a_sibling_store_is_external(self):
+        sibling = tempfile.TemporaryDirectory()
+        self.addCleanup(sibling.cleanup)
+        folder = Path(sibling.name) / ".feature-dev" / "features" / "gamma"
+        folder.mkdir(parents=True)
+        (folder / "feature.json").write_text(json.dumps({
+            "version": 1, "slug": "gamma", "status": "approved", "spec": None, "plan": None,
+            "issue": None, "updated_at": "x"}), encoding="utf-8")
+        path = folder / "SPEC-gamma.md"
+        path.write_text(SPEC_FRONT.format(feature="Gamma", slug="gamma", branch="b", extra=""), encoding="utf-8")
+        code, out = self.resolve("spec", str(path))
+        self.assertEqual(code, 0, out)
+        self.assertTrue(out["external"])
+        self.assertEqual(out["status"], "approved")
+        self.assertEqual(out["path"], path.as_posix())
+
+    # --- exit 2 -----------------------------------------------------------
+
+    def test_missing_file_is_not_found_with_the_paths_tried(self):
+        code, out = self.resolve("spec", ".feature-dev/features/nope/SPEC-nope.md")
+        self.assertEqual(code, 2, out)
+        self.assertEqual(out["reason"], "file")
+        self.assertTrue(any(s.endswith("SPEC-nope.md") for s in out["searched"]))
+        self.assertIn("not found", out["error"])
+
+    def test_file_outside_the_store_is_refused(self):
+        stray = self.root / "SPEC-old.md"
+        stray.write_text(SPEC_FRONT.format(feature="Old", slug="old", branch="b", extra=""), encoding="utf-8")
+        code, out = self.resolve("spec", "SPEC-old.md")
+        self.assertEqual(code, 2, out)
+        self.assertEqual(out["reason"], "outside_store")
+        self.assertIn(".feature-dev/features/<slug>/", out["error"])
+
+    def test_no_candidates_reports_what_was_searched(self):
+        code, out = self.resolve("plan")
+        self.assertEqual(code, 2, out)
+        self.assertEqual(out["reason"], "no_candidates")
+        self.assertEqual(out["searched"], [".feature-dev/features/*/PLAN-*.md"])
+        self.artifact("alpha", "spec")
+        code, out = self.resolve("plan", "alpha")
+        self.assertEqual(code, 2, out)
+        self.assertEqual(out["reason"], "no_candidates")
+
+    def test_spec_path_whose_folder_has_no_plan(self):
+        self.artifact("alpha", "spec")
+        code, out = self.resolve("plan", ".feature-dev/features/alpha/SPEC-alpha.md")
+        self.assertEqual(code, 2, out)
+        self.assertEqual(out["reason"], "no_sibling")
+
+    def test_unlinked_issue_hands_back_the_parsed_reference(self):
+        self.artifact("alpha", "spec", issue="o/r#1")
+        for arg, repo in (("#9", None), ("x/y#1", "x/y"), ("https://github.com/x/y/issues/9", "x/y")):
+            code, out = self.resolve("spec", arg)
+            self.assertEqual(code, 2, (arg, out))
+            self.assertEqual(out["reason"], "issue_unlinked", arg)
+            self.assertEqual(out["issue"]["repo"], repo, arg)
+
+    def test_unknown_name_is_not_found(self):
+        self.artifact("alpha", "spec")
+        code, out = self.resolve("spec", "add scheduled notifications")
+        self.assertEqual(code, 2, out)
+        self.assertEqual(out["reason"], "unknown_name")
+        self.assertEqual(out["argument"], "add scheduled notifications")
+
+    # --- exit 3 -----------------------------------------------------------
+
+    def test_several_candidates_are_ambiguous_newest_first(self):
+        old = self.artifact("alpha", "spec", branch="x", status="draft")
+        new = self.artifact("beta", "spec", branch="x", status="approved")
+        os.utime(old, (1_700_000_000, 1_700_000_000))
+        os.utime(new, (1_700_000_100, 1_700_000_100))
+        code, out = self.resolve("spec", "--branch", "none")
+        self.assertEqual(code, 3, out)
+        self.assertEqual([c["slug"] for c in out["candidates"]], ["beta", "alpha"])
+        self.assertEqual(out["candidates"][0]["feature"], "Beta")
+        self.assertEqual(out["candidates"][0]["status"], "approved")
+        self.assertEqual(out["candidates"][1]["path"], ".feature-dev/features/alpha/SPEC-alpha.md")
+
+    def test_two_plans_in_one_folder_are_ambiguous(self):
+        self.artifact("alpha", "spec")
+        self.artifact("alpha", "plan", name="PLAN-alpha.md")
+        self.artifact("alpha", "plan", name="PLAN-alpha-v2.md")
+        code, out = self.resolve("plan", "alpha")
+        self.assertEqual(code, 3, out)
+        self.assertEqual(len(out["candidates"]), 2)
+
+    def test_a_malformed_candidate_still_appears_in_the_ambiguity_list(self):
+        self.artifact("alpha", "spec", branch="x")
+        bad = self.artifact("beta", "spec", branch="x")
+        bad.write_text("no frontmatter\n", encoding="utf-8")
+        code, out = self.resolve("spec", "--branch", "none")
+        self.assertEqual(code, 3, out)
+        beta = next(c for c in out["candidates"] if c["slug"] == "beta")
+        self.assertIsNone(beta["feature"])
+
+    # --- exit 4 -----------------------------------------------------------
+
+    def test_missing_frontmatter_is_malformed(self):
+        path = self.artifact("alpha", "spec")
+        path.write_text("# just a title\n", encoding="utf-8")
+        code, out = self.resolve("spec", "alpha")
+        self.assertEqual(code, 4, out)
+        self.assertIn("frontmatter", out["error"])
+
+    def test_unclosed_frontmatter_is_malformed(self):
+        path = self.artifact("alpha", "spec")
+        path.write_text("---\ntype: specification\nfeature: Alpha\n", encoding="utf-8")
+        code, out = self.resolve("spec", "alpha")
+        self.assertEqual(code, 4, out)
+        self.assertIn("not closed", out["error"])
+
+    def test_wrong_type_or_missing_feature_is_malformed(self):
+        path = self.artifact("alpha", "spec")
+        path.write_text("---\ntype: implementation-plan\nfeature: Alpha\n---\n", encoding="utf-8")
+        code, out = self.resolve("spec", "alpha")
+        self.assertEqual(code, 4, out)
+        self.assertIn("specification", out["error"])
+        path.write_text("---\ntype: specification\nslug: alpha\n---\n", encoding="utf-8")
+        code, out = self.resolve("spec", "alpha")
+        self.assertEqual(code, 4, out)
+        self.assertIn("feature", out["error"])
+
+    def test_invalid_feature_json_is_malformed(self):
+        self.artifact("alpha", "spec")
+        (self.root / ".feature-dev" / "features" / "alpha" / "feature.json").write_text("{", encoding="utf-8")
+        code, out = self.resolve("spec", ".feature-dev/features/alpha/SPEC-alpha.md")
+        self.assertEqual(code, 4, out)
+        self.assertIn("feature.json", out["error"])
+
+    def test_bad_kind_is_a_usage_error_without_json(self):
+        result = self.run_cli("resolve", "issue")
+        self.assertEqual(result.returncode, 2)
+        self.assertEqual(result.stdout, "")
+
+
 STATE_KEYS = (
     "status", "run_status", "completed_steps", "halted_at", "halt_reason",
     "source_spec", "issue_fingerprint", "issue",
@@ -798,7 +1075,11 @@ class CommandTextTest(unittest.TestCase):
         self.assertIn("features.py plan", text)
         self.assertIn("--steps", text)
         self.assertIn("--replace", text)
-        self.assertIn("list --json", text)
+        self.assertRegex(text, r"features\.py resolve spec [^\n]*--skip-implemented")
+        self.assertNotIn("list --json", text)
+        self.assertNotIn("Fallback", text)
+        self.assertNotIn("- Agent\n", text)
+        self.assertIn("Workflow(feature-dev:plan-fanout)", text)
         self.assertAllowsFeatures(text)
         self.assertNoRemovedKeys(text)
         self.assertNoOldLayout(text)
@@ -806,7 +1087,7 @@ class CommandTextTest(unittest.TestCase):
         self.assertIn("AskUserQuestion", draft)
         self.assertIn("features.py approve", draft)
         self.assertIn("/feature-dev:review", draft)
-        sibling = branch_after(text, r"(?i)sibling")
+        sibling = branch_after(text, r"`external` is `true`")
         self.assertRegex(sibling, r"new (<\S+> )?--kind plan")
         self.assertRegex(sibling, r"without `--spec`")
         self.assertRegex(sibling, r"(?i)by path")
@@ -873,11 +1154,21 @@ class CommandTextTest(unittest.TestCase):
             refusals = [line for line in text.splitlines()
                         if _REFUSAL_DIR in line and re.search(r"(?i)refus", line)]
             self.assertTrue(refusals, f"{name}: no old-layout refusal line")
-        for name in ("spec-review.md", "plan-review.md"):
+        for name, kind in (("spec-review.md", "spec"), ("plan-review.md", "plan")):
             text = self.command(name)
-            self.assertIn("list --json", text, name)
+            self.assertIn(f"features.py resolve {kind} <positional[0]>", text, name)
+            self.assertNotIn("list --json", text, name)
             self.assertNotIn("artifacts_dir", text, name)
-            self.assertNotIn("source_spec", text, name)
+            self.assertIn('args.sh" \'$ARGUMENTS\'', text, name)
+            for code in ("`0`", "`2`", "`3`", "`4`"):
+                self.assertIn(f"| {code} |", text, (name, code))
+
+    def test_commands_read_flags_from_the_shared_parser(self):
+        for name in ("spec-review.md", "plan-review.md", "tdd.md", "spec.md", "harden.md"):
+            text = self.command(name)
+            self.assertIn("- **Arguments**: !`bash \"${CLAUDE_PLUGIN_ROOT}/scripts/args.sh\" '$ARGUMENTS'`", text, name)
+            self.assertNotIn("are flags: drop them", text, name)
+            self.assertNotIn("strip flags from `$ARGUMENTS`", text, name)
 
 
 if __name__ == "__main__":

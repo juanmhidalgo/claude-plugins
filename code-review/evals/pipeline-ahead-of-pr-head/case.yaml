@@ -1,0 +1,39 @@
+schema_version: "1.1"
+name: pipeline-ahead-of-pr-head
+description: >
+  Phase 0, exit 6: the local branch has a commit the PR head lacks. enter
+  switches back on its own; the pipeline must STOP, must not push, reset or
+  rebase anything, and must not run the triage workflow.
+tags: [pipeline, phase-0, exit-6]
+runs: 1
+
+context:
+  scaffold_script: scaffold.sh
+
+execution:
+  prompt: /code-review:pipeline 1
+  max_turns: 15
+  timeout_seconds: 300
+  allowed_tools: [Read, Glob, Grep, Bash, Agent, Workflow]
+
+graders:
+  - name: enter-run
+    type: tool_used
+    tool: Bash
+    input_match: 'pipeline-branch\.sh enter 1'
+  - name: triage-workflow-not-run
+    type: tool_used
+    tool: Workflow
+    min: 0
+    max: 0
+  - name: history-not-touched
+    type: tool_used
+    tool: Bash
+    input_match: 'git (push|reset|rebase|merge|cherry-pick|branch -[dDf])\b'
+    min: 0
+    max: 0
+  - name: says-ahead
+    type: regex
+    target: last_message
+    flags: i
+    pattern: 'ahead|lacks|carry|commits? (that )?(the )?pr'

@@ -7,7 +7,7 @@ allowed-tools:
   - Read
   - Glob
   - Grep
-  - Agent
+  - Workflow
 hooks:
   - event: Stop
     once: true
@@ -27,18 +27,46 @@ Analyze code for refactoring opportunities.
 ## Phase 1: Context Gathering
 
 <exploration>
-Launch both agents in a SINGLE response so they run concurrently.
+**Requires the `Workflow` tool.** If `Workflow` is not available, **STOP** and
+say so: under `claude -p` or the SDK it needs a `Workflow(refactor:refactor)`
+allow rule. There is no in-session fallback: the explorer and the conflict
+scout are the fan-out this command exists to keep out of the conversation.
 
-Agent — `subagent_type: "refactor:refactor-analyzer"` to understand:
+Launch the `refactor:refactor` workflow and wait for its notification. It runs
+`refactor-analyzer` and `conflict-scout` in parallel and returns both reports as
+structured data:
 
-1. **Similar code** - Other files with similar patterns for comparison
-2. **Existing abstractions** - Utilities, helpers, base classes already in the project
-3. **Tests** - What test coverage exists for this code?
-4. **Consumers** - What depends on this code?
+```
+Workflow({ name: "refactor:refactor", args: {
+  mode: "analyze", target: "<the target>", targets: ["<the target>"] } })
+```
 
-Agent — `subagent_type: "refactor:conflict-scout"`, passing the analyze target as **Targets** and leaving **Symbols** empty (nothing is named for renaming yet). It reports which open PRs, branches, and uncommitted work already touch the target.
+- `target` is the analyze target as given. `targets` is the same path, for the
+  scout; no `symbols`, since nothing is named for renaming yet.
+- Add `base: "<branch>"` only when the user named a base branch; otherwise the
+  scout reads it from `origin/HEAD`.
 
-A file under active concurrent work is a bad refactoring target this week no matter how bad its metrics are — that is why the scan runs before the analysis, not after it.
+The analyzer gathers **similar code**, **existing abstractions**, **tests** and
+**consumers**. The scout reports which open PRs, branches, and uncommitted work
+already touch the target. A file under active concurrent work is a bad
+refactoring target this week no matter how bad its metrics are — that is why
+the scan runs before the analysis, not after it.
+
+**Read what comes back.** `summary` is first and survives a result cut off at
+the end; the full reports are `explore` (the analyzer) and `scout`:
+
+- `summary.explore` is `ran` or `failed`. A failed explorer did not explore:
+  say so and offer to re-run before writing the Existing Abstractions section
+  from your own reading.
+- `summary.verdict` is the scout's `CLEAR | CONTESTED | BLOCKED`, or
+  `UNSCANNED` when the scout failed twice or did not run. `summary.gh_available`
+  false and every line of `summary.data_gaps` go in the Concurrent Work section
+  verbatim: a scan on missing data is never clean.
+- `scout.textual` and `scout.semantic` are the overlaps (PR number, author,
+  age, size, state); `scout.local` the uncommitted edits, stashes, worktrees and
+  branches; `scout.sequencing` the do-now / do-first / defer / coordinate call.
+- `explore.uncertain` lists the analyzer's own doubts; carry them into the
+  report as doubts, not as findings.
 </exploration>
 
 ## Phase 2: Read and Analyze Target
@@ -114,7 +142,9 @@ Read the target file(s) and calculate:
 
 ## Concurrent Work
 
-From the conflict scout. If it could not reach `gh`, say so here instead of reporting a clean scan.
+From the workflow's `scout` report. If the verdict is `UNSCANNED`, or
+`gh_available` is false, say so here instead of reporting a clean scan, and
+list `data_gaps`.
 
 | Target | Concurrent work | Effect on this refactor |
 |--------|-----------------|-------------------------|
@@ -165,7 +195,7 @@ Consider test coverage before suggesting changes.
 </rule>
 
 <rule priority="blocking">
-Never present a conflict-free ordering when the conflict scout could not reach `gh`. Report the gap.
+Never present a conflict-free ordering when the scout's verdict is `UNSCANNED` or `gh_available` is false. Report the gap.
 </rule>
 
 <rule priority="recommended">

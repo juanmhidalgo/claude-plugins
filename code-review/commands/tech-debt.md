@@ -36,18 +36,22 @@ hooks:
 
 ## Context
 - **Current branch**: !`git branch --show-current`
-- **Argument**: $ARGUMENTS
+- **Arguments**: !`bash "${CLAUDE_PLUGIN_ROOT}/scripts/args.sh" '$ARGUMENTS'`
+- **All arguments**: $ARGUMENTS
 - **Staged files**: !`git diff --cached --name-only`
 
 ## Scope Detection
 
-`--pane` / `--no-pane` are flags, not the scope: drop them first.
+The **Arguments** line is the parsed form of what the user typed: one JSON
+object with `pane`, `spec`, `effort` and `positional`. Read its fields; do not
+parse the raw arguments yourself. This command uses `positional[0]` and `pane`
+only; an `effort` or `spec` the user typed is not an error, just unused.
 
-Determine the scope based on the argument:
+Determine the scope from `positional[0]`:
 
-- If `$ARGUMENTS` is `staged` → analyze staged changes only
-- If `$ARGUMENTS` is a branch name → use it as the base branch
-- If `$ARGUMENTS` is empty → check if there are staged files:
+- If it is `staged` → analyze staged changes only
+- If it is a branch name → use it as the base branch
+- If `positional` is empty → check if there are staged files:
   - If staged files exist → analyze staged changes
   - Otherwise → default to branch comparison against `main` (or `master`)
 
@@ -74,9 +78,10 @@ Never auto-fetch or auto-pull — the user decides.
 
 ## Herdr pane
 
-If `--pane` is in the arguments, or `review_in_pane` is configured `true`
-(`${user_config.review_in_pane}`), run this review in a Herdr pane in
-**collect** mode: follow `${CLAUDE_PLUGIN_ROOT}/references/herdr-pane.md`
+Run this review in a Herdr pane when `pane` is `true`, or when `pane` is `null`
+and `review_in_pane` is configured `true` (`${user_config.review_in_pane}`).
+`pane: false` always wins: it is what the pane session itself receives. In the
+pane, run in **collect** mode: follow `${CLAUDE_PLUGIN_ROOT}/references/herdr-pane.md`
 instead of the Instructions below. It falls back to the normal run outside Herdr.
 
 - **Command string**: `/code-review:tech-debt <scope argument, if any> --no-pane`

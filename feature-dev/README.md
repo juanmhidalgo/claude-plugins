@@ -9,7 +9,7 @@ Feature development workflows with structured phases and quality gates.
 | `/feature-dev:spec <feature>` | Create a structured specification before coding with gated review workflow |
 | `/feature-dev:tdd <spec>` | Test-driven feature development: write failing tests, implement, coverage gate, refactor |
 | `/feature-dev:harden [feature] [--base <branch>]` | After implementation: review in fresh context (defects, spec conformance, tech debt in parallel), verify every finding, fix the ones you approve, re-review the fixes' delta (two rounds at most). Runs code-review's `review` workflow |
-| `/feature-dev:explore-plan <feature>` | Parallel codebase exploration (4 explorers plus the ones the feature needs), synthesized implementation plan, automatic plan review. Runs the `plan-fanout` workflow |
+| `/feature-dev:explore-plan <feature>` | Parallel codebase exploration (4 explorers plus the ones the feature needs), synthesized implementation plan, automatic plan review. Runs the `plan-fanout` workflow (required: `Workflow(feature-dev:plan-fanout)` under `claude -p`) |
 | `/feature-dev:spec-review [file]` | Validate a `SPEC-*.md` for structural gaps and check its claims about the existing code; emits Blocking / Should Address / Nice to Have checklist |
 | `/feature-dev:plan-review [file]` | Validate a `PLAN-*.md` for structural gaps, step contract and baseline; emits Blocking / Should Address / Nice to Have checklist |
 | `/feature-dev:review <SPEC\|PLAN>` | Review a spec or plan in a local browser page: outline, AC and Key Decision cards, comments anchored to selected text, diff against the previous version, and a verdict (Approve / Approve with notes / Request changes) that the command then applies |
@@ -63,7 +63,7 @@ The commands are designed to chain:
 
 1. **`/feature-dev:spec`** — Define requirements and create a specification. It asks for scope and non-goals first, on their own, then stops at the spec: what, why, numbered acceptance criteria (`AC-1`…), QA checklist and boundaries. Pass `--with-tasks` to also append a high-level plan and task list, for when you will not run `explore-plan`.
 2. **`/feature-dev:spec-review`** *(optional)* — Structural check plus a **code-claims pass**: the spec's load-bearing claims about the existing code (paths, symbols, nullability, relationship direction, migration numbers) are checked against the repo and reported as CONFIRMED / DRIFTED / REFUTED / UNVERIFIED. It offers to apply the fixes that need no decision.
-3. **`/feature-dev:explore-plan`** — Understand the codebase and create the plan. The plan is the only place implementation steps live, and it carries a **Baseline**: every `Verify` command run once on HEAD, so broken or hollow gates surface at planning time instead of mid-run. It then reviews its own plan (`plan-review` runs automatically) and fixes Blocking findings once before showing you the brief. The exploration, generation and review run as the **`feature-dev:plan-fanout` workflow** (`workflows/plan-fanout.js`), so the explorer reports never reach your conversation and an explorer that fails is retried and then named in the plan, not silently skipped. The generator's rules live in `references/plan-generation.md`. Under `claude -p`, allow it with `Workflow(feature-dev:plan-fanout)`; without workflows the command falls back to the Agent fan-out.
+3. **`/feature-dev:explore-plan`** — Understand the codebase and create the plan. The plan is the only place implementation steps live, and it carries a **Baseline**: every `Verify` command run once on HEAD, so broken or hollow gates surface at planning time instead of mid-run. It then reviews its own plan (`plan-review` runs automatically) and fixes Blocking findings once before showing you the brief. The exploration, generation and review run as the **`feature-dev:plan-fanout` workflow** (`workflows/plan-fanout.js`), so the explorer reports never reach your conversation and an explorer that fails is retried and then named in the plan, not silently skipped. The generator's rules live in `references/plan-generation.md`. Under `claude -p`, allow it with `Workflow(feature-dev:plan-fanout)`; without the `Workflow` tool the command stops and says so (there is no in-session fallback: a plan written by one reader is the failure the workflow prevents).
 4. **`/feature-dev:tdd`** — Execute the plan with test-driven development. The step loop it runs (resume, step contract, routing, halts) is `references/step-loop.md`, shared with the `factory` plugin
 5. **`/feature-dev:harden`** — Review, verify and fix before shipping, then `/ship`
 
@@ -101,6 +101,8 @@ Both `.feature-dev/` and the artifacts are added to `.gitignore`.
 ```
 
 One folder per feature. `feature.json` holds the feature's state (`draft`, `approved`, `planned`, `running`, `halted`, `implemented`; a damaged folder lists as `invalid`) and is changed only by `scripts/features.py`; editing a SPEC or PLAN never changes it. The previous layout (separate `specs/` and `plans/` folders under `.feature-dev/`, root `SPEC-*.md` / `PLAN-*.md`) is not read and not migrated: delete those by hand. The full rules are in [artifact-locations.md](skills/spec-driven-development/references/artifact-locations.md).
+
+`/feature-dev:explore-plan`, `:spec-review` and `:plan-review` resolve their argument with `features.py resolve spec|plan <argument>`: a path (a PLAN path finds the SPEC beside it and vice versa), `#N` / `owner/repo#N` / an issue URL, a feature slug or title, or nothing (every candidate, narrowed to the current branch). It prints one JSON line; exit 2 not found (`reason`), 3 ambiguous (`candidates`), 4 malformed.
 
 ### Features sidebar
 
@@ -255,7 +257,7 @@ Add the ones you want to your own `.claude/settings.json` (or
 
 ## Running in a Herdr pane
 
-`/feature-dev:tdd`, `:spec-review` and `:plan-review` accept `--pane`.
+`/feature-dev:tdd`, `:spec-review` and `:plan-review` accept `--pane` / `--no-pane` (`--no-pane` wins; parsed by `scripts/args.sh`, a copy of `shared/args/`).
 
 - **`tdd --pane`** hands the run to a fresh session in a sibling pane and stops this one, so the run gets a full context budget. Resume re-verifies completed steps, so handing off mid-run loses nothing. Inside Herdr, the milestone checkpoint line offers it as the alternative to `/clear`.
 - **`spec-review --pane` / `plan-review --pane`** resolve the artifact here, validate it in the pane, and present the findings here. Questions and fix approval happen in the pane.

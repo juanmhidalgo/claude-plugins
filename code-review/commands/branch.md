@@ -11,7 +11,7 @@ disallowed-tools:
   - Edit
   - Write
   - NotebookEdit
-argument-hint: "[base-branch] [low|medium|high|max] [--spec <path|#N>] [--pane|--no-pane]"
+argument-hint: "[base-branch] [low|medium|high|max] [--spec <path|#N>] [--pane|--no-pane]  (a --spec path cannot contain spaces)"
 description: |
   Use to review branch changes for merge readiness in a reviewer that has NOT seen
   this conversation — the reviewer forms its own read of the code, so it is the right
@@ -45,28 +45,29 @@ hooks:
 
 ## Context
 - **Current branch**: !`git branch --show-current`
-- **Specified base**: $1
-- **Effort level**: $2
+- **Arguments**: !`bash "${CLAUDE_PLUGIN_ROOT}/scripts/args.sh" '$ARGUMENTS'`
 - **All arguments**: $ARGUMENTS
+
+The **Arguments** line is the parsed form of what the user typed: one JSON
+object with `pane`, `spec`, `effort` and `positional`. Read its fields; do not
+parse the raw arguments yourself. `spec` is `null` when none was given, and
+`find-spec.sh` then searches on its own; a path with spaces cannot be passed.
 
 ## Base branch
 
-`--pane` / `--no-pane` and `--spec <value>` are flags (drop the value after `--spec` too), not positional
-arguments: drop them before reading base and effort.
-
-Use `$1` if provided. Otherwise `main`, falling back to `master`.
+Use `positional[0]` if present. Otherwise `main`, falling back to `master`.
 
 ## Effort level
 
-`$2` is one of `low | medium | high | max`, default `medium`. It sets how much
-uncertainty reaches you:
+`effort` is one of `low | medium | high | max`, default `medium`. It sets how
+much uncertainty reaches you:
 
 - `low` / `medium` — only findings the reviewer verified against the code path
 - `high` / `max` — broader coverage, including findings resting on context the
   reviewer could not confirm, each marked as such
 
-If `$2` is empty, read `pr_effort:` from `.claude/code-review.local.md` and
-reuse it; else `medium`.
+If `effort` is `null`, read `pr_effort:` from `.claude/code-review.local.md`
+and reuse it; else `medium`.
 
 ## Why this is dispatched and not done inline
 
@@ -91,9 +92,10 @@ it inline and mark the report as context-contaminated. Do not silently downgrade
 
 ## Herdr pane
 
-If `--pane` is in the arguments, or `review_in_pane` is configured `true`
-(`${user_config.review_in_pane}`), run this review in a Herdr pane in
-**collect** mode: follow `${CLAUDE_PLUGIN_ROOT}/references/herdr-pane.md`
+Run this review in a Herdr pane when `pane` is `true`, or when `pane` is `null`
+and `review_in_pane` is configured `true` (`${user_config.review_in_pane}`).
+`pane: false` always wins: it is what the pane session itself receives. In the
+pane, run in **collect** mode: follow `${CLAUDE_PLUGIN_ROOT}/references/herdr-pane.md`
 instead of the Dispatch below. It falls back to the normal run outside Herdr.
 
 - **Command string**: `/code-review:branch <base> <effort> [--spec <value>] --no-pane`
@@ -140,7 +142,7 @@ file, and what you bring back here is the distilled finding list.
 
 At effort `medium` and above, also review the change against the spec it was
 built from, following **`references/spec-axis.md` in the `branch-review`
-skill**: run `find-spec.sh --base <base> [--spec <value>]`, and if it finds a source, launch
+skill**: run `find-spec.sh --base <base> [--spec <spec>]` (the flag only when `spec` is not `null`), and if it finds a source, launch
 `code-review:spec-conformance-reviewer` in the same message as the reviewer
 above. Its findings are verified under the same trigger as the reviewer's and
 presented in their own `### Spec` section.

@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# pre-commit: release gate. Refuses a commit that breaks the version rules of
+# CLAUDE.md <critical_rules> (plugin.json bump, CHANGELOG heading, marketplace
+# mirror, shared/ sync). All the logic lives in scripts/release-check.sh.
+#
+# Enable once per clone:  git config core.hooksPath .githooks
+# Bypass once:            SKIP_VERSION_CHECK=1 git commit ...
+set -uo pipefail
+
+repo_root=$(git rev-parse --show-toplevel) || exit 2
+exec "$repo_root/scripts/release-check.sh" --staged

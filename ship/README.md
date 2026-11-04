@@ -6,7 +6,7 @@ End-to-end shipping workflow for Claude Code. Takes your changes from working di
 
 `/ship` orchestrates the full git workflow in 8 phases:
 
-1. **Status & Branch Detection** — detects default branch, offers to create feature branch if on main
+1. **Preflight** — `scripts/ship-preflight.sh` reads the repo state once (branch, default branch, remote, upstream, dirty counts, open PR, gh, gh-feedback, PR templates) and stops with a distinct exit code when there is nothing to ship, the HEAD is detached or there is no remote; offers to create a feature branch if on the default one
 2. **Smart Staging** — analyzes change cohesion; auto-stages if cohesive, groups and asks if mixed concerns
 3. **Commit Message** — generates conventional commit automatically
 4. **Test Gate** — detects and runs your test suite
@@ -40,7 +40,7 @@ Say "let's ship it" (or "ship it", "ship this") in the conversation, or type `/s
 /ship --skip-tests --draft  # Combine flags
 ```
 
-`--yes` is for a caller that cannot answer, such as the `factory` plugin's stages or a command that invokes `/ship` with the Skill tool. It never branches (on the default branch it stops), stages every non-secret file when concerns are mixed, creates the PR without asking, continues without tests when no runner is found (saying so in Evidence), and with a clean tree that is ahead of the base runs the tests and goes on to the push and the PR. The watcher is skipped.
+`--yes` is for a caller that cannot answer, such as the `factory` plugin's stages or a command that invokes `/ship` with the Skill tool. It never branches (on the default branch it stops, preflight exit 3), stages every non-secret file when concerns are mixed, creates the PR without asking, continues without tests when no runner is found (saying so in Evidence), and with a clean tree that is ahead of the base runs the tests and goes on to the push and the PR. The watcher is skipped.
 
 ## The PR body
 
@@ -60,10 +60,15 @@ Draft PRs are watched for CI only. Without the `code-review` plugin, `/ship` sto
 
 After a successful push to the default branch, `/ship` looks for other live Claude Code sessions working on the same repository (e.g., parallel worktrees) via [cross-session messaging](https://code.claude.com/docs/en/cross-session-messaging) and sends each one a short heads-up: what landed and whether rebasing is advisable. Best-effort by design — it's skipped for feature-branch pushes, with `--no-notify`, or when messaging isn't available (Claude Code < v2.1.224, Bedrock/Vertex/Foundry), and it can never fail the ship workflow.
 
+## Evals
+
+`evals/` holds a `claude plugin eval` suite for `/ship:ship`'s early stops: four offline cases (nothing to commit on a feature branch, `--yes` on the default branch, no remote, clean default branch) against a fake `gh` and the preflight script, with deterministic graders only. Run `evals/run.sh --model haiku --runs 1` from a terminal, not from inside a Claude session; see `evals/README.md`.
+
 ## Needs
 
 - `gh`, installed and authenticated
 - A git remote
+- Phase 1 runs `scripts/ship-preflight.sh`; exit codes in the script header, tests in `tests/test-ship-preflight.sh`
 - Optional: Copilot code review enabled on the repo (skip the request with `--skip-copilot-review`)
 - Optional: the `code-review` plugin, for the hand-off of Copilot's comments to `/code-review:pipeline`
 - The `gh-feedback` extension, for the watcher: `gh extension install juanmhidalgo/gh-feedback`. Without it `/ship` stops after the PR and tells you how to check CI

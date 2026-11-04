@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.12.0 (2026-11-04)
+
+### Removed
+- **The in-session fallbacks for when the `Workflow` tool is unavailable.** `verify` no longer spawns one `issue-verifier` per issue itself, and `work` no longer spawns the verifier directly in Phase 3, builds the ledger in-session when no agent can be spawned, or runs the single `branch-reviewer` fallback in Phase 6; `references/review-prompt.md` (that fallback's prompt) is deleted. Both skills require `Workflow` and STOP when it is missing, naming the allow rules a headless run needs: `Workflow(github-issues:verify-issues)` for `verify`, plus `Workflow(code-review:review)` for `work`. `verify` drops `Agent` from its allowed tools; `work` keeps it for delegating the implementation. **Why:** each fallback was a second, untested implementation of the same fan-out, written in prose and run in the very session the workflow exists to keep that work out of. Same rule as code-review 4.1.0.
+
 ## 1.11.4 (2026-11-01)
 
 ### Changed

@@ -23,7 +23,6 @@ allowed-tools:
   - Read
   - Grep
   - Glob
-  - Agent
   - Workflow
   - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/herdr-pane.sh *)
   - Bash(gh issue view *)
@@ -112,10 +111,10 @@ row is downgraded, a CONFIRMED/REFUTED row whose evidence cites no `path:line`, 
 actionable verdict over a refuted load-bearing row is flagged, and an empty report
 (`verified: false`) is retried once. Issues come back most urgent first.
 
-If workflows are disabled (`Workflow` unavailable), say so and spawn one
-`github-issues:issue-verifier` per issue instead, all in one message, no `name`, each with
-the prompt `ISSUE` / `REPO_PATH` / `RULES` (see the agent's Input), then do that audit
-yourself before presenting.
+**Requires the `Workflow` tool.** If `Workflow` is not available, **STOP** and say so:
+under `claude -p` or the SDK it needs a `Workflow(github-issues:verify-issues)` allow
+rule. There is no in-session fallback: spawning the verifiers and auditing their ledgers
+here is the work the workflow exists to keep out of this session.
 
 ### 3. Check the reports
 

@@ -45,6 +45,7 @@ If you were dispatched as a subagent to execute a specific task, skip this comma
 - **Parent context file**: !`test -f ../CLAUDE.md && echo "../CLAUDE.md exists (read for repo catalog)" || echo "no ../CLAUDE.md"`
 - **Feature store**: each feature lives in `.feature-dev/features/<slug>/`, managed by `${CLAUDE_PLUGIN_ROOT}/scripts/features.py` (pass `--root <repo root>`). Layout: [artifact-locations.md](../skills/spec-driven-development/references/artifact-locations.md).
 - **Spec store option**: `${user_config.spec_store}` (a literal `${user_config...}` here means `file`).
+- **Arguments**: !`bash "${CLAUDE_PLUGIN_ROOT}/scripts/args.sh" '$ARGUMENTS'`
 
 <best_practices>
 @feature-dev/skills/spec-driven-development/SKILL.md
@@ -52,9 +53,9 @@ If you were dispatched as a subagent to execute a specific task, skip this comma
 
 ## Spec-Driven Development Workflow
 
-**First, check for `--publish <SPEC> <target>`.** If `$ARGUMENTS` starts with `--publish`, strip `--publish <SPEC> <target>` from `$ARGUMENTS` before anything else parses it, then go straight to [Publish Mode](#publish-mode) below — it skips the authoring phases (Specify, Plan, Tasks, Handoff) entirely and never reads the rest of `$ARGUMENTS` as a feature description. Otherwise, continue below.
+**First, check for `--publish <SPEC> <target>`.** `--publish` is a flag the parser does not know, so it stays in `positional`: when `positional[0]` is `--publish`, `positional[1]` is `<SPEC>` and `positional[2]` is `<target>`. Go straight to [Publish Mode](#publish-mode) below — it skips the authoring phases (Specify, Plan, Tasks, Handoff) entirely and never reads the rest of the arguments as a feature description. Otherwise, continue below.
 
-**Then strip the remaining flags from `$ARGUMENTS`.** `--with-tasks` turns on the optional Plan and Tasks phases below. Remove it before anything else reads `$ARGUMENTS` — what remains is the feature description. Record whether it was passed.
+**Then read the remaining flag.** `--with-tasks` anywhere in `positional` turns on the optional Plan and Tasks phases below; drop it. What remains of `positional`, joined with spaces, is the feature description. Record whether the flag was passed. If the Arguments line in Context is a shell error instead of JSON (an apostrophe in the description does that: "the user's profile"), read the description from the bold line below and strip the flags by hand.
 
 You are creating a structured specification for the feature description left after stripping flags: **$ARGUMENTS**
 
@@ -211,7 +212,7 @@ After every phase that ran is approved:
 
 ## Publish Mode
 
-Entered only when `$ARGUMENTS` started with `--publish <SPEC> <target>` (parsed and stripped above). This mode skips the authoring phases: it never asks the scope question, never surfaces assumptions, never writes Specify/Plan/Tasks content, and never presents a review brief.
+Entered only when `positional[0]` was `--publish` (`<SPEC>` and `<target>` read above). This mode skips the authoring phases: it never asks the scope question, never surfaces assumptions, never writes Specify/Plan/Tasks content, and never presents a review brief.
 
 1. Resolve `<target>` (`new`, `#N`, `owner/repo#N`, or an issue URL) per [issue-store.md's Argument parsing](../skills/spec-driven-development/references/issue-store.md#argument-parsing).
 2. Run [issue-store.md's Publish algorithm](../skills/spec-driven-development/references/issue-store.md#publish-ac-1-ac-2-ac-3-ac-4-ac-5-ac-7) against `<SPEC>` and the resolved target, start to finish, including its `gh` preflight, its scratch-file handling, and its fingerprint verification. Do not restate those steps here — follow the reference.

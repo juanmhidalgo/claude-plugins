@@ -78,6 +78,8 @@ Return EXACTLY this format:
 - **Coordinate**: [rename that breaks #N — the change has to land after it, or its author has to know]
 ```
 
+Inside the `refactor:refactor` workflow the prompt says `OUTPUT_PATH: none — return through the structured output tool`. Then fill the structured output instead of the text block, one field per section above (`verdict` and `verdict_reason`, `textual`, `semantic`, `local`, `freshness`, `sequencing`), and write no file. What the text format puts under the Verdict goes in `gh_available` (false when `gh` was missing or unauthenticated) and `data_gaps` (one line per truncated file list or inconclusive grep): the caller reads those two fields before it trusts a CLEAR.
+
 ## Rules
 
 - **Every PR claim carries a PR number and a path you actually saw in its file list or diff.** Never infer that a PR touches a file from its title or branch name.

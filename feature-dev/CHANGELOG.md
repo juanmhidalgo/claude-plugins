@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.9.0 (2026-11-04)
+
+### Added
+- **`features.py resolve spec|plan [<argument>]`: the Phase 0 preflight of `/feature-dev:explore-plan`, `:spec-review` and `:plan-review`.** It takes a path (an artifact of the other kind resolves to the one beside it), `#N` / `owner/repo#N` / an issue URL, a feature slug or `feature:` title, or nothing (every candidate; several are narrowed to the current branch, or to the newest with `--newest`; `--skip-implemented` drops shipped features), and prints one JSON line with the path and the fields the commands read (`slug`, `feature`, `branch`, `repos`, `status`, `plan`, `issue`, `spec_path`, `plan_path`, `source_spec`, `external`, `matched`). Exit 2 not found (with `reason` and what was searched), 3 ambiguous (`candidates`), 4 malformed frontmatter or `feature.json`. The three commands act on that exit table instead of resolving in prose. 26 cases in `scripts/test_features.py`. **Why:** each command carried its own copy of the same resolution steps, and "which file, which status" was the part a model got wrong most often; a script answers it the same way every time and names what it searched when it fails.
+- **`/feature-dev:spec-review`, `:plan-review`, `:tdd`, `:spec` and `:harden` read their arguments from `scripts/args.sh`** (a copy of `shared/args/`) through an `Arguments` line in Context: `pane` (null → run here, `--no-pane` wins), `spec`, `effort` and `positional`. Flags the parser does not know (`--coordinator`, `--publish`, `--with-tasks`, `--base`, a bare `--effort`) stay positional and the prose says where. An apostrophe in a free-text argument breaks the shell block, so `spec` and `tdd` keep the raw `$ARGUMENTS` line as the fallback. **Why:** measured on Claude Code 2.1.317, `$ARGUMENTS` is substituted as text into a command's `` !` `` block before the shell runs and `$N` is 0-indexed; one parser with one measured contract beats five prose paragraphs that each "strip the flags".
+
+### Changed
+- `/feature-dev:explore-plan` passes the resolver's JSON line (not a `list --json` entry) to the plan steps, and `:spec-review` / `:plan-review` pass it to `spec-plan-validator` as `feature`.
+
+### Removed
+- **`/feature-dev:explore-plan`'s in-session fallback when `Workflow` is unavailable** (the anonymous generator that fanned out to the explorers itself). The command now stops and names the `Workflow(feature-dev:plan-fanout)` allow rule, the same decision as code-review 4.1.0. `Agent` and the `review_server.py snapshot` allow rule left `allowed-tools` with it. **Why:** the fallback was the path where a named spawn silently became a teammate that cannot spawn explorers, producing a one-reader plan that looked cross-checked; a stop is honest, a degraded plan is not.
+
 ## 2.8.1 (2026-11-04)
 
 ### Fixed

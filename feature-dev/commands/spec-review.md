@@ -37,23 +37,40 @@ If you were dispatched as a subagent to execute a specific task, skip this comma
 ## Context
 - **Repository**: !`git remote get-url origin`
 - **Current branch**: !`git branch --show-current`
-- **Spec argument**: $ARGUMENTS
+- **Arguments**: !`bash "${CLAUDE_PLUGIN_ROOT}/scripts/args.sh" '$ARGUMENTS'`
 - **Feature store**: each feature lives in `.feature-dev/features/<slug>/`, managed by `${CLAUDE_PLUGIN_ROOT}/scripts/features.py` (pass `--root <repo root>`). Layout: [artifact-locations.md](../skills/spec-driven-development/references/artifact-locations.md).
 
 ## Phase 0: Resolve the Spec File
 
-`--pane` / `--no-pane` are flags: drop them before reading `$ARGUMENTS` below.
+The spec argument is `positional[0]` from the Arguments JSON in Context (none:
+auto-discover). `pane` is the Herdr flag: `true` opens a pane, `false` or
+`null` runs here. Run, once:
 
-1. **If `$ARGUMENTS` is `#N`, `owner/repo#N`, or an issue URL** → resolve it per [issue-store.md's Argument parsing](../skills/spec-driven-development/references/issue-store.md#argument-parsing), then run [issue-store.md's Import algorithm](../skills/spec-driven-development/references/issue-store.md#import-ac-8-ac-9-ac-10-ac-11-ac-12) against it, start to finish. Do not restate Import's steps here — follow the reference. A failed `gh` preflight, or a failed `gh issue view` call, stops here and names the issue that could not be read. On success, continue as if `$ARGUMENTS` had been the resulting `SPEC-<slug>.md` path (the reference's own step 6).
-2. **If `$ARGUMENTS` is provided and is not an issue reference** → use it as the path to the spec file. If the file does not exist, STOP and report. Refuse any path outside `.feature-dev/features/` (a root `SPEC-*.md`, or the layout older than 2.0.0) in one line, naming `.feature-dev/features/<slug>/` as the only place specs live.
-3. **If `$ARGUMENTS` is empty** → auto-discover spec files. Run `${CLAUDE_PLUGIN_ROOT}/scripts/features.py list --json --root <repo root>` and take the `artifacts` entries with `kind: "spec"` (each has a `path`), then read each file's frontmatter. Do **not** filter by `status:` — a spec with `status: implemented` is still legitimate to re-review (e.g., for retro learning). From the candidates:
-   - **0 specs** → STOP and ask the user to provide a path or run `/feature-dev:spec` first.
-   - **1 spec** → use it. Inform the user: "Auto-selected spec: `<spec path>` (feature: <name>, status: <status>)".
-   - **2+ specs** → use AskUserQuestion to let the user pick (label = `feature:` value, description = `<filename> — status: <status>`).
+```bash
+${CLAUDE_PLUGIN_ROOT}/scripts/features.py resolve spec <positional[0]> --root <repo root>
+```
+
+(omit the argument when there is none). It takes a `SPEC-*.md` path (a
+`PLAN-*.md` path resolves to the spec beside it), `#N`, `owner/repo#N` or an
+issue URL, a feature slug or title, or nothing — then every feature's spec is a
+candidate, whatever its `status` (a spec with `status: implemented` is still
+legitimate to re-review, e.g. for retro learning), and several are narrowed to
+the current branch. It prints one JSON line: `path`, `slug`, `feature`,
+`status`, `plan`, `issue`, `plan_path` and `matched` on success; `error` plus
+`reason` (exit 2) or `candidates` (exit 3) on failure.
+
+| Exit | Meaning | Do |
+|------|---------|----|
+| `0` | Resolved | Continue with `path`. When `matched` is not `path`, say: "Auto-selected spec: `<path>` (feature: <feature>, status: <status>)" |
+| `2` | `reason: issue_unlinked` | No local feature is linked to `issue` (`repo` null means this repo: resolve it per [issue-store.md's Argument parsing](../skills/spec-driven-development/references/issue-store.md#argument-parsing)). Run [issue-store.md's Import algorithm](../skills/spec-driven-development/references/issue-store.md#import-ac-8-ac-9-ac-10-ac-11-ac-12) against it, start to finish; do not restate Import's steps here. A failed `gh` preflight, or a failed `gh issue view` call, stops here and names the issue that could not be read. Then re-run `resolve spec` with the `SPEC-<slug>.md` path Import produced (the reference's own step 6) |
+| `2` | `reason: no_candidates` | **STOP** and ask the user to provide a path or run `/feature-dev:spec` first |
+| `2` | any other `reason` (`file`, `outside_store`, `no_sibling`, `unknown_name`) | **STOP** and refuse it in one line, quoting `error`, naming `.feature-dev/features/<slug>/` as the only place specs live (a root `SPEC-*.md`, or the layout older than 2.0.0, is `outside_store`) |
+| `3` | Ambiguous | AskUserQuestion over `candidates` (label = `feature`, description = `<filename> — status: <status>`), then re-run `resolve spec` with the chosen `path` |
+| `4` | Malformed | **STOP** and quote `error`: the spec, or its `feature.json`, cannot be read as a spec. The validator grades a spec it can read; this is the one it cannot |
 
 ## Herdr pane
 
-With `--pane`, run Phases 1–2 in a Herdr pane in **collect** mode: follow
+When `pane` is `true`, run Phases 1–2 in a Herdr pane in **collect** mode: follow
 `${CLAUDE_PLUGIN_ROOT}/references/herdr-pane.md`. It falls back to the normal run outside
 Herdr. Questions the run asks happen in the pane, and Herdr notifies the user.
 Resolve the spec here first (Phase 0), so the pane receives a path and never
@@ -69,7 +86,7 @@ has to ask which spec.
 Use the Agent tool to invoke the `spec-plan-validator` subagent with:
 - `artifact_type`: `spec`
 - `artifact_path`: the resolved path from Phase 0
-- `feature`: that feature's entry from `${CLAUDE_PLUGIN_ROOT}/scripts/features.py list --json --root <repo root>` (matched by slug), so the agent sees its state without parsing frontmatter
+- `feature`: the Phase 0 JSON line (`slug`, `status`, `plan`, `issue`), so the agent sees the feature's state without parsing frontmatter
 
 The agent will:
 1. Read the spec file

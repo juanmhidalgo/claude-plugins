@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.16.0] - 2026-11-04
+
+### Changed
+- **`/discuss:feature`'s exploration is one deterministic dispatch**: a fixed Explore agent on sonnet, a fixed prompt where only the topic is substituted, a fixed five-section return (Entry points, Related code, Dependencies, Conventions, Not found) with a `path:line` on every fact, one retry on an unusable result, and a stated fallback (no HIGH-confidence finding) when exploration fails twice. **Why:** the old block was an "example" call with a `[feature]` placeholder and a free-form return, so each run explored a different scope and the HIGH/MEDIUM labels rested on whatever the explorer happened to format. It is one agent whose result the command analyzes itself, not a fan-out, so a workflow would add a tool dependency without removing any variance.
+- **`/discuss:adversarial-doc-review` reads its arguments from `scripts/args.sh`** (synced from `shared/args/`): the Context block carries `positional` (doc path, mode) and `pane` as JSON instead of prose that stripped `--pane` by hand. **Why:** measured on Claude Code 2.1.317, `$ARGUMENTS` is substituted as text into a command's `` !` `` block before the shell runs and `$N` is 0-indexed, so one shared parser replaces every hand-written "drop the flags first".
+
 ## [2.15.0] - 2026-10-31
 
 ### Added

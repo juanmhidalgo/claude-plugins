@@ -1,0 +1,52 @@
+schema_version: "1.1"
+name: pipeline-enter-ok-then-leave
+description: >
+  Phase 0, exit 0 from master: enter switches to the PR branch. Whatever
+  stops the run next (no Workflow tool in a headless run, or the triage
+  workflow's fetch failing offline), the pipeline must say where the
+  checkout was, run `pipeline-branch.sh leave` as its last step, and never
+  push or write to GitHub.
+tags: [pipeline, phase-0, exit-0, slow]
+runs: 1
+
+context:
+  scaffold_script: scaffold.sh
+
+execution:
+  prompt: /code-review:pipeline 1
+  max_turns: 30
+  timeout_seconds: 900
+  allowed_tools: [Read, Glob, Grep, Bash, Agent, Workflow]
+
+graders:
+  - name: enter-run
+    type: tool_used
+    tool: Bash
+    input_match: 'pipeline-branch\.sh enter 1'
+  - name: gh-checked-out
+    type: regex
+    target: { source: file, path: .git/fake-gh.log }
+    pattern: 'pr checkout 1'
+  - name: leave-run
+    type: tool_used
+    tool: Bash
+    input_match: 'pipeline-branch\.sh leave'
+  - name: enter-before-leave
+    type: tool_order
+    before: { tool: Bash, input_match: 'pipeline-branch\.sh enter' }
+    after: { tool: Bash, input_match: 'pipeline-branch\.sh leave' }
+  - name: no-push
+    type: tool_used
+    tool: Bash
+    input_match: 'git push'
+    min: 0
+    max: 0
+  - name: no-github-writes
+    type: regex
+    target: { source: file, path: .git/fake-gh.log }
+    match: not_contains
+    pattern: 'feedback (dismiss|resolve)|pr (merge|close|review|comment)'
+  - name: says-where-checkout-was
+    type: regex
+    target: last_message
+    pattern: 'master'

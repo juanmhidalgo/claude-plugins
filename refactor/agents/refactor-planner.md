@@ -53,6 +53,8 @@ Return EXACTLY this structured format:
 3. [Continue...]
 ```
 
+Inside the `refactor:refactor` workflow the prompt says `OUTPUT_PATH: none — return through the structured output tool`. Then fill the structured output instead of the text block, one field per section above (`scope`, `coverage`, `dependencies`, `past_patterns`, `risks`, `suggested_order`, plus `clarifications` and a one-line `summary`), and write no file.
+
 ## Rules
 
 - Always include `file:line` references for every finding

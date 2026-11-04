@@ -54,19 +54,27 @@ hooks:
 ## Context
 - **Current branch**: !`git branch --show-current`
 - **Staged files**: !`git diff --cached --name-only`
-- **Focus area**: $ARGUMENTS
+- **Arguments**: !`bash "${CLAUDE_PLUGIN_ROOT}/scripts/args.sh" '$ARGUMENTS'`
+- **All arguments**: $ARGUMENTS
 
 ## Phase 0: Validate
 
-`--pane` / `--no-pane` are flags, not the focus area: drop them first.
+The **Arguments** line is the parsed form of what the user typed: one JSON
+object with `pane`, `spec`, `effort` and `positional`. Read its fields; do not
+parse the raw arguments yourself. The **focus area** is `positional` joined
+with spaces (empty when none was given); `effort` is the level, `medium` when
+`null`; `spec` goes to `find-spec.sh`, which searches on its own when it is
+`null` (a path with spaces cannot be passed).
 
 1. Check staged changes exist: `git diff --cached --name-only` must return files. If empty, **STOP** and tell user to stage changes first.
 2. Note the staged file list for later phases.
 
 ## Herdr pane
 
-With `--pane`, after Phase 0 passes, run the whole pipeline in a Herdr pane in
-**worktree** mode with `--worktree-staged`. Follow
+When `pane` is `true`, after Phase 0 passes, run the whole pipeline in a Herdr
+pane in **worktree** mode with `--worktree-staged`. `pane: null` means no pane:
+this command has no configured default, and `false` is what the pane session
+itself receives. Follow
 `${CLAUDE_PLUGIN_ROOT}/references/herdr-pane.md`. The worktree starts at
 `HEAD` with exactly what is staged here. Phase 3's approval happens in the
 pane, and Herdr notifies the user when it is waiting.
@@ -102,41 +110,26 @@ This pipeline runs in the session that wrote the staged code. That session
 holds every reason the code looks correct — which is the framing both the
 review and the verification must start without.
 
-**With workflows, at every effort level**, follow **`references/workflow-path.md`
-in the `branch-review` skill** for Phases 1 and 2 together, with scope
+**This command requires the `Workflow` tool.** If `Workflow` is not available,
+**STOP** and say so: under `claude -p` or the SDK it needs a
+`Workflow(code-review:review)` allow rule. There is no in-session fallback:
+the workflow replaced review and verification one Agent call at a time, and
+Phase 4 edits files on the strength of that verification.
+
+**At every effort level**, follow **`references/workflow-path.md` in the
+`branch-review` skill** for Phases 1 and 2 together, with scope
 `staged changes (git diff --cached)`, the effort, the focus area as `focus`, and
 `axes: ["defect"]` at `low` or `["defect", "spec"]` at `medium` and above. Unlike
 `:staged`, this command takes the workflow at `low` and `medium` too: it always
-verifies, so there is always a fan-out to run. Then continue at the verdict list
-at the end of Phase 2.
-
-**Without workflows** (`Workflow` is not available), dispatch as below and say so.
-Use the Agent tool with `subagent_type="code-review:branch-reviewer"`.
+verifies, so there is always a fan-out to run. The spec sources come from
+`find-spec.sh --staged [--spec <spec>]`, as `spec-axis.md` describes. Then
+continue at the verdict list at the end of Phase 2.
 
 Pass **scope, not content**. Do not summarize the change, explain its intent,
-or paste excerpts — each transmits the framing the fresh context exists to
-exclude:
-
-```
-SCOPE: staged changes (git diff --cached)
-EFFORT: <low|medium|high|max, default medium>
-FOCUS: <the focus area from $ARGUMENTS, if one was given>
-OUTPUT_PATH: <scratchpad dir>/staged-pipeline-review.md
-```
-
-The finding format, severity/confidence rubric, labels, and the mandatory
-failure-scenario field come from the **`branch-review` skill**. Do not restate
-the rubric in the agent prompt — the skill is the single source of truth, and a
-second copy here is a copy that drifts.
-
-**Read `OUTPUT_PATH` first — it is the primary channel.** Use anything returned
-inline only to fill in a missing or empty file. If the agent finished and left
-neither, the review did not run: say so and re-run it. Never treat a missing
-report as a clean one.
-
-At effort `medium` and above, run the **Spec axis** in the same message:
-`find-spec.sh --staged`, then `code-review:spec-conformance-reviewer` if it
-found a source. Follow `references/spec-axis.md` in the `branch-review` skill.
+or paste excerpts into `focus` — each transmits the framing the fresh context
+exists to exclude. The finding format, severity/confidence rubric, labels, and
+the mandatory failure-scenario field come from the **`branch-review` skill**,
+which the workflow's reviewers load themselves.
 
 ## Phase 2: Verify (dispatched)
 

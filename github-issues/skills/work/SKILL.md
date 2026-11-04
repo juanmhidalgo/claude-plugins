@@ -99,6 +99,13 @@ it are not run without the user seeing them first.
 
 Follow the phases in order. Do not advance past a gate without the user.
 
+**Requires the `Workflow` tool.** Phase 3 verifies in the `github-issues:verify-issues`
+workflow and Phase 6 reviews in `code-review:review`. If `Workflow` is not available,
+**STOP** and say so: under `claude -p` or the SDK it needs
+`Workflow(github-issues:verify-issues)` and `Workflow(code-review:review)` allow rules.
+There is no in-session fallback: verifying and reviewing here, in the session that reads
+the issue and writes the change, is what those phases exist to avoid.
+
 ### Phase 1: Fetch
 
 1. Resolve the issue reference (see Arguments). If it is neither a URL nor a number, **STOP** and ask.
@@ -147,12 +154,8 @@ was checked (ran / read / not checked).
   this skill's `references/verification.md` and `references/work-types.md`, `repo_path`
   the repo root). Its `issue-verifier` reads the code, sibling repos included, in its own
   context, and the workflow audits the ledger in code (see `/github-issues:verify` step 2).
-  If workflows are disabled, spawn the `github-issues:issue-verifier` directly instead,
-  without a `name`, with `ISSUE` / `REPO_PATH` / `RULES` / `PARTS`.
-- If the agent cannot be spawned (this skill is itself running inside a subagent), build
-  the ledger here, following verification.md.
 
-Read its `audit_flags` before using the ledger (or, from the direct agent, audit it as "Auditing an agent's ledger" in verification.md describes).
+Read its `audit_flags` before using the ledger.
 
 **2. Settle what reading cannot.** The agent never runs anything; this phase does.
 
@@ -239,10 +242,6 @@ you.
    - **title**: `Issue #<number> review`
    - **out of bounds**: anything the approved plan chose (a UX, an approach) and
      everything under its Out of scope. A confirmed finding there goes to the user.
-4. If workflows are disabled (`Workflow` unavailable), say so and use the single-reviewer
-   fallback instead: spawn `code-review:branch-reviewer` with `model: "opus"` and no
-   `name`, using the prompt in [review-prompt.md](references/review-prompt.md), and check
-   each finding against the code before acting (`code-review:receiving-code-review`).
 
 ### Phase 7: Close out
 

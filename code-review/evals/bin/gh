@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+# Fake `gh` for the code-review eval suite. run.sh puts it first on PATH, so
+# every `gh` call the run makes lands here and nothing reaches GitHub.
+#
+# Per-case state comes from <git-dir>/fake-gh.env, written by the case's
+# scaffold.sh (FAKE_STATE, FAKE_DRAFT, FAKE_HEAD_REF, FAKE_HEAD_OID,
+# FAKE_NO_FEEDBACK, FAKE_CHECKOUT_FAILS). Every call is appended to
+# <git-dir>/fake-gh.log, which graders read as a workspace file.
+set -uo pipefail
+git_dir=$(git rev-parse --git-dir 2>/dev/null || echo .)
+[ -f "$git_dir/fake-gh.env" ] && . "$git_dir/fake-gh.env"
+printf '%s\n' "$*" >> "$git_dir/fake-gh.log"
+
+case "${1:-} ${2:-}" in
+  "feedback --version")
+    [ -n "${FAKE_NO_FEEDBACK:-}" ] && exit 1
+    echo "gh feedback version fake" ;;
+  "feedback fetch"|"feedback -R")
+    echo "fake gh: feedback fetch is not available offline" >&2; exit 1 ;;
+  "feedback dismiss"|"feedback resolve")
+    echo "fake gh: refused to write to GitHub: $*" >&2; exit 1 ;;
+  "pr view")
+    case "$*" in
+      *"--json state,isDraft,headRefName,headRefOid"*)
+        printf '%s\t%s\t%s\t%s\n' "${FAKE_STATE:-OPEN}" "${FAKE_DRAFT:-false}" \
+          "${FAKE_HEAD_REF:-feature}" "${FAKE_HEAD_OID:-}" ;;
+      *"--json headRefName"*) echo "${FAKE_HEAD_REF:-feature}" ;;
+      *"--json baseRefName"*) echo master ;;
+      *) printf 'state: %s\ndraft: %s\nhead: %s\n' "${FAKE_STATE:-OPEN}" "${FAKE_DRAFT:-false}" "${FAKE_HEAD_REF:-feature}" ;;
+    esac ;;
+  "pr checkout")
+    if [ -n "${FAKE_CHECKOUT_FAILS:-}" ]; then
+      echo "fake gh: checkout refused (simulated failure)" >&2; exit 1
+    fi
+    git checkout -q "${FAKE_HEAD_REF:-feature}" 2>/dev/null \
+      || git checkout -q -b "${FAKE_HEAD_REF:-feature}" "origin/${FAKE_HEAD_REF:-feature}" ;;
+  "repo view") echo master ;;
+  "auth status") echo "fake gh: logged in" ;;
+  *) echo "fake gh: unexpected call: $*" >&2; exit 99 ;;
+esac

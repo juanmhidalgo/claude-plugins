@@ -7,7 +7,7 @@ allowed-tools:
   - Read
   - Glob
   - Grep
-  - Agent
+  - Workflow
   - AskUserQuestion
 hooks:
   - event: Stop
@@ -28,20 +28,59 @@ Create a structured refactoring plan.
 ## Phase 1: Gather Context
 
 <exploration>
-Launch both agents in a SINGLE response so they run concurrently.
+**Requires the `Workflow` tool.** If `Workflow` is not available, **STOP** and
+say so: under `claude -p` or the SDK it needs a `Workflow(refactor:refactor)`
+allow rule. There is no in-session fallback: the planner and the conflict
+scout are the fan-out this command exists to keep out of the conversation.
 
-Agent — `subagent_type: "refactor:refactor-planner"` (skip only if a recent analysis already covers this) to understand:
+Before launching, list with Grep (not sampled):
 
-1. What needs to be refactored and why
-2. Current test coverage
-3. Dependencies that could break
-4. Similar refactorings done in this project
+- **Targets**: every file and directory the refactor will touch — including the
+  consumers that a rename would reach, not just the file being restructured.
+- **Symbols**: the names you expect to rename, move, or delete. Leave empty
+  only if the refactor genuinely renames nothing; the semantic-overlap scan is
+  the half git cannot do for you.
 
-Agent — `subagent_type: "refactor:conflict-scout"`, always. Pass:
-- **Targets**: every file and directory the refactor will touch — including the consumers that a rename would reach, not just the file being restructured.
-- **Symbols**: the names you expect to rename, move, or delete. Leave empty only if the refactor genuinely renames nothing; the semantic-overlap scan is the half git cannot do for you.
+Then launch the `refactor:refactor` workflow and wait for its notification. It
+runs `refactor-planner` and `conflict-scout` in parallel and returns both
+reports as structured data:
 
-A plan written without this scan orders the work by internal risk alone and ignores the only cost that grows while you work: someone else's branch drifting away from yours.
+```
+Workflow({ name: "refactor:refactor", args: {
+  mode: "plan", target: "<the target>",
+  targets: ["<path>", "<path>"], symbols: ["<name>", "<name>"] } })
+```
+
+- `target` is the file, directory or topic as given.
+- Add `skip_explore: true` only if a recent `/refactor:analyze` already covers
+  this target; the scout always runs.
+- Add `base: "<branch>"` only when the user named a base branch; otherwise the
+  scout reads it from `origin/HEAD`.
+
+The planner gathers **what needs to change and why**, **test coverage**,
+**dependencies that could break** and **similar refactorings done in this
+project**. The scout maps the targets and symbols against open PRs, branches
+and local work. A plan written without this scan orders the work by internal
+risk alone and ignores the only cost that grows while you work: someone else's
+branch drifting away from yours.
+
+**Read what comes back.** `summary` is first and survives a result cut off at
+the end; the full reports are `explore` (the planner) and `scout`:
+
+- `summary.explore` is `ran`, `skipped` (you passed `skip_explore`) or
+  `failed`. A failed planner did not explore: say so and offer to re-run before
+  writing the coverage and dependency parts of the plan from your own reading.
+- `summary.verdict` is the scout's `CLEAR | CONTESTED | BLOCKED`, or
+  `UNSCANNED` when the scout failed twice. Copy `scout.verdict_reason` into
+  Concurrent Work verbatim. `summary.gh_available` false and every line of
+  `summary.data_gaps` go there too: a scan on missing data is never clean.
+- `scout.textual` (same file) and `scout.semantic` (a PR calls a symbol you
+  rename) are the contested targets; each needs a handling decision in the
+  plan. `scout.local` feeds the pre-flight checklist; `scout.sequencing` the
+  phase order.
+- `explore.coverage.gaps` become Phase 1 test steps; `explore.risks` and
+  `explore.suggested_order` shape Phase 2. `explore.clarifications` are
+  questions to fold into Phase 2 below.
 </exploration>
 
 ## Phase 2: Clarify Scope
@@ -70,7 +109,7 @@ Use AskUserQuestion to confirm:
 
 ## Concurrent Work
 
-From the conflict scout. State its verdict verbatim; if it could not reach `gh`, say so instead of claiming a clean scan.
+From the workflow's `scout` report. State its verdict and `verdict_reason` verbatim; if the verdict is `UNSCANNED` or `gh_available` is false, say so instead of claiming a clean scan, and list `data_gaps`.
 
 **Verdict**: CLEAR | CONTESTED | BLOCKED — [one sentence]
 
@@ -203,7 +242,7 @@ Every contested target from the conflict scout appears in the plan with an expli
 </rule>
 
 <rule priority="blocking">
-If the conflict scout could not reach `gh`, the plan says so under Concurrent Work. Never write a clean scan you did not get.
+If the scout's verdict is `UNSCANNED` or `gh_available` is false, the plan says so under Concurrent Work. Never write a clean scan you did not get.
 </rule>
 
 <rule priority="blocking">

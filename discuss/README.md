@@ -22,7 +22,7 @@ Inside [Herdr](https://herdr.dev) only; outside it, `--pane` says so and runs no
 
 ### `/discuss:feature <feature or idea>`
 
-Critical analysis with a skeptical Staff Engineer perspective. Explores codebase first, identifies gaps, risks, and offers alternatives.
+Critical analysis with a skeptical Staff Engineer perspective. Explores the codebase first with a single read-only Explore agent that returns `path:line` facts (HIGH-confidence findings cite them), identifies gaps, risks, and offers alternatives.
 
 **Example:**
 ```

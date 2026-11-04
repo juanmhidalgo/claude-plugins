@@ -1,0 +1,62 @@
+schema_version: "1.1"
+name: ship-default-branch-yes-stops
+description: >
+  Phase 1, preflight exit 3: --yes on the default branch with an unstaged
+  change. The skill must run the preflight with --yes, stop, say that --yes
+  never branches and never pushes to the default branch, and leave the change
+  unstaged. No question, no add, no commit, no push, no branch.
+tags: [ship, phase-1, exit-3, yes]
+runs: 1
+
+context:
+  scaffold_script: scaffold.sh
+
+execution:
+  prompt: /ship:ship --yes
+  max_turns: 15
+  timeout_seconds: 300
+  allowed_tools: [Read, Glob, Grep, Bash, Skill, AskUserQuestion]
+
+graders:
+  - name: preflight-run-with-yes
+    type: tool_used
+    tool: Bash
+    input_match: 'ship-preflight\.sh.*--yes'
+  - name: no-question
+    type: tool_used
+    tool: AskUserQuestion
+    min: 0
+    max: 0
+  - name: no-stage
+    type: tool_used
+    tool: Bash
+    input_match: 'git add'
+    min: 0
+    max: 0
+  - name: no-commit
+    type: tool_used
+    tool: Bash
+    input_match: 'git commit'
+    min: 0
+    max: 0
+  - name: no-push
+    type: tool_used
+    tool: Bash
+    input_match: 'git push'
+    min: 0
+    max: 0
+  - name: no-branch-created
+    type: tool_used
+    tool: Bash
+    input_match: 'git (checkout -b|switch -c)'
+    min: 0
+    max: 0
+  - name: mentions-yes-flag
+    type: regex
+    target: last_message
+    pattern: '--yes'
+  - name: mentions-default-branch
+    type: regex
+    target: last_message
+    flags: i
+    pattern: 'default branch|\bmaster\b'

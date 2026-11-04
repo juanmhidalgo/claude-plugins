@@ -8,7 +8,9 @@
 #
 # Fires on edits to any plugin.json or to marketplace.json, and validates the
 # WHOLE registry — so a drift introduced earlier surfaces on the next edit
-# rather than persisting silently.
+# rather than persisting silently. The comparison itself is the `marketplace`
+# check of scripts/release-check.sh (the pre-commit gate); this hook only
+# decides when to run it and wraps the result as an advisory.
 #
 # Bypass with: SKIP_VERSION_CHECK=1 (shared with version-bump-check.sh).
 
@@ -57,33 +59,21 @@ case "$rel_path" in
   *) exit 0 ;;
 esac
 
-marketplace="$repo_root/.claude-plugin/marketplace.json"
-[ -f "$marketplace" ] || exit 0
-
-# A malformed registry is a separate problem — report it and stop, since every
-# comparison below would otherwise fail with a misleading "drift" message.
-if ! jq empty "$marketplace" 2>/dev/null; then
-  note "[marketplace-sync-check] '.claude-plugin/marketplace.json' is not valid JSON — cannot verify versions."
-  emit_advisory
-  exit 0
-fi
+# The gate's script lives next to this hook in the same checkout; it is run with
+# the edited file's repo as cwd so the test fixtures exercise it too.
+release_check="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../scripts" && pwd)/release-check.sh"
+[ -x "$release_check" ] || exit 0
 
 drift=0
-while IFS=$'\t' read -r name source registry_version; do
-  [ -n "$name" ] || continue
-
-  manifest="$repo_root/${source#./}/.claude-plugin/plugin.json"
-  [ -f "$manifest" ] || continue
-  jq empty "$manifest" 2>/dev/null || continue
-
-  actual_version=$(jq -r '.version // empty' "$manifest")
-  [ -n "$actual_version" ] || continue
-
-  if [ "$actual_version" != "$registry_version" ]; then
-    note "[marketplace-sync-check] Version drift for '$name': marketplace.json says '$registry_version', $source/.claude-plugin/plugin.json says '$actual_version'."
-    drift=1
-  fi
-done < <(jq -r '.plugins[]? | [.name // "", .source // "", .version // ""] | @tsv' "$marketplace")
+while IFS= read -r line; do
+  case "$line" in
+    "[release-check] marketplace: "*)
+      line=${line#"[release-check] marketplace: "}
+      note "[marketplace-sync-check] $line"
+      case "$line" in "Version drift for "*) drift=1 ;; esac
+      ;;
+  esac
+done < <(cd "$repo_root" && "$release_check" --tree --only marketplace 2>/dev/null)
 
 if [ "$drift" = "1" ]; then
   note "[marketplace-sync-check]   Update marketplace.json so each version mirrors its plugin.json."

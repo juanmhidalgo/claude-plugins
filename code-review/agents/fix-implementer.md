@@ -1,6 +1,6 @@
 ---
 name: fix-implementer
-description: "Implements a single code fix from review feedback. Spawned by the pipeline command to fix one specific issue. Use when delegating individual fix tasks."
+description: "Implements a single code fix from review feedback. Spawned by the review workflow's fix mode (pipeline, staged-pipeline, feature-dev and github-issues review loops), one per finding, in order. Use when delegating individual fix tasks."
 tools: Read, Write, Edit, Grep, Glob, Bash
 model: sonnet
 maxTurns: 25
@@ -47,7 +47,10 @@ costs a bad commit pushed without review.
 
 ## Output
 
-Report what you changed:
+Inside a workflow the structured output is the channel: `status` (`FIXED`,
+`REFUSED`, `NO_CHANGE`), `file` (the file you edited, or the test file when
+you also touched it), `change` (one line) and `reason` (why a REFUSED or
+NO_CHANGE; the lines modified for a FIXED). Spawned directly, report the same:
 ```
 File: [path]
 Change: [one-line description]

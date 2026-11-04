@@ -8,8 +8,10 @@ instead of passing through this conversation one Agent call at a time.
 
 At `low` and `medium` there is no fan-out to run: keep the command's single
 Agent dispatch. `:staged-pipeline` is the exception: it verifies at every level,
-so it takes this path at every level. If workflows are disabled (`Workflow` is not available), use the
-command's Agent dispatch and `verification.md` at every level, and say so.
+so it takes this path at every level. This path requires the `Workflow` tool:
+if it is not available, **STOP** and say so (under `claude -p` or the SDK it
+needs a `Workflow(code-review:review)` allow rule). Do not fall back to
+dispatching the fan-out one Agent call at a time.
 
 ## Run it
 

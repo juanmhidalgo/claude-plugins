@@ -33,23 +33,32 @@ Gather codebase context, analyze the proposal critically, identify gaps and risk
 ## Phase 1: Context Gathering
 
 <exploration priority="first">
-Use the Agent tool with `subagent_type: "Explore"` to investigate these 4 dimensions:
+Dispatch exactly one Agent with `subagent_type: "Explore"` and `model: "sonnet"`. Do not give it a `name:` and do not background it: Phase 3 needs its result before it starts. The prompt is fixed; the only thing you substitute is the topic from `$ARGUMENTS` on the first line:
 
-1. **Entry Points** - Where would this feature be triggered? (API routes, UI components, CLI commands)
-2. **Related Code** - Similar features already implemented, patterns they follow
-3. **Dependencies** - What modules/services would this touch or depend on?
-4. **Conventions** - How does this codebase handle similar concerns? (error handling, validation, auth)
-
-Example Task call:
 ```
-Agent tool with:
-  subagent_type: "Explore"
-  prompt: "Analyze codebase for [feature]. Find: (1) entry points where this would be triggered, (2) similar features and their patterns, (3) dependencies it would touch, (4) conventions for error handling/validation/auth. Include file:line references."
+TOPIC: <the feature or idea, verbatim from the arguments>
+
+Explore this codebase for the topic above. Search breadth: very thorough. Read-only: do not propose a design, do not assess risk, do not recommend anything. Report facts about the code as it is today.
+
+Return exactly these five sections, in this order, with these headings:
+
+## Entry points
+Where the feature would be triggered: API routes, UI components, CLI commands, jobs, handlers.
+## Related code
+Features already implemented that resemble it, and the pattern each one follows.
+## Dependencies
+Modules, services, tables and external systems the feature would touch or depend on.
+## Conventions
+How this codebase handles error handling, validation, authentication and permissions for similar concerns.
+## Not found
+One line per section above that turned up nothing: what you searched for and where.
+
+One bullet per fact. Every bullet in the first four sections starts with a `path:line` reference that you read, followed by what is there and why it matters for the topic. A bullet without a `path:line` does not go in; a section with nothing goes under "Not found" rather than being padded.
 ```
 
-**Output requirement**: Include `file:line` references in your analysis (e.g., `src/auth/validator.py:45`).
+The result is usable when it has the five headings and at least one `path:line` bullet. If it is missing headings, has no `path:line` at all, or contains recommendations instead of facts, dispatch it once more with the same prompt. If the second result is unusable too, continue without exploration and say so in the analysis: with no exploration there is no evidence for a HIGH label, so every finding in Phase 3 is MEDIUM at most.
 
-Wait for exploration results before proceeding.
+Wait for the result before proceeding. The `path:line` references in it are the only evidence a HIGH-confidence finding can cite (e.g., `src/auth/validator.py:45`).
 </exploration>
 
 ## Phase 2: Clarification (If Needed)
@@ -148,7 +157,7 @@ If the condition is something the user can simply tell you ("we'll never exceed 
 
 <critical_rules>
 <rule priority="blocking">
-Explore the codebase with an Explore subagent before analyzing; every HIGH-confidence finding needs a file:line from that exploration.
+Explore the codebase with the Phase 1 dispatch before analyzing; every HIGH-confidence finding needs a `path:line` from that exploration. If both dispatches came back unusable, no finding is HIGH.
 </rule>
 
 <rule priority="blocking">

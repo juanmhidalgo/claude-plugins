@@ -33,8 +33,8 @@ Comprehensive code review workflow for Claude Code: branch reviews, PR feedback 
 1. Puts the checkout on the PR's head: from any branch with a clean tree it runs `gh pr checkout`, fast-forwards a branch that is behind, and comes back where it was at the end (`scripts/pipeline-branch.sh`)
 2. Fetches and triages all bot/reviewer comments (the `triage-comments` workflow)
 3. Dismisses false positives with justifications
-4. Implements valid fixes (parallel subagents for independent fixes)
-5. Runs full test suite (retries up to 2x on failure)
+4. Implements valid fixes through the `review` workflow's fix mode: one `fix-implementer` per finding, in order, told only the verifier's description
+5. Runs the project's test suite with `scripts/run-tests.sh` (Makefile target, package.json script, pytest, cargo or go); three attempts in all, fixing between them
 6. Commits with structured message, pushes
 7. Resolves all GitHub threads
 
@@ -48,12 +48,12 @@ Fully autonomous - only stops if tests fail after retries or coverage is below C
 ```
 
 **Workflow steps:**
-1. Eligibility check (skip drafts, bots, trivial PRs)
+1. Preflight (`scripts/pr-preflight.sh`): one `gh` call decides open, not draft, human author and not trivial (`docs/`, README, CHANGELOG, LICENSE, config and lockfiles only; `--allow-trivial` overrides when you asked for that PR), and fetches title, body, head SHA and the per-file stat
 2. CLAUDE.md discovery (via Glob)
-3. PR summary generation
+3. PR summary taken from the preflight JSON (title, body, file stat); nothing is generated
 4. **Parallel reviews**, 2 to 5 dimensions depending on effort level
-5. **Verification**: one `finding-verifier` per finding → CONFIRMED / PLAUSIBLE / REFUTED
-6. Findings that share a cause are merged when presented, never before verifying
+5. **Verification**: one `finding-verifier` per finding → CONFIRMED / PLAUSIBLE / REFUTED, inside the `review` workflow (required; no in-session fallback)
+6. Findings that share a cause are merged when presented
 7. Filter by effort level
 8. **Report in this session** — nothing is written to GitHub
 
@@ -252,6 +252,9 @@ extension (one binary, no MCP):
 
 ## Scripts
 
+- `args.sh` - Parses `$ARGUMENTS` into one JSON line (`pane`, `spec`, `effort`, `positional`) that `pr`, `branch`, `staged`, `tech-debt`, `staged-pipeline` and `pipeline` read from their Context block; synced from `shared/args/`
+- `pr-preflight.sh` - Steps 1 and 3 of `pr` as one `gh pr view --json` call: open, not draft, human author, not trivial, plus title, body, head SHA and the per-file stat the reviewers receive as the PR summary. Exit codes in the script header; tests in `tests/test-pr-preflight.sh`
+- `run-tests.sh` - Phase 5 of `pipeline` as one step: finds the project's runner (Makefile `test` target, package.json `test` script via the lockfile's package manager, pytest, cargo, go), runs it with the output captured to `<git-dir>/code-review-tests/` and prints one JSON line (`runner`, `command`, `exit`, `passed`, `log`, `tail`); exit 10 when no runner, 11 when the runner is not installed. Tests in `tests/test-run-tests.sh`
 - `find-spec.sh` - Lists the spec sources for a review (`--base`, `--pr`, `--staged`, optional `--spec`): explicit argument, closing issues, commit keywords, feature-dev `branch:` frontmatter
 - `pipeline-branch.sh` - Phase 0 of `pipeline` as one step: `enter <PR>` checks gh-feedback, the clean tree and the open PR, checks the PR branch out from wherever the checkout is (fast-forwarding a branch that is behind) and remembers where it was; `leave` brings it back when the tree is clean. Exit codes in the script header; tests in `tests/test-pipeline-branch.sh`
 - `herdr-pane.sh` - Opens a Herdr pane or worktree with `claude`, runs a command there and collects its result (`--pane`). A synced copy of `shared/herdr-pane/herdr-pane.sh` in the marketplace repo
@@ -262,8 +265,6 @@ extension (one binary, no MCP):
 
 | Agent | Model | Purpose |
 |-------|-------|---------|
-| `pr-eligibility-checker` | Haiku | Validates PR is reviewable |
-| `pr-summarizer` | Haiku | Generates change summary |
 | `claudemd-compliance-reviewer` | Sonnet | Audits CLAUDE.md compliance |
 | `bug-scanner` | Sonnet | Shallow scan for obvious bugs |
 | `git-history-reviewer` | Sonnet | Analyzes git blame/history |
@@ -276,7 +277,7 @@ extension (one binary, no MCP):
 
 - **comment-fetcher** - Sonnet agent that runs `gh feedback fetch --split` and returns the metadata (first stage of the `triage-comments` workflow)
 - **comment-verifier** - Sonnet agent for parallel comment verification (used by pipeline and triage)
-- **fix-implementer** - Focused Sonnet agent for implementing individual fixes (used by pipeline)
+- **fix-implementer** - Focused Sonnet agent for implementing individual fixes (used by the `review` workflow's fix mode: pipeline, staged-pipeline, feature-dev, github-issues)
 - **branch-reviewer** - Opus agent for branch and staged reviews (the single reviewer behind `branch`, `staged`, `staged-pipeline`)
 - **pr-feedback-analyst** - Skeptical AI feedback analyst
 
@@ -288,11 +289,15 @@ extension (one binary, no MCP):
 - **technical-decisions** - When and how to ask for technical decisions before implementing fixes
 - **coverage-gate** - GHA coverage threshold detection and local verification patterns
 
+## Evals
+
+`evals/` holds a `claude plugin eval` suite for `/code-review:pipeline`'s Phase 0: seven offline cases (no PR number, dirty tree, draft PR, gh-feedback missing, checkout failure, branch ahead of the PR head, and a clean enter that must `leave`) against a fake `gh`, with deterministic graders only. Run `evals/run.sh --model haiku --runs 1` from a terminal, not from inside a Claude session (the runner's sandbox does not nest); see `evals/README.md`.
+
 ## Needs
 
 - `gh`, installed and authenticated with repo scope, for every PR command (`pr`, `triage`, `pipeline`, `dismiss`, `resolve-fixed`) and the agents they spawn
 - The `gh-feedback` extension, for `triage`, `pipeline`, `dismiss` and `resolve-fixed`: `gh extension install juanmhidalgo/gh-feedback`
-- The `Workflow` tool, for `triage` and `pipeline` (under `claude -p` or the SDK, a `Workflow(code-review:triage-comments)` allow rule)
+- The `Workflow` tool, for `triage`, `pipeline`, `pr` and `staged-pipeline`, and for `branch`/`staged` at `high`/`max` (under `claude -p` or the SDK, `Workflow(code-review:triage-comments)` and `Workflow(code-review:review)` allow rules). None of them has an in-session fallback
 - For `coverage-gate`: the project's own test and coverage tooling (pytest-cov, jest, vitest, go test)
 - No MCP servers or browser
 - For `--pane`: [Herdr](https://herdr.dev) (this session running inside a Herdr pane), `claude` and `jq` in the PATH
