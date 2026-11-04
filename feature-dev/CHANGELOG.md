@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.8.1 (2026-11-04)
+
+### Fixed
+- `/feature-dev:explore-plan`'s review brief writes each Should Address finding as what /tdd would do if it stays (stops at step N, edits another step's test file, …) plus a one-clause fix, instead of the validator's wording, which a user did not recognise as findings.
+- The plan generator (`references/plan-generation.md`, Step 2b rule 9) runs a four-point self-check before writing: Pins only on a step that writes its own test file, `Kind: characterization` only on a step that creates its test file, one observable outcome per `Accept`, and `Depends on` naming the step that creates a test file a `Verify` runs. The plan review flagged these same defects in two rounds in a row.
+- `/feature-dev:review` asks whether to review the PLAN instead when the artifact is a SPEC whose feature is already past `approved` and its PLAN has not been reviewed since it was written; reviewing the spec there ended in `refused: cannot approve from planned`.
+
 ## 2.8.0 (2026-11-01)
 
 ### Added

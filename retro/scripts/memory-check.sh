@@ -6,7 +6,11 @@
 #
 #   STALE           the file's `verify:` command exited non-zero (or timed out)
 #   MISSING-REF     a backticked repo path that does not exist, a commit hash
-#                   git cannot find, or a MEMORY.md link to a missing file
+#                   git cannot find, or a MEMORY.md link to a missing file.
+#                   Not flagged: a path that is the tail of a URL in the same
+#                   memory, a path or file name that exists in a sibling repo
+#                   named by the memory or by ../CLAUDE.md, and a hex token
+#                   labelled as an id (`section id …`).
 #   UNVERIFIED-OLD  a `type: project` memory with no `verify:`, not modified
 #                   in more than --days days
 #   OPEN-CLAIM      no `verify:`, and the text says "not yet fixed", "pending",
@@ -56,7 +60,7 @@ while [[ $# -gt 0 ]]; do
         --no-predicates)      RUN_PREDICATES=false; shift ;;
         --quiet-unless-stale) QUIET=true; shift ;;
         --json)               JSON=true; shift ;;
-        --help|-h)            sed -n '2,36p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+        --help|-h)            sed -n '2,38p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
         *)                    usage_error "unknown argument: $1 (try --help)" ;;
     esac
 done
@@ -89,6 +93,8 @@ if [[ -z "${MEMORY_DIR}" ]]; then
 fi
 [[ -d "${MEMORY_DIR}" ]] || usage_error "memory dir does not exist: ${MEMORY_DIR}"
 MEMORY_DIR="$(cd "${MEMORY_DIR}" && pwd -P)"
+
+PROJECT_PARENT="$(dirname "${PROJECT_ROOT}")"
 
 IS_GIT=false
 git -C "${PROJECT_ROOT}" rev-parse --git-dir >/dev/null 2>&1 && IS_GIT=true
@@ -195,12 +201,46 @@ check_ref() {  # file path
         # (`some-package/sub`, `owner/repo`): not ours to judge.
         [[ -e "${PROJECT_ROOT}/${first}" || -e "${MEMORY_DIR}/${first}" ]] || return 0
         [[ -e "${PROJECT_ROOT}/${p}" || -e "${MEMORY_DIR}/${p}" ]] && return 0
+        url_tail "${p}" && return 0
+        sibling_has "${p}" && return 0
         finding MISSING-REF "${file}" "\`${p}\` does not exist under the project root"
     else
         [[ -e "${PROJECT_ROOT}/${p}" || -e "${MEMORY_DIR}/${p}" ]] && return 0
         basename_known "${p}" && return 0
+        sibling_has "${p}" && return 0
         finding MISSING-REF "${file}" "\`${p}\` is not a file anywhere in the project"
     fi
+}
+
+# True when the path is the tail of a URL in the memory being checked
+# (`docs/x.md` next to `docs.vendor.example/docs/x`): the URL's path, not ours.
+url_tail() {
+    local p="$1" stem="${1%.*}"
+    [[ -s "${WORK}/urls" ]] || return 1
+    grep -qF -- "/${p}" "${WORK}/urls" && return 0
+    [[ "${stem}" != "${p}" && "${stem}" == */* ]] && grep -qE -- "/$(printf '%s' "${stem}" | sed 's/[.[\*^$()+?{|]/\\&/g')([^A-Za-z0-9_.-]|$)" "${WORK}/urls"
+}
+
+# True when the path exists in a sibling repo of the project root that the
+# memory names, or that the parent dir's CLAUDE.md names (the workspace's list
+# of sibling repos). A bare name (`Foo.test.js`) is looked up among the
+# sibling's tracked files, like basename_known does for this repo.
+sibling_has() {
+    local p="$1" dir name
+    for dir in "${PROJECT_PARENT}"/*/; do
+        dir="${dir%/}"; name="${dir##*/}"
+        [[ "${dir}" == "${PROJECT_ROOT}" || "${dir}" == "${MEMORY_DIR}" || ${#name} -lt 3 ]] && continue
+        grep -qF -- "${name}" "${WORK}/text" \
+            || { [[ -f "${PROJECT_PARENT}/CLAUDE.md" ]] && grep -qF -- "${name}" "${PROJECT_PARENT}/CLAUDE.md"; } \
+            || continue
+        [[ -e "${dir}/${p}" ]] && return 0
+        if [[ "${p}" != */* ]] && git -C "${dir}" rev-parse --git-dir >/dev/null 2>&1; then
+            [[ -f "${WORK}/sib-${name}" ]] || git -C "${dir}" ls-files -co --exclude-standard 2>/dev/null \
+                | awk -F/ '{ print $NF }' | sort -u > "${WORK}/sib-${name}"
+            grep -qxF -- "${p}" "${WORK}/sib-${name}" && return 0
+        fi
+    done
+    return 1
 }
 
 # Frontmatter fields as "key<TAB>value": verify, type, modified, description
@@ -247,13 +287,21 @@ backtick_spans() {
 
 # 7–40 char lowercase hex tokens with at least one digit and one letter.
 # '-' and '_' count as word characters, so UUID segments never match.
+# A token whose two preceding words label it as an id of something else
+# (`section id 9dbcf4ee`, `payload 1a2b3c4d`) is skipped, unless one of them
+# says commit/sha.
 commit_like() {
     awk '
+        BEGIN { split("section payload id ids uuid key token", w, " "); for (k in w) label[w[k]] = 1 }
         {
             gsub(/[^0-9A-Za-z_-]/, " ")
             for (i = 1; i <= NF; i++) {
                 t = $i
-                if (length(t) >= 7 && length(t) <= 40 && t ~ /^[0-9a-f]+$/ && t ~ /[0-9]/ && t ~ /[a-f]/) print t
+                if (!(length(t) >= 7 && length(t) <= 40 && t ~ /^[0-9a-f]+$/ && t ~ /[0-9]/ && t ~ /[a-f]/)) continue
+                p1 = (i > 1) ? tolower($(i - 1)) : ""; p2 = (i > 2) ? tolower($(i - 2)) : ""
+                if (p1 ~ /^(commit|commits|sha)$/ || p2 ~ /^(commit|commits|sha)$/) { print t; continue }
+                if ((p1 in label) || (p2 in label)) continue
+                print t
             }
         }
     ' "$1"
@@ -315,6 +363,9 @@ for i in "${!FILES[@]}"; do
 
     read_body "${path}" > "${WORK}/body"
     { printf '%s\n' "${DESCRIPTION[i]}"; cat "${WORK}/body"; } > "${WORK}/text"
+    # URLs, with or without a scheme (`docs.vendor.example/a/b`), for url_tail.
+    grep -oE '([A-Za-z][A-Za-z0-9+.-]*://)?[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)+/[^[:space:]<>`"'"'"')]+' "${WORK}/text" \
+        > "${WORK}/urls" 2>/dev/null || : > "${WORK}/urls"
     verify="${VERIFY[i]}"
 
     # a) PREDICATE

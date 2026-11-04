@@ -132,6 +132,12 @@ The downstream agents halt on a step that violates these. A plan that fails them
 7. **Re-examine a plan over ~20 steps before writing it.** Fold pin-only steps into `Pins:` and structure-only steps into `Kind: characterization`; above 25 the plan review flags it. What remains large can be grouped under `#### Milestone N — <name>` headings. Milestones are for reading; they add no gate.
 8. **Trace every acceptance criterion.** When the source spec numbers its ACs (`**AC-1**`…), every behavior and characterization step carries `Covers:` with the ids it makes true, and every AC is covered by at least one step. Steps with `Test: n/a` may omit it. Before writing, list the spec's AC ids and check each against the steps. An AC that no step covers gets a step, or a line in Risks that names its id and says why this plan leaves it out; the plan review accepts only that form. ACs were lost between spec and plan before: one was made unreachable by the code, and a docs step was dispatched only because the user asked for it.
 
+9. **Self-check before writing — the defects the plan review flags most.** Go through every step once and fix what fails; these four came back in two review rounds in a row when the rules above were only re-read:
+   - (a) A step with `Pins:` writes its own test file — its `Test:` is never one marked `(written by step N)`.
+   - (b) `Kind: characterization` only on a step that creates its test file.
+   - (c) Each `Accept` states one observable outcome; any further existing behavior it would assert goes to `Pins:`, and further new behavior to its own step.
+   - (d) A `Verify` that names a test file created by step N lists N in `Depends on`.
+
 ## Step 2c: Baseline — run every gate once on HEAD
 
 /feature-dev:tdd attributes each step's failures against this table. Without it, a command that was already red on HEAD halts the run mid-way and waits on the user; a gate that checks nothing passes a step that was never verified.

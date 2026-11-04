@@ -82,6 +82,50 @@ cat fenced/never-checked.sh
 \`\`\`
 EOF
 
+# False positives seen in a real SessionStart: an id from a payload, a path
+# that is the tail of a vendor docs URL, a file that lives in a sibling repo.
+mkdir -p "${REPO}/docs" "${REPO}/src" "${T}/sibling-app/src/components"
+touch "${T}/sibling-app/src/components/PreviewSheet.vue" "${T}/sibling-app/src/components/Lonely.md"
+cat > "${MEM}/false-pos.md" <<EOF
+---
+name: false-pos
+description: refs that belong to someone else
+metadata:
+  type: reference
+---
+The webhook payload carries section id 9dbcf4ee; payload 1a2b3c4d too.
+But commit id cafe1234beef is a commit.
+See docs.vendor.example/docs/real-time-events and \`docs/real-time-events.md\`,
+also https://vendor.example/api/docs/webhook-setup with \`docs/webhook-setup\`.
+In sibling-app, \`src/components/PreviewSheet.vue\` renders the sheet.
+Still missing: \`docs/not-a-url.md\`.
+EOF
+
+# A sibling the workspace CLAUDE.md lists: a bare test-file name tracked there.
+mkdir -p "${T}/listed-app/tests"
+git -C "${T}/listed-app" init -q
+touch "${T}/listed-app/tests/Sheet.shared.test.js"
+printf -- '- \`listed-app/\` — the frontend\n' > "${T}/CLAUDE.md"
+cat > "${MEM}/listed-sibling.md" <<EOF
+---
+name: listed-sibling
+description: a test file of a sibling the workspace lists
+metadata:
+  type: reference
+---
+The header is covered by \`Sheet.shared.test.js\`; \`Ghost.test.js\` is gone.
+EOF
+
+cat > "${MEM}/unnamed-sibling.md" <<EOF
+---
+name: unnamed-sibling
+description: a path that only a sibling has, and the memory does not say which
+metadata:
+  type: reference
+---
+\`src/components/Lonely.md\` holds it.
+EOF
+
 cat > "${MEM}/old.md" <<EOF
 ---
 name: old
@@ -163,6 +207,16 @@ lacks "external package path skipped" "some-package" "${out}"
 lacks "home/absolute paths skipped" "settings.json" "${out}"
 lacks "dot-suffix skipped" ".meta.json" "${out}"
 lacks "fenced code skipped" "never-checked" "${out}"
+lacks "id-labelled hex is not a commit" "9dbcf4ee" "${out}"
+lacks "payload-labelled hex is not a commit" "1a2b3c4d" "${out}"
+has  "commit id still checked" "MISSING-REF false-pos.md — commit cafe1234beef not found" "${out}"
+lacks "path that is a URL tail (no scheme)" "real-time-events" "${out}"
+lacks "path that is a URL tail (with scheme)" "webhook-setup" "${out}"
+lacks "path in a sibling repo the memory names" "PreviewSheet" "${out}"
+has  "path in a sibling the memory does not name" 'MISSING-REF unnamed-sibling.md — `src/components/Lonely.md` does not exist' "${out}"
+lacks "bare name tracked in a sibling listed by ../CLAUDE.md" "Sheet.shared" "${out}"
+has  "bare name in no sibling still flagged" 'MISSING-REF listed-sibling.md — `Ghost.test.js` is not a file' "${out}"
+has  "unrelated missing doc still flagged" '`docs/not-a-url.md` does not exist' "${out}"
 has  "MISSING-REF index link" "MISSING-REF MEMORY.md — index links to deleted-memory.md" "${out}"
 has  "UNVERIFIED-OLD via metadata.modified" "UNVERIFIED-OLD old.md — type project, no verify:, modified 2020-01-01" "${out}"
 has  "UNVERIFIED-OLD via mtime" "UNVERIFIED-OLD old-mtime.md — type project, no verify:, file unchanged for" "${out}"

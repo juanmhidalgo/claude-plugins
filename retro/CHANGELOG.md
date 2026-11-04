@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.3.2] - 2026-11-04
+
+### Fixed
+
+- `memory-check.sh` no longer reports three kinds of `MISSING-REF` false positive seen on every SessionStart: a hex token labelled as an id (`section id 9dbcf4ee`, `payload …`; `commit`/`sha` next to it keeps the check); a backticked path that is the tail of a URL in the same memory (`docs/x.md` beside `docs.vendor.example/docs/x`); and a path or bare file name that exists in a sibling repo of the project root named by the memory or by the parent dir's `CLAUDE.md`. Covered in `test_memory_check.sh`.
+
 ## [0.3.0] - 2026-10-02
 
 ### Added

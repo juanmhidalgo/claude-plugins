@@ -158,7 +158,7 @@ Read `PLAN-<slug>.md` from disk and end with a review brief instead of re-printi
 ### Review brief — PLAN-<slug>.md (<N> lines, <T> steps)
 **Plan review** — <B> Blocking left (<F> fixed in one pass), <S> Should Address · AC coverage <c>/<t>
 1. Blocking: <finding, section>
-2. <Should Address finding, section>
+2. <Should Address finding: what /tdd does if it is left (stops at step N, runs a missing file, …)> — fix: <one clause>, section
 - Nice to Have: <n> — <short list, one line>
 **Decided** (review if you disagree)
 3. <a Key Decision and its recommendation, one line>
@@ -172,7 +172,7 @@ Reply with the numbers you want changed, or "approved".
 Or review it in the browser: /feature-dev:review <plan path>
 ```
 
-The **Plan review** group leads because a remaining Blocking finding is the one thing that stalls /tdd. Blocking findings come first, then Should Address. A finding that restates a Baseline row already listed under Unverified is not repeated. When the validator found nothing, the group is one line: `**Plan review** — clean`. `AC coverage` is copied from the validator's summary; leave it out when the source spec has no numbered ACs. An uncovered AC is one of the Should Address findings in the group.
+The **Plan review** group leads because a remaining Blocking finding is the one thing that stalls /tdd. Blocking findings come first, then Should Address. Each finding is written as its consequence for the run plus the fix, not in the validator's terms: "Steps 11/12 Pins on a file written by step 9" went unread, while "/tdd would make steps 11/12 edit step 9's test file, so their RED never fails — fix: move the pins to step 9" gets an answer. A finding that restates a Baseline row already listed under Unverified is not repeated. When the validator found nothing, the group is one line: `**Plan review** — clean`. `AC coverage` is copied from the validator's summary; leave it out when the source spec has no numbered ACs. An uncovered AC is one of the Should Address findings in the group.
 
 Every Baseline row that gates a step — `hollow`, or `not-run` for `missing` — goes under **Unverified**, with a note that /tdd will ask about it before its first dispatch (fix the environment, give a replacement `Verify`, or accept the step as unverifiable by its gate). `not-run` for `slow` or `writes` goes there too, without the note: it does not gate, but nothing checked it on HEAD.
 
