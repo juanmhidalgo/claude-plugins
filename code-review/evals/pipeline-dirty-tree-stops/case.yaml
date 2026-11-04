@@ -15,7 +15,7 @@ execution:
   prompt: /code-review:pipeline 1
   max_turns: 15
   timeout_seconds: 300
-  allowed_tools: [Read, Glob, Grep, Bash, Agent, Workflow]
+  allowed_tools: [Read, Glob, Grep, Bash]
 
 graders:
   - name: enter-run
@@ -42,4 +42,4 @@ graders:
     type: regex
     target: last_message
     flags: i
-    pattern: 'stash'
+    pattern: 'Pipeline stopped: working tree not clean'

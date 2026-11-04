@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.2.1] - 2026-11-04
+
+### Changed
+- **`/ship`'s Phase 1 stops have a fixed first line**: `Nothing to ship: ...` (exit 2), `Ship stopped: --yes on the default branch (...)` (3), `Ship stopped: detached HEAD` (4), `Ship stopped: no remote configured` (5), `Ship stopped: <message>` (7). The eval cases match those lines instead of a family of phrasings. **Why:** the first eval run passed every behaviour grader and failed every wording grader; the wording is now part of the contract.
+
 ## [2.2.0] - 2026-11-04
 
 ### Added

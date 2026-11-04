@@ -53,9 +53,9 @@ skills:
 The **Arguments** line above is `args.sh`'s parse of what the user typed: the
 PR number is `positional[0]` and the pane flag is `pane` (`true` for `--pane`,
 `false` for `--no-pane`, `null` for neither). An empty `positional`, or a
-`positional[0]` that is not a number: **STOP**, the PR number is missing. With
-`pane: true`, that is all of Phase 0 here: the rest runs in the pane, against
-its worktree.
+`positional[0]` that is not a number: **STOP** with the line
+`Pipeline stopped: no PR number given.` With `pane: true`, that is all of
+Phase 0 here: the rest runs in the pane, against its worktree.
 
 Otherwise run, once:
 
@@ -70,15 +70,19 @@ run, see Phase 8) brings the checkout back. On the PR branch but behind its
 head, it fast-forwards. It prints one JSON line (`switched`, `original`,
 `fast_forwarded`, `head_ref`, `head_oid`).
 
+Every stop below begins the reply with the fixed line shown, then the
+script's stderr verbatim on the next lines. The line is fixed so that a person
+or a test can recognise the outcome without reading the rest.
+
 | Exit | Meaning | Do |
 |------|---------|----|
-| `0` | Ready, HEAD is the PR head | Continue. Say in one line where the checkout was and that it comes back at the end, if `switched` is `true` |
-| `2` | Working tree not clean | **STOP**, ask the user to commit or stash (the files are on stderr) |
-| `3` | PR not open, or a draft | **STOP** |
-| `4` | `gh-feedback` not installed | **STOP**: `gh extension install juanmhidalgo/gh-feedback` |
-| `5` | `gh pr checkout` failed | **STOP**, quote its message. Nothing was changed |
-| `6` | HEAD has commits the PR head lacks | **STOP**: a push would carry them along with the fixes. It already switched back if it had switched |
-| `7` | git or gh failed | **STOP**, quote the message |
+| `0` | Ready, HEAD is the PR head | Continue. If `switched` is `true`, say first: `Checkout: was on <original>, now on <head_ref>; it returns to <original> at the end.` |
+| `2` | Working tree not clean | **STOP**: `Pipeline stopped: working tree not clean. Commit or stash first.` then the files from stderr |
+| `3` | PR not open, or a draft | **STOP**: `Pipeline stopped: <stderr line>` (e.g. `Pipeline stopped: PR #42 is a draft`) |
+| `4` | `gh-feedback` not installed | **STOP**: `Pipeline stopped: gh-feedback is not installed. Run: gh extension install juanmhidalgo/gh-feedback` |
+| `5` | `gh pr checkout` failed | **STOP**: `Pipeline stopped: gh pr checkout failed.` then its message. Nothing was changed |
+| `6` | HEAD has commits the PR head lacks | **STOP**: `Pipeline stopped: HEAD has commits the PR head lacks; a push would carry them along with the fixes.` then the stderr line. It already switched back if it had switched |
+| `7` | git or gh failed | **STOP**: `Pipeline stopped: <stderr line>` |
 
 If `Workflow` is not available, **STOP** and say so: Phase 1 runs as a
 workflow, and under `claude -p` or the SDK it needs a
@@ -246,8 +250,9 @@ Print a final summary covering Fixed, Dismissed, Threads Resolved, Tests, Covera
 ${CLAUDE_PLUGIN_ROOT}/scripts/pipeline-branch.sh leave
 ```
 
-Exit `0`: the checkout is back where Phase 0 found it (`switched_back` says
-whether it moved). Exit `20`: the tree has uncommitted changes, usually fixes
+Exit `0`: the checkout is back where Phase 0 found it; the `Checkout:` line
+reads `Checkout: back on <branch>` when `switched_back` is `true`, else
+`Checkout: unchanged, on <branch>`. Exit `20`: the tree has uncommitted changes, usually fixes
 that did not pass tests, so the checkout **stays on the PR branch** and the state
 is kept; say so, with the branch, and leave the changes for the user. Report the
 result as the `Checkout:` line.

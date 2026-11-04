@@ -54,4 +54,4 @@ graders:
     type: regex
     target: last_message
     flags: i
-    pattern: 'nothing to (commit|ship|push|stage)|no (changes|uncommitted|new commits)|(working tree|tree) (is )?clean|up[- ]to[- ]date|already pushed'
+    pattern: 'Nothing to ship:'

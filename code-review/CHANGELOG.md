@@ -1,5 +1,13 @@
 # Changelog
 
+## 4.2.1 (2026-11-04)
+
+### Changed
+- **`/code-review:pipeline`'s stops have a fixed first line.** Each Phase 0 exit (no PR number, dirty tree, PR not open, gh-feedback missing, checkout failed, HEAD ahead, git/gh failure) begins the reply with `Pipeline stopped: ...` and the script's stderr follows; a switched checkout is announced as `Checkout: was on <original>, now on <head>` and the end-of-run `leave` as `Checkout: back on <branch>` or `Checkout: unchanged, on <branch>`. **Why:** the first eval run showed the model's wording for the same outcome varies; a fixed line makes the outcome recognisable by a person or a grader without reading the rest.
+
+### Fixed
+- The `evals/` cases listed `Agent` and `Workflow` in `allowed_tools`; the eval runner cannot grant `Workflow`, refused the grant and ran every case with zero turns. Phase 0 never reaches either tool, so the cases now allow only `Read`, `Glob`, `Grep` and `Bash`, and their last-message graders match the fixed stop lines.
+
 ## 4.2.0 (2026-11-04)
 
 ### Added

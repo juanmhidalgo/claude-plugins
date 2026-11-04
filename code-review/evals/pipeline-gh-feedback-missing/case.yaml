@@ -14,7 +14,7 @@ execution:
   prompt: /code-review:pipeline 1
   max_turns: 15
   timeout_seconds: 300
-  allowed_tools: [Read, Glob, Grep, Bash, Agent, Workflow]
+  allowed_tools: [Read, Glob, Grep, Bash]
 
 graders:
   - name: enter-run
@@ -40,4 +40,4 @@ graders:
   - name: prints-install-command
     type: regex
     target: last_message
-    pattern: 'gh extension install juanmhidalgo/gh-feedback'
+    pattern: 'Pipeline stopped: gh-feedback is not installed'

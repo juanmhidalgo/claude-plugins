@@ -59,4 +59,4 @@ graders:
     type: regex
     target: last_message
     flags: i
-    pattern: 'default branch|\bmaster\b'
+    pattern: 'Ship stopped: --yes on the default branch'

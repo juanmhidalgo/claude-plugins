@@ -55,4 +55,4 @@ graders:
     type: regex
     target: last_message
     flags: i
-    pattern: 'no remote|remote (is )?not configured|without a remote|no origin|nothing to push to'
+    pattern: 'Ship stopped: no remote configured'

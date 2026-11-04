@@ -98,11 +98,14 @@ Later phases read these fields; do not re-run the commands behind them.
 | Exit | Meaning | Do |
 |------|---------|----|
 | `0` | Ready | `on_default_branch` true → ask about branching (below). Then `mode` `commit` → Phase 2; `mode` `push` → skip Phases 2–3, run Phase 4 over `git diff --name-only <default_branch>...HEAD`, continue with Phase 5 step 2 (push when the upstream is behind) and Phase 6. A red suite still stops before the push |
-| `2` | Nothing to ship: clean tree, nothing staged (with `--yes`: and no commits ahead of the base either) | **STOP**, tell the user |
-| `3` | On the default branch with `--yes` | **STOP**: say that `--yes` never branches and never pushes to the default branch, and end. Nothing is staged or committed; the caller decides |
-| `4` | Detached HEAD | **STOP**, ask the user to check out a branch |
-| `5` | No remote configured | **STOP** before anything is staged: there is nothing to push to |
-| `7` | git failed (not a repository, or the message on stderr) | **STOP**, quote the message |
+| `2` | Nothing to ship: clean tree, nothing staged (with `--yes`: and no commits ahead of the base either) | **STOP**: `Nothing to ship: <stderr line>` |
+| `3` | On the default branch with `--yes` | **STOP**: `Ship stopped: --yes on the default branch (<default_branch>); /ship never branches or pushes there. Nothing staged or committed.` The caller decides |
+| `4` | Detached HEAD | **STOP**: `Ship stopped: detached HEAD. Check out a branch first.` |
+| `5` | No remote configured | **STOP** before anything is staged: `Ship stopped: no remote configured, nothing to push to. Nothing staged.` |
+| `7` | git failed (not a repository, or the message on stderr) | **STOP**: `Ship stopped: <stderr line>` |
+
+Every stop begins the reply with the fixed line shown, so a person or a test
+can recognise the outcome without reading the rest.
 
 **On the default branch** (exit `0` with `on_default_branch` true; `--yes` never gets here): ask the user with AskUserQuestion:
 - "Create a new feature branch" — auto-generate a descriptive branch name from the changes (e.g., `fix/null-check-auth-middleware`, `feat/add-billing-export`). Use the conventional commit type as prefix. Create with `git checkout -b <name>`. The new branch has no upstream: Phase 5 pushes it with `-u`.

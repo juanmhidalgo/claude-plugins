@@ -16,7 +16,7 @@ execution:
   prompt: /code-review:pipeline 1
   max_turns: 30
   timeout_seconds: 900
-  allowed_tools: [Read, Glob, Grep, Bash, Agent, Workflow]
+  allowed_tools: [Read, Glob, Grep, Bash]
 
 graders:
   - name: enter-run
@@ -49,4 +49,4 @@ graders:
   - name: says-where-checkout-was
     type: regex
     target: last_message
-    pattern: 'master'
+    pattern: 'Checkout: (was on master|back on master)'
