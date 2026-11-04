@@ -1,5 +1,10 @@
 # Changelog
 
+## 4.2.2 (2026-11-04)
+
+### Fixed
+- `evals/README.md` said the suite only fails inside a sandboxed Claude session. Measured from a plain terminal: it fails on any host where Claude Code's Bash sandbox cannot start inside the eval runner's own sandbox (`apply-seccomp: write /proc/self/setgroups`, because the outer namespace's `gid_map` is already written), the runner offers no option to relax it, and a command with a `` !` `` Context line then ends with zero turns. The README names the mechanism, the trace to look at, and where the suite can run.
+
 ## 4.2.1 (2026-11-04)
 
 ### Changed

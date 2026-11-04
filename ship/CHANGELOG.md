@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.2.2] - 2026-11-04
+
+### Fixed
+- `evals/README.md`: same correction as code-review 4.2.2. The suite fails wherever the agent's Bash sandbox cannot nest inside the eval runner's sandbox, from a terminal too; the agent runs, `ship-preflight.sh` fails on every call, and the wording graders fail on a "stuck" reply.
+
 ## [2.2.1] - 2026-11-04
 
 ### Changed

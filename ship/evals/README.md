@@ -52,12 +52,24 @@ ship/evals/run.sh --case 'ship-no-remote*' --keep-temp
 `CHILD_SESSION` so the child claude behaves like a top-level one. Anything
 else goes through to `claude plugin eval`.
 
-- The runner needs `bubblewrap` and `socat` on Linux. **It cannot run from
-  inside a sandboxed Claude Code Bash tool**: the eval's own sandbox then fails
-  with `apply-seccomp: write /proc/self/setgroups (nested userns is
-  capability-restricted)` on every command. The agent reports that and stops,
-  so the `no-*` graders pass vacuously and the `says-*` graders fail. Run it
-  from a plain terminal.
+- The runner needs `bubblewrap` and `socat` on Linux, and **on a host where
+  Claude Code's own Bash sandbox cannot start inside the runner's sandbox the
+  suite cannot run at all.** Measured on Claude Code 2.1.317 / Linux 7.0 from a
+  plain terminal: the runner wraps the whole `claude` process in bubblewrap and
+  writes a settings.json with `sandbox.enabled: true`,
+  `failIfUnavailable: true` and `allowUnsandboxedCommands: false`; every Bash
+  call and every `` !` `` context line of the command then fails with
+  `apply-seccomp: write /proc/self/setgroups (nested userns is
+  capability-restricted)`, because once the outer namespace's `gid_map` is
+  written, `setgroups` cannot be written again and the inner sandbox runtime
+  gives up. A command whose Context has a `` !` `` line ends with zero turns
+  and no cost; a skill without one runs, its scripts fail, and the agent reports
+  that it is stuck. `claude plugin eval --help` has no option to relax that
+  sandbox, and the runner does not read `~/.claude/settings.json`
+  (`allowNestedUserNamespaces`, `enableWeakerNestedSandbox`). Run the suite on
+  a host where the nested sandbox starts (a CI runner or a container that the
+  runner's sandbox can nest in); a kept run's `out/trace.jsonl` shows the error
+  on the first tool call when it does not.
 
 Fixtures can be checked without a model: run each `scaffold.sh` in an empty
 dir with a minimal env, then `ship-preflight.sh` (with `--yes` where the
@@ -66,10 +78,13 @@ the table above.
 
 ## Status
 
-Written 2026-11-04 against the preflight-based Phase 1 (ship 2.2, in
-progress). The fixtures were validated offline: each scaffold yields the
-preflight exit in the table. The suite has **not** completed a real model
-run: in the only environment available (a sandboxed Claude session) the
-runner loaded every case, ran every scaffold and spent about 2 cents on haiku
-turns, but the agent's Bash tool could not start, so no verdict is
-meaningful. Run it once from a terminal and record the cost here.
+Written 2026-11-04 against the preflight-based Phase 1 (ship 2.2) and its
+fixed `Nothing to ship:` / `Ship stopped:` lines. The fixtures were validated
+offline: each scaffold yields the preflight exit in the table. The suite has
+**not** produced a meaningful verdict yet: two runs from a plain terminal on
+the authoring host (2026-11-04, haiku, about 2 cents each) loaded every case
+and the agent ran, but `ship-preflight.sh` failed on every call for the
+nested-sandbox reason above, so the agent answered that it was stuck: the
+`no-*` graders passed vacuously and the `says-*` graders failed. The first
+host where the agent's Bash tool starts gives the first real verdict; record
+its cost here.

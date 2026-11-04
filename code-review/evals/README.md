@@ -72,11 +72,24 @@ else goes through to `claude plugin eval`.
   use that freedom.
 - `--ablation none`: a no-plugin baseline makes no sense, the command only
   exists in the plugin.
-- The runner needs `bubblewrap` and `socat` on Linux. **It cannot run from
-  inside a sandboxed Claude Code Bash tool**: the eval's own sandbox then fails
-  with `apply-seccomp: write /proc/self/setgroups (nested userns is
-  capability-restricted)` on every command, including the command's `!` context
-  lines, and the case ends with zero turns. Run it from a plain terminal.
+- The runner needs `bubblewrap` and `socat` on Linux, and **on a host where
+  Claude Code's own Bash sandbox cannot start inside the runner's sandbox the
+  suite cannot run at all.** Measured on Claude Code 2.1.317 / Linux 7.0 from a
+  plain terminal: the runner wraps the whole `claude` process in bubblewrap and
+  writes a settings.json with `sandbox.enabled: true`,
+  `failIfUnavailable: true` and `allowUnsandboxedCommands: false`; every Bash
+  call and every `` !` `` context line of the command then fails with
+  `apply-seccomp: write /proc/self/setgroups (nested userns is
+  capability-restricted)`, because once the outer namespace's `gid_map` is
+  written, `setgroups` cannot be written again and the inner sandbox runtime
+  gives up. A command whose Context has a `` !` `` line ends with zero turns
+  and no cost; a skill without one runs, its scripts fail, and the agent reports
+  that it is stuck. `claude plugin eval --help` has no option to relax that
+  sandbox, and the runner does not read `~/.claude/settings.json`
+  (`allowNestedUserNamespaces`, `enableWeakerNestedSandbox`). Run the suite on
+  a host where the nested sandbox starts (a CI runner or a container that the
+  runner's sandbox can nest in); a kept run's `out/trace.jsonl` shows the error
+  on the first tool call when it does not.
 
 Fixtures can be checked without a model: run each `scaffold.sh` in an empty
 dir with a minimal env, then `pipeline-branch.sh enter 1` with `bin/gh` first
@@ -84,10 +97,11 @@ on `PATH`, and compare the exit code with the table above.
 
 ## Status
 
-Written 2026-11-04 against code-review 4.1.0 (the Phase 0 exit table and the
-`leave` rule, which the 4.2 preflight work did not change). The fixtures were
-validated offline: each scaffold yields the exit code in the table. The suite
-has **not** completed a model run: the only environment available was a
-sandboxed Claude session, where the runner loads every case, runs every
-scaffold and evaluates every grader but the agent's Bash tool cannot start.
-Run it once from a terminal and record the cost here.
+Written 2026-11-04 against code-review 4.2 (the Phase 0 exit table, the fixed
+`Pipeline stopped:` / `Checkout:` lines and the `leave` rule). The fixtures
+were validated offline: each scaffold yields the exit code in the table. The
+suite has **not** completed a model run anywhere yet: two runs from a plain
+terminal on the authoring host (2026-11-04, haiku) ended every case with zero
+turns, for the nested-sandbox reason above, not for anything the cases do.
+The first host where the agent's Bash tool starts gives the first real
+verdict; record its cost here.
