@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.9.1 (2026-11-05)
+
+### Changed
+- `references/step-loop.md` (synced from `shared/step-loop/`): the notifications rule ("notifications for finished work get no turn") drops the "one run received 18 such notices" sentence. The rule keeps its reason; the count was the incident that motivated it. Matches factory PR #45.
+
 ## 2.9.0 (2026-11-04)
 
 ### Added
