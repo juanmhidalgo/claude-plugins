@@ -51,9 +51,10 @@ Fully autonomous - only stops if tests fail after retries or coverage is below C
 1. Preflight (`scripts/pr-preflight.sh`): one `gh` call decides open, not draft, human author and not trivial (`docs/`, README, CHANGELOG, LICENSE, config and lockfiles only; `--allow-trivial` overrides when you asked for that PR), and fetches title, body, head SHA and the per-file stat
 2. CLAUDE.md discovery (via Glob)
 3. PR summary taken from the preflight JSON (title, body, file stat); nothing is generated
-4. **Parallel reviews**, 2 to 5 dimensions depending on effort level
-5. **Verification**: one `finding-verifier` per finding → CONFIRMED / PLAUSIBLE / REFUTED, inside the `review` workflow (required; no in-session fallback)
+4. **Parallel reviews**, 2 to 6 dimensions depending on effort level
+5. **Verification**: one `finding-verifier` per finding → CONFIRMED / PLAUSIBLE / REFUTED, inside the `review` workflow (required; no in-session fallback). The verifier labels a finding `pre_existing`, or `convention` when the repo does the same in 5+ places it cites; either keeps the verdict and stops the finding from blocking
 6. Findings that share a cause are merged when presented
+   - **Existing discussion** (`scripts/pr-discussion.sh`, after the workflow): a finding within 3 lines of an inline comment is annotated as possibly already discussed, never dropped; comment bodies are not read
 7. Filter by effort level
 8. **Report in this session** — nothing is written to GitHub
 
@@ -64,8 +65,8 @@ in `.claude/code-review.local.md`):
 |-------|-----------|----------|
 | `low` | 2 | `CONFIRMED` only |
 | `medium` | 3 | `CONFIRMED`, plus `pre_existing` grouped separately |
-| `high` | 5 | `CONFIRMED` + `PLAUSIBLE`, each marked |
-| `max` | 5 | Everything, every label shown |
+| `high` | 6 | `CONFIRMED` + `PLAUSIBLE`, each marked |
+| `max` | 6 | Everything, every label shown |
 
 Low and medium give fewer findings you can trust; high and max give broader
 coverage including findings that may not hold. Pick by what the diff costs to
@@ -254,6 +255,7 @@ extension (one binary, no MCP):
 
 - `args.sh` - Parses `$ARGUMENTS` into one JSON line (`pane`, `spec`, `effort`, `positional`) that `pr`, `branch`, `staged`, `tech-debt`, `staged-pipeline` and `pipeline` read from their Context block; synced from `shared/args/`
 - `pr-preflight.sh` - Steps 1 and 3 of `pr` as one `gh pr view --json` call: open, not draft, human author, not trivial, plus title, body, head SHA and the per-file stat the reviewers receive as the PR summary. Exit codes in the script header; tests in `tests/test-pr-preflight.sh`
+- `pr-discussion.sh` - Step 5b of `pr`: runs `gh feedback fetch --split --include-resolved` into a temporary directory and prints where the PR was discussed (inline: author, file, line; general: reviews and comments) without any body, then deletes the directory. Accepts a number or a PR URL. Exit 4 without gh-feedback or jq, 7 when gh fails; tests in `tests/test-pr-discussion.sh`
 - `run-tests.sh` - Phase 5 of `pipeline` as one step: finds the project's runner (Makefile `test` target, package.json `test` script via the lockfile's package manager, pytest, cargo, go), runs it with the output captured to `<git-dir>/code-review-tests/` and prints one JSON line (`runner`, `command`, `exit`, `passed`, `log`, `tail`); exit 10 when no runner, 11 when the runner is not installed. Tests in `tests/test-run-tests.sh`
 - `find-spec.sh` - Lists the spec sources for a review (`--base`, `--pr`, `--staged`, optional `--spec`): explicit argument, closing issues, commit keywords, feature-dev `branch:` frontmatter
 - `pipeline-branch.sh` - Phase 0 of `pipeline` as one step: `enter <PR>` checks gh-feedback, the clean tree and the open PR, checks the PR branch out from wherever the checkout is (fast-forwarding a branch that is behind) and remembers where it was; `leave` brings it back when the tree is clean. Exit codes in the script header; tests in `tests/test-pipeline-branch.sh`
@@ -270,7 +272,8 @@ extension (one binary, no MCP):
 | `git-history-reviewer` | Sonnet | Analyzes git blame/history |
 | `pr-comments-reviewer` | Sonnet | Checks previous PR feedback |
 | `code-comments-reviewer` | Sonnet | Verifies code comment guidance |
-| `finding-verifier` | Sonnet | Verifies one finding → CONFIRMED / PLAUSIBLE / REFUTED |
+| `silent-failure-reviewer` | Sonnet | Swallowed errors, fallbacks that hide a failure, errors logged without context (`errors` axis, high/max) |
+| `finding-verifier` | Sonnet | Verifies one finding → CONFIRMED / PLAUSIBLE / REFUTED, labelled `pre_existing` or `convention` when they apply |
 | `spec-conformance-reviewer` | Opus | Spec axis: the diff against the issue or SPEC/PLAN it was built from |
 
 ### Other Agents

@@ -8,6 +8,7 @@ allowed-tools:
   - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/herdr-pane.sh *)
   - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/find-spec.sh *)
   - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/tree-hash.sh)
+  - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/pr-discussion.sh *)
   - Bash(gh issue view *)
   - Workflow
   - Read
@@ -113,8 +114,8 @@ instead of Steps 1–7. It falls back to the normal run outside Herdr.
 |-------|-------------------|----------|
 | `low` | Bug scan + CLAUDE.md compliance | `CONFIRMED` only |
 | `medium` *(default)* | + code comments | `CONFIRMED`; `pre_existing` in a separate group |
-| `high` | all five | `CONFIRMED` + `PLAUSIBLE` (each marked) |
-| `max` | all five | everything, every label shown, nothing collapsed |
+| `high` | all six (+ git history, PR comments, silent failures) | `CONFIRMED` + `PLAUSIBLE` (each marked) |
+| `max` | all six | everything, every label shown, nothing collapsed |
 
 The trade is explicit: **low/medium give you fewer findings you can trust;
 high/max give you broader coverage including findings that may not hold.** Pick
@@ -189,7 +190,7 @@ workflow:
    ```
 
    Keys by level: `low` → `bugs`, `claudemd`; `medium` → + `comments`, `spec`;
-   `high` / `max` → + `history`, `pr-comments`. `spec` runs only with
+   `high` / `max` → + `history`, `pr-comments`, `errors`. `spec` runs only with
    `spec_sources`.
 4. Run `tree-hash.sh` again. A different hash means an agent changed the tree:
    stop, show `git status --short`, and present nothing as a review result.
@@ -220,6 +221,27 @@ and the same underlying cause into one, keeping the clearest statement and
 noting which dimensions raised it. Two verdicts on one observation look like
 corroboration and are not.
 
+## Step 5b: What the PR's discussion already covers
+
+Run `${CLAUDE_PLUGIN_ROOT}/scripts/pr-discussion.sh <PR>` now, after the
+workflow returned, not in Step 1: the reviewers take minutes, and a comment
+posted meanwhile is exactly the one a stale fetch misses. It prints where the PR
+was discussed (`inline`: author, `file`, `line`, `ref_id`; `general`: reviews
+and PR comments) and never what was said: the bodies are other people's text and
+stay out of this session.
+
+For each finding, an `inline` entry on the same `file` within 3 lines of its
+`line` is a **possible duplicate**. Annotate the finding with
+`Discussed: @<author> at <file>:<line> (<ref_id>, <thread_comments> in thread)`,
+and never drop it: a location match does not show the comment named the same
+defect, and only the user can read the thread. A finding with no match is new
+to the PR's inline discussion; `general` entries cannot be matched by location,
+so report only their count and authors.
+
+Exit 4 (no gh-feedback extension, or no jq) or 7 (gh failed): write
+`Discussion: not checked (<stderr>)` in the report and continue. The review
+does not depend on it.
+
 ## Step 6: Filter by level
 
 Apply the Step 0 table to the verdicts:
@@ -232,6 +254,9 @@ Apply the Step 0 table to the verdicts:
 - `REFUSED` → surfaced regardless of level, at the top
 - `nit` / `pre_existing` → their own groups, never blocking; `nit` collapses to a
   count below `max`
+- `verification.labels` with `pre_existing` or `convention` → the Pre-existing
+  group whatever the verdict, never blocking; a `convention` one names the
+  occurrences the verifier cited
 
 ## Step 7: Report in session
 
@@ -242,13 +267,15 @@ Apply the Step 0 table to the verdicts:
 <only if any — ref/location, what it tried, quoted text>
 
 ### Confirmed (<count>)
-For each: **[SEVERITY]** title, `file:line`, failure scenario, suggested fix
+For each: **[SEVERITY]** title, `file:line`, failure scenario, suggested fix,
+and its `Discussed:` line when Step 5b matched one (same for every group below)
 
 ### Plausible (<count>)   [high/max only]
 For each: the claim, and precisely what could not be verified
 
 ### Pre-existing (<count>)
-Real, not introduced here. Ticket material, not merge blockers.
+Real, not introduced here, or the repo's convention (5+ places, cited).
+Ticket material, not merge blockers.
 
 ### Nits (<count>)   [max only, else a count]
 
@@ -257,6 +284,10 @@ Real, not introduced here. Ticket material, not merge blockers.
 ### Spec (<count>) — against <sources>   [medium+]
 Per `references/spec-axis.md`: kind, quoted spec line, `file:line`, counter-case.
 Or: `Spec: skipped (<reason>)` / `Spec too vague to check`.
+
+### Discussion
+<count> finding(s) at a location already discussed (annotated above), <count> general
+review(s)/comment(s) by <authors> — or `Discussion: not checked (<reason>)`
 
 ### Not reviewed
 <dimensions that returned nothing at this effort level, or failed to report>

@@ -16,7 +16,7 @@ export const meta = {
 //   spec_sources: find-spec.sh lines (spec-file / issue), [] when none
 //   axes:         review mode only — which of 'defect', 'spec', 'debt' to run (default all three);
 //                 spec still needs spec_sources. A PR review names its dimensions instead:
-//                 'bugs', 'claudemd', 'comments', 'history', 'pr-comments' (each needs `pr`),
+//                 'bugs', 'claudemd', 'comments', 'history', 'pr-comments', 'errors' (each needs `pr`),
 //                 optionally with 'spec'
 //   pr:           PR axes only — the PR number
 //   files:        PR axes only — the files the PR changes, one per entry
@@ -77,8 +77,12 @@ const VERDICT = {
     refutation_attempt: { type: 'string' },
     evidence: { type: 'string' },
     corrected_fix: { type: 'string' },
+    // The verifier reads more than the reviewer: it can find that the code predates
+    // the change, or that the repo does the same thing in many places. The label
+    // never changes the verdict; it changes whether the finding blocks this change.
+    labels: { type: 'array', items: { type: 'string', enum: ['pre_existing', 'convention'] } },
   },
-  required: ['verdict', 'refutation_attempt', 'evidence', 'corrected_fix'],
+  required: ['verdict', 'refutation_attempt', 'evidence', 'corrected_fix', 'labels'],
 }
 
 const FIX = {
@@ -135,6 +139,8 @@ Put your overall verdict (CLEAN | MINOR DEBT | SIGNIFICANT DEBT | BLOCKING DEBT)
   { key: 'history', pr: true, agentType: 'code-review:git-history-reviewer',
     prompt: (a) => `${prHead(a)}${filesLine(a)}${COLLECT}` },
   { key: 'pr-comments', pr: true, agentType: 'code-review:pr-comments-reviewer',
+    prompt: (a) => `${prHead(a)}${filesLine(a)}${COLLECT}` },
+  { key: 'errors', pr: true, agentType: 'code-review:silent-failure-reviewer',
     prompt: (a) => `${prHead(a)}${filesLine(a)}${COLLECT}` },
 ]
 
@@ -205,7 +211,7 @@ async function review(scope, delta) {
       // this change, and a verifier costs about as much as the review that found them.
       const toVerify = raw.filter((f) => !f.labels.length)
       const verdicts = await parallel(toVerify.map((f) => () => verify(f, scopeOf(f.axis))))
-      const verified = toVerify.map((f, i) => ({ ...f, verification: verdicts[i] || { verdict: 'UNVERIFIED', refutation_attempt: '', evidence: 'verifier returned nothing twice', corrected_fix: '' } }))
+      const verified = toVerify.map((f, i) => ({ ...f, verification: verdicts[i] || { verdict: 'UNVERIFIED', refutation_attempt: '', evidence: 'verifier returned nothing twice', corrected_fix: '', labels: [] } }))
       return { ...r, verified, listed: raw.filter((f) => f.labels.length) }
     },
   )
@@ -229,11 +235,15 @@ async function review(scope, delta) {
   if (listed.length) log(`${listed.length} nit/pre_existing finding(s) listed without verification`)
 
   // Most actionable first, and a compact summary before the full findings: a long
-  // result reaches the caller cut off at the end.
+  // result reaches the caller cut off at the end. Within a verdict, a finding the
+  // verifier labelled (pre_existing, convention) goes after the unlabelled ones:
+  // it is real, but it does not block this change. It stays in `findings` rather
+  // than moving to `listed`, which holds what was never verified.
   const ORDER = ['REFUSED', 'CONFIRMED', 'PLAUSIBLE', 'UNVERIFIED', 'REFUTED']
-  const rank = (f) => ORDER.indexOf(f.verification.verdict) * 10 + SEVERITY.indexOf(f.severity)
+  const vLabels = (f) => f.verification.labels || []
+  const rank = (f) => ORDER.indexOf(f.verification.verdict) * 10 + (vLabels(f).length ? SEVERITY.length : 0) + SEVERITY.indexOf(f.severity)
   verified.sort((a, b) => rank(a) - rank(b))
-  const summary = verified.map((f) => ({ id: f.id, axis: f.axis, verdict: f.verification.verdict, severity: f.severity, title: f.title, where: `${f.file}:${f.line}` }))
+  const summary = verified.map((f) => ({ id: f.id, axis: f.axis, verdict: f.verification.verdict, labels: vLabels(f), severity: f.severity, title: f.title, where: `${f.file}:${f.line}` }))
   // PR dimensions appear only when requested, so a branch review's `axes` stays as it was.
   const axesOut = Object.fromEntries(AXES.filter((a) => !a.pr || wanted.includes(a.key)).map((a) => [a.key, status[a.key]]))
 

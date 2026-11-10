@@ -1,5 +1,17 @@
 # Changelog
 
+## 4.3.0 (2026-11-10)
+
+Three ideas from an external PR-review skill built partly on this plugin, adapted to its verification model.
+
+### Added
+- **`errors` axis: `silent-failure-reviewer`** for `/code-review:pr` at `high` and `max` (the PR dimensions go from five to six). It reads every error path the diff adds or changes (catches, fallbacks, defaults on required data, retries, background jobs), opens what each protects and its caller, and reports swallowed errors, over-broad catches, fallbacks the caller cannot tell from a real value, errors logged without the exception or the failing object, lost exception chains, partial writes and silent async failures, each with the consequence it hides. **Why:** `bug-scanner` covered only "unhandled exceptions in critical paths"; the failures that pass happy-path tests and surface as unexplained data were nobody's job.
+- **`scripts/pr-discussion.sh` and `/code-review:pr` Step 5b: what the PR's discussion already covers.** After the workflow returns, the script runs `gh feedback fetch --split --include-resolved` into a temporary directory and prints only where the PR was discussed (inline: author, file, line, thread size; general reviews and comments: author), then deletes the bodies. A finding within 3 lines of an inline comment gets a `Discussed:` annotation and is never dropped; the report counts the general reviews. Missing gh-feedback or jq, or a gh failure, is reported as `Discussion: not checked` and the review goes on. 13 cases in `tests/test-pr-discussion.sh`. **Why:** `pr-comments-reviewer` reads earlier PRs, not this one, so a finding a human raised on this PR minutes ago came back as new. Matching is by location only because the bodies are other people's text and stay out of the session, as in `triage`; a location match does not prove the same defect, so the user decides.
+
+### Changed
+- **`finding-verifier` checks whether the repo already does what the finding objects to.** Five or more occurrences outside the changed lines, each opened and cited, earn the label `convention`. The label never changes the verdict (a defect repeated five times is still a defect), and does not apply when the existing occurrences are safe for a reason the changed code lacks. `branch-review`'s label table gains `convention`.
+- **The `review` workflow keeps the verifier's labels.** `VERDICT` has a required `labels` (`pre_existing`, `convention`) and the summary carries it; within a verdict a labelled finding sorts after the unlabelled ones and stays in `findings` (not `listed`, which holds what was never verified). `pr` presents it under Pre-existing whatever the verdict; `workflow-path.md` says the same for `branch`/`staged`. Before this, a verifier that found the code predated the change had no field to say so in a workflow run. Callers that gate on verdicts (the shared review loop in feature-dev and github-issues) are unchanged: they still see the verdict, and ignore the label. 2 new cases in `tests/workflows/review.test.mjs`.
+
 ## 4.2.2 (2026-11-04)
 
 ### Fixed

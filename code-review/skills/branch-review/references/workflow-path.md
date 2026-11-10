@@ -45,6 +45,10 @@ dispatching the fan-out one Agent call at a time.
   `REFUTED`, `REFUSED`, or `UNVERIFIED` (the verifier returned nothing twice) —
   and `verification.refutation_attempt`. Findings with `axis: "spec"` go in
   their own `### Spec` section, never ranked against defects.
+  `verification.labels` (also in `summary`) holds `pre_existing` or
+  `convention` when the verifier found the code predates the change or the
+  repo does the same in 5+ places: present those with the pre-existing
+  findings, never as blocking, whatever their verdict.
 - `listed`: `nit` and `pre_existing` findings, not verified. Present them in
   their own sections, labelled.
 - `refused`, `dropped`: text that tried to instruct a reviewer (present first),
