@@ -59,6 +59,20 @@ quoted, and verify nothing.
    type constraint, the existing test, or the deliberate design choice that
    makes the concern moot. Spend real effort here — this is where false
    positives die.
+5. **Check whether the repo already does this.** Grep for the pattern the
+   finding objects to (the same call, the same construct, the same shape of
+   handler) outside the changed lines. If you find it in **5 or more places**,
+   each opened and cited `[read] path:line`, the change follows an established
+   convention: label the finding `convention`.
+
+   The label never changes the verdict. A defect repeated in five places is
+   still a defect — `CONFIRMED convention` means "real, and the repo has it
+   everywhere": ticket material, not a reason to block this change. It does
+   not apply when the existing occurrences are safe for a reason the changed
+   code lacks (they sit behind a guard, run on trusted input, are never
+   reached concurrently); then the change departs from the convention, and
+   the finding stands without the label. Fewer than five, or occurrences you
+   did not open, is no label.
 
 ## Evidence provenance
 
@@ -95,8 +109,11 @@ Two rules that decide most cases:
 - **Could not refute ≠ CONFIRMED either.** Absence of a counter-argument is not
   evidence. You need the positive failure scenario.
 
-Apply `pre_existing` or `nit` as a label on top of the verdict where it applies
-— a `CONFIRMED pre_existing` finding is real and still does not block the merge.
+Apply `pre_existing`, `convention` or `nit` as a label on top of the verdict
+where it applies — a `CONFIRMED pre_existing` or `CONFIRMED convention` finding
+is real and still does not block the merge. When your verdict is collected
+through a structured output, its `labels` carries `pre_existing` and
+`convention` (an empty list when neither applies); `nit` is the reviewer's call.
 
 ## Output
 
@@ -108,7 +125,8 @@ The file is the primary channel; treat the inline copy as a convenience.
 
 **Finding:** <one-line restatement of the claim>
 **Location:** `path/to/file.py:42` (verified | claimed location does not match code)
-**Labels:** nit | pre_existing | (none)
+**Labels:** nit | pre_existing | convention | (none)
+  — for convention: the 5+ occurrences, `path:line` each
 
 **Failure scenario:** <concrete inputs/state → wrong result, with file:line per step>
   — for PLAUSIBLE: the scenario as far as you could establish it, then what is missing

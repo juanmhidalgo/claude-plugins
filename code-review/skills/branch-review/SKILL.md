@@ -36,14 +36,15 @@ user-invocable: true
 
 ## Labels (orthogonal to severity)
 
-Two labels change how a finding is *read*, not how severe it is. Both exist so
-that findings get **surfaced and marked** instead of silently dropped — a
+Three labels change how a finding is *read*, not how severe it is. They exist
+so that findings get **surfaced and marked** instead of silently dropped — a
 dropped finding is indistinguishable from a review that never looked.
 
 | Label | Meaning | Effect |
 |-------|---------|--------|
 | `nit` | Correct, but below the bar a senior engineer would raise in review | Never blocks. Reported in its own group, collapsed by default. |
 | `pre_existing` | Real, but not introduced by these changes | Never blocks *this* merge. Reported so it can become a ticket. |
+| `convention` | Set by the verifier only: the repo does the same thing in 5+ places it opened and cited | Never blocks *this* merge. Reported with `pre_existing`, naming the occurrences, so the fix becomes one ticket for all of them. |
 
 Do not use `nit` as a hedge on a finding you believe matters — that is what
 LOW severity is for. `nit` means *"I am reporting this only for completeness"*.
