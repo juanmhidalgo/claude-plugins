@@ -144,8 +144,8 @@ that is the improvisation the runner contracts exist to prevent.
 
 Derive the criteria yourself, producing the same six fields per criterion. The
 spec is the feature's SPEC file when one was given, else the text. If the spec
-has a Tasks section (written with `--with-tasks`), start from its tasks — they
-already carry Accept, Verify, Files and Covers. Otherwise start from its
+has a Tasks section (only specs written before feature-dev 3.0.0 do), start
+from its tasks — they already carry Accept, Verify, Files and Covers. Otherwise start from its
 acceptance criteria by id (`**AC-1**`…), carrying the ids in each criterion's
 `Covers:`, with the caller's exploration filling in paths and commands — the
 ACs are then the only reviewed anchor. A criterion is correctly sized when it

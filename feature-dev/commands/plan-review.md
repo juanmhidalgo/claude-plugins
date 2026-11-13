@@ -75,16 +75,15 @@ Resolve the plan here first (Phase 0), so the pane receives a path.
 Use the Agent tool to invoke the `spec-plan-validator` subagent with:
 - `artifact_type`: `plan`
 - `artifact_path`: the resolved path from Phase 0
+- `plugin_root`: `${CLAUDE_PLUGIN_ROOT}`
 - `feature`: the Phase 0 JSON line (`slug`, `status`, `plan`, `issue`), so the agent sees the feature's state without parsing frontmatter
 
 The agent will:
 1. Read the plan file
-2. Locate the source spec: the Phase 0 JSON's `spec_path` (the `SPEC-*.md` in the plan's own feature folder) or, for a sibling-repo spec, its `source_spec` (the `Source spec:` line in the PLAN body); verify it exists
-3. Run the PLAN-specific structural checklist, including the `### Baseline` section (steps whose `Verify:` is `hollow` or `not-run: missing` on HEAD and not yet `accepted by user`), `Kind:` / `Pins:` usage, and the step-count cap
-4. Check that every Files to Modify path exists and no Files to Create path already does
-5. When the source spec numbers its ACs, trace them: an AC no step `Covers:` (unless Risks names it as deliberately left out), a `Covers:` citing an id the spec does not define, and a behavior step without `Covers:` are Should Address, and it reports `AC coverage: covered/total`
-6. Emit a categorical report (Blocking / Should Address / Nice to Have) with section references
-7. State explicitly when no blocking gaps exist
+2. Run `scripts/lint_artifact.py` on it and report its findings (`[lint]`) as they are: the source spec, sections, the Baseline (steps whose `Verify:` is `hollow` or `not-run: missing` on HEAD and not yet `accepted by user`), every step's fields, `Kind:` / `Pins:` usage, the step-count cap, the Files tables' paths against the tree, and AC coverage against the spec (`AC coverage: covered/total`)
+3. Judge what the linter cannot: each `Verify:` is a real command, each `Accept:` is one criterion, Exploration Findings covers its layers
+4. Emit a categorical report (Blocking / Should Address / Nice to Have) with section references
+5. State explicitly when no blocking gaps exist
 
 ## Phase 2: Present and Stop
 

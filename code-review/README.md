@@ -261,6 +261,18 @@ extension (one binary, no MCP):
 - `pipeline-branch.sh` - Phase 0 of `pipeline` as one step: `enter <PR>` checks gh-feedback, the clean tree and the open PR, checks the PR branch out from wherever the checkout is (fast-forwarding a branch that is behind) and remembers where it was; `leave` brings it back when the tree is clean. Exit codes in the script header; tests in `tests/test-pipeline-branch.sh`
 - `herdr-pane.sh` - Opens a Herdr pane or worktree with `claude`, runs a command there and collects its result (`--pane`). A synced copy of `shared/herdr-pane/herdr-pane.sh` in the marketplace repo
 
+## Read-only agent guard (`agent-bash-guard`)
+
+A `PreToolUse` hook watches the Bash calls of this plugin's read-only agents — those whose `tools:` grants Bash only with patterns (`Bash(git diff *)`) and no Write/Edit. Claude Code does not enforce those patterns, so the hook is what does. It classifies each call against a deny-list of commands that change something (writes outside `/tmp`, file mutation, git and gh commands that write, scripts and build tools) and logs the decision to `${CLAUDE_CONFIG_DIR:-~/.claude}/agent-bash-guard/audit.jsonl`. Reads, and anything matching the agent's own declared patterns, pass. The main session and agents with plain `Bash` are never touched.
+
+| `AGENT_BASH_GUARD` | Effect |
+|---|---|
+| `audit` (default) | Never blocks; logs `allow` / `would-deny` with the rule |
+| `enforce` | Denies, telling the agent which rule and what to use instead |
+| `off` | Does nothing |
+
+It is text matching, not a sandbox, and it fails open. Canonical source and tests: `shared/agent-bash-guard/` in the plugin repository.
+
 ## Agents
 
 ### PR Review Workflow Agents

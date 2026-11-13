@@ -5,6 +5,7 @@
 # need is kept once under shared/<name>/ and copied into each plugin listed in
 # shared/<name>/plugins (one plugin directory per line):
 #   *.sh -> <plugin>/scripts/<file>
+#   *.py -> <plugin>/scripts/<file>
 #   *.md -> <plugin>/references/<file>
 #
 # Usage: shared/sync.sh --check   exit 1 and list every copy that differs or is missing
@@ -28,7 +29,7 @@ for group in "$repo_root"/shared/*/; do
     for src in "$group"*; do
       file=$(basename "$src")
       case $file in
-        *.sh) dest="$repo_root/$plugin/scripts/$file" ;;
+        *.sh|*.py) dest="$repo_root/$plugin/scripts/$file" ;;
         *.md) dest="$repo_root/$plugin/references/$file" ;;
         *) continue ;;
       esac

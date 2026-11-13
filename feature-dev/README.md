@@ -61,7 +61,7 @@ Feature development workflows with structured phases and quality gates.
 
 The commands are designed to chain:
 
-1. **`/feature-dev:spec`** — Define requirements and create a specification. It asks for scope and non-goals first, on their own, then stops at the spec: what, why, numbered acceptance criteria (`AC-1`…), QA checklist and boundaries. Pass `--with-tasks` to also append a high-level plan and task list, for when you will not run `explore-plan`.
+1. **`/feature-dev:spec`** — Define requirements and create a specification. It asks for scope and non-goals first, on their own, then stops at the spec: what, why, numbered business rules (`BR-1`…) in domain language, numbered acceptance criteria that cite them (`AC-1`…), QA checklist and boundaries. It writes no commands, file layout, test strategy or task list: those come from `explore-plan`, which reads the code. The sections are defined once, in `skills/spec-driven-development/references/spec-template.md`. A `PostToolUse` hook runs `scripts/lint_artifact.py` after every edit of a spec or plan and hands the mechanical findings (missing sections, uncited rules, step fields, AC coverage, file-table paths) back to the model.
 2. **`/feature-dev:spec-review`** *(optional)* — Structural check plus a **code-claims pass**: the spec's load-bearing claims about the existing code (paths, symbols, nullability, relationship direction, migration numbers) are checked against the repo and reported as CONFIRMED / DRIFTED / REFUTED / UNVERIFIED. It offers to apply the fixes that need no decision.
 3. **`/feature-dev:explore-plan`** — Understand the codebase and create the plan. The plan is the only place implementation steps live, and it carries a **Baseline**: every `Verify` command run once on HEAD, so broken or hollow gates surface at planning time instead of mid-run. It then reviews its own plan (`plan-review` runs automatically) and fixes Blocking findings once before showing you the brief. The exploration, generation and review run as the **`feature-dev:plan-fanout` workflow** (`workflows/plan-fanout.js`), so the explorer reports never reach your conversation and an explorer that fails is retried and then named in the plan, not silently skipped. The generator's rules live in `references/plan-generation.md`. Under `claude -p`, allow it with `Workflow(feature-dev:plan-fanout)`; without the `Workflow` tool the command stops and says so (there is no in-session fallback: a plan written by one reader is the failure the workflow prevents).
 4. **`/feature-dev:tdd`** — Execute the plan with test-driven development. The step loop it runs (resume, step contract, routing, halts) is `references/step-loop.md`, shared with the `factory` plugin
@@ -281,3 +281,14 @@ Inside [Herdr](https://herdr.dev) only; outside it, `--pane` says so and runs no
 
 `feature-dev/evals/` holds a plugin eval that checks `/feature-dev:explore-plan` really fans out to its explorer subagents. The failure it guards against is silent: a plan written by one reader looks like one written by eight. See [evals/README.md](evals/README.md) for the command. It costs a full Claude run, so run it when `explore-plan` or the explorer agents change.
 
+## Read-only agent guard (`agent-bash-guard`)
+
+A `PreToolUse` hook watches the Bash calls of this plugin's read-only agents — those whose `tools:` grants Bash only with patterns (`Bash(git diff *)`) and no Write/Edit. Claude Code does not enforce those patterns, so the hook is what does. It classifies each call against a deny-list of commands that change something (writes outside `/tmp`, file mutation, git and gh commands that write, scripts and build tools) and logs the decision to `${CLAUDE_CONFIG_DIR:-~/.claude}/agent-bash-guard/audit.jsonl`. Reads, and anything matching the agent's own declared patterns, pass. The main session and agents with plain `Bash` are never touched.
+
+| `AGENT_BASH_GUARD` | Effect |
+|---|---|
+| `audit` (default) | Never blocks; logs `allow` / `would-deny` with the rule |
+| `enforce` | Denies, telling the agent which rule and what to use instead |
+| `off` | Does nothing |
+
+It is text matching, not a sandbox, and it fails open. Canonical source and tests: `shared/agent-bash-guard/` in the plugin repository.

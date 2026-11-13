@@ -114,7 +114,7 @@ describe('review', () => {
     const v = callsFor(calls, 'validate')[0]
     assert.equal(v.opts.agentType, 'feature-dev:spec-plan-validator')
     assert.equal(v.opts.phase, 'Review')
-    assert.match(v.prompt, /^artifact_type: plan\nartifact_path: agent-os\/plans\/PLAN-0007-export\.md\n/)
+    assert.match(v.prompt, /^artifact_type: plan\nartifact_path: agent-os\/plans\/PLAN-0007-export\.md\nplugin_root: plugins\/feature-dev\n/)
     assert.deepEqual(result, {
       plan_path: ARGS.plan_path, written: true, explorers: ALWAYS.map((key) => ({ key, status: 'ran' })),
       degraded: ['history'], steps: 3, generator_notes: 'n', fix_notes: '',

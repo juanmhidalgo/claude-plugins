@@ -1,5 +1,18 @@
 # Changelog
 
+## 4.5.0 (2026-11-13)
+
+### Added
+- **`agent-bash-guard`, a `PreToolUse` hook on Bash for this plugin's read-only agents (`branch-reviewer`, `bug-scanner`, `claudemd-compliance-reviewer`, `code-comments-reviewer`, `comment-fetcher`, `finding-verifier`, `git-history-reviewer`, `pr-comments-reviewer`, `pr-feedback-analyst`, `silent-failure-reviewer`, `spec-conformance-reviewer`, `tech-debt-reviewer`), in audit mode.** It looks only at Bash calls from a subagent of this plugin whose `tools:` grants Bash with patterns and no Write/Edit (the hook input's `agent_type`; the main session and plain-`Bash` agents are untouched), classifies each against a deny-list — writes outside `/tmp` (redirects, `tee`, `mkdir`, `sed -i`, `sort -o`, `--output=`), file mutation, `find -delete/-exec <write>`, `xargs <write>`, `awk` writes, git and gh commands that write, scripts by path, `-m` modules and build/package tools — and appends the decision to `${CLAUDE_CONFIG_DIR:-~/.claude}/agent-bash-guard/audit.jsonl`. A segment matching one of the agent's own declared Bash patterns passes only as one plain command: separators, `$(...)` and backticks disqualify it, and its redirections and `--output=` targets are checked before the match, so `git diff > review.patch` or `git log && git checkout main` under `Bash(git diff *)`/`Bash(git log *)` are still caught. A quoted `>` is an argument, a `>` glued to one (`HEAD>x`) is a redirect. `AGENT_BASH_GUARD=audit` (default) never blocks; `enforce` denies with the rule as the reason; `off` disables it. It fails open. Canonical copy in `shared/agent-bash-guard/` (`shared/sync.sh` now also copies `*.py` into `scripts/`); 19 tests there. **Why:** measured on Claude Code 2.1.322, `Bash(<pattern>)` in an agent's `tools:` does not confine the agent (a validator granted only the linter also ran `ls`/`find`/`grep`), while a `PreToolUse` hook receives `agent_type` and its deny stops the command, via the Agent tool and inside a workflow. Replayed over 5,350 recorded Bash calls of these agents, it flags 12, all intended (`git fetch`/`checkout`, `python3 scripts/sync_shared.py`, `bash shared/sync.sh`, `uv pip`), and no reads; verified live through `claude -p --plugin-dir` in both modes. Audit first: the deny-list is switched on only after the log has been reviewed.
+
+## 4.4.0 (2026-11-13)
+
+### Fixed
+- `comment-fetcher`'s `tools:` pattern is `Bash(gh feedback *)`. It was `Bash(gh feedback fetch *)`, which never matched the command its own prompt gives it (`gh feedback -R REPO fetch …`): a transcript scan of its runs shows every call taking that form. Harmless while Claude Code does not enforce agent Bash patterns, but it would deny the agent's only command under any guard that does.
+
+### Changed
+- `spec-conformance-reviewer` extracts business rules (`**BR-n**`, from feature-dev 3.0.0 specs) as requirements and checks each as an invariant on every path in the diff that writes the data it governs, not only the path its AC exercises; a path where it does not hold is `partial`, naming the path. **Why:** an AC is one example, and the bug a rule exists to catch is the second entry point (admin action, import, job) nobody wrote an AC for.
+
 ## 4.3.0 (2026-11-10)
 
 Three ideas from an external PR-review skill built partly on this plugin, adapted to its verification model.

@@ -86,11 +86,12 @@ has to ask which spec.
 Use the Agent tool to invoke the `spec-plan-validator` subagent with:
 - `artifact_type`: `spec`
 - `artifact_path`: the resolved path from Phase 0
+- `plugin_root`: `${CLAUDE_PLUGIN_ROOT}`
 - `feature`: the Phase 0 JSON line (`slug`, `status`, `plan`, `issue`), so the agent sees the feature's state without parsing frontmatter
 
 The agent will:
 1. Read the spec file
-2. Run the SPEC-specific structural checklist
+2. Run `scripts/lint_artifact.py` on it and report its findings (`[lint]`) as they are — sections, ids, rule citations, QA groups — then the judgment checks the linter cannot make (observable ACs, an error-state AC, rules that name code, prohibitive rules without the forbidden case, contract content)
 3. Check up to ~15 load-bearing claims the spec makes about the existing code (paths, symbols, field nullability and FK direction, endpoints, migrations, config keys) with Read/Grep/Glob, classifying each `CONFIRMED` / `DRIFTED` / `REFUTED` / `UNVERIFIED` with `file:line` evidence
 4. Emit a categorical report (Blocking / Should Address / Nice to Have) with section references, followed by a `## Code claims` table
 5. State explicitly when no blocking gaps exist
