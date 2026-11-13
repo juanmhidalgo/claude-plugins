@@ -94,6 +94,7 @@ async function validate(label) {
   const opts = { label, phase: 'Review', schema: VALIDATION, agentType: 'feature-dev:spec-plan-validator' }
   const prompt = `artifact_type: plan
 artifact_path: ${args.plan_path}
+plugin_root: ${args.plugin_root}
 
 Return your report through the structured output tool: \`report\` is the full report in your format; \`blocking\`, \`should_address\` and \`nice_to_have\` repeat its findings one line each, with the section they concern; \`ac_coverage\` is the coverage from your summary ("c/t"), or "" when the spec numbers no ACs. Set \`completed\` to false if you could not finish.`
   for (let attempt = 0; attempt < 2; attempt++) {

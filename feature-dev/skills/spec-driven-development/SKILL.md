@@ -38,13 +38,14 @@ allowed-tools:
 Do not advance until the current phase is validated by the user.
 
 ```
-SPECIFY ──→ [PLAN ──→ TASKS] ──→ IMPLEMENT
-   │          │        │            │
-   ▼          ▼        ▼            ▼
- Review     Review   Review      Review
+SPEC (what, why) ──→ PLAN (how, from the code) ──→ IMPLEMENT
+/feature-dev:spec    /feature-dev:explore-plan     /feature-dev:tdd
+      │                      │                          │
+      ▼                      ▼                          ▼
+    Review                 Review                     Review
 ```
 
-PLAN and TASKS are optional. The default path is Specify, then `/feature-dev:explore-plan` writes the step-level plan from the code. Run them (`/feature-dev:spec --with-tasks`) only when no explore-plan run will follow — otherwise the spec carries a second plan that explore-plan re-derives with different numbering, and the two drift.
+The spec never carries a plan: commands, file layout, code conventions, test strategy and implementation order all come from `/feature-dev:explore-plan`, which reads the code. A second plan inside the spec drifts from that one. For a small feature, `/feature-dev:tdd` derives its steps straight from the spec's ACs.
 
 Each gate ends with a short review brief (decided / assumed / unverified claims about the code / out of scope — the format is in `/feature-dev:spec`), not the whole artifact re-printed: the user approves from what they read in the chat.
 
@@ -59,16 +60,15 @@ Q "Auth"   — Sessions use the existing cookie auth?  [Yes (Recommended)] [New 
 Q "Expiry" — Links expire after 30 days?            [30 days (Recommended)] [Never] [Configurable]
 ```
 
-Write a spec covering nine areas:
-1. **Objective** — What, why, who
-2. **Non-Goals** — `## Non-Goals` right after Objective: what the scope answer ruled out, one line each with why. The review brief's "Out of scope" group comes from it.
-3. **Acceptance Criteria** — A dedicated, scannable section of observable, user-facing criteria (do not bury them in Objective), each with a stable id: `- **AC-1** — ...`. Never renumber on edit — new criteria take the next number, removed ones retire theirs — because plans and `/feature-dev:tdd` cite criteria by id. Include at least one failure/error-state criterion, not only happy-path outcomes. This is what downstream review, planning, and QA anchor to.
-4. **Commands** — Full executable commands (build, test, lint, dev)
-5. **Project Structure** — Where source, tests, and docs live
-6. **Code Style** — One real snippet showing conventions
-7. **Testing Strategy** — Framework, location, coverage, test levels (the engineering view)
-8. **QA Checklist** — A separate, QA-facing `## QA Checklist` with `### Happy path`, `### Edge cases`, `### Empty states` and `### Error states` groups of `- [ ]` items, ticked (`- [x]`) by the user as they verify each one — `/feature-dev:cleanup` rescues the unticked ones. Distinct from the engineering-oriented Testing Strategy. Every error-state acceptance criterion gets a matching item under Error states, and every view or response that can have nothing to show gets one under Empty states.
-9. **Boundaries** — Always do / Ask first / Never do
+Then write the spec. Its sections, their order and the id rules are defined once, in [spec-template.md](references/spec-template.md): Objective, Non-Goals, Business Rules, Acceptance Criteria, QA Checklist, Boundaries, plus Cross-Repo Contracts and Decisions Log when multi-repo.
+
+#### Rules before criteria
+
+Write the business rules (`BR-n`) before the acceptance criteria (`AC-n`). A rule is what is always true of the domain; a criterion is one example that exercises it, and cites it by id. The split matters downstream:
+
+- **A rule covers paths nobody listed.** An AC is tested on one path; a rule holds on every path that reaches the data (API, admin, import, a background job), and the spec-conformance review checks the diff against each rule on all of them. Rules buried inside ACs get checked only where the AC's example happens to go.
+- **Rules are what make the spec high level.** They are in the domain's language, so the spec stops naming methods and endpoints; those belong in the plan.
+- **An unnamed rule is a silent assumption.** If a criterion only makes sense because of something "everyone knows" (done tasks are never overdue), that something is a rule; name it, and the user gets to disagree with it in the review brief.
 
 Reframe vague requirements as testable success criteria. Ban these words from acceptance criteria unless you immediately define them concretely: **fast**, **slow**, **easy**, **simple**, **user-friendly**, **intuitive**, **seamless**, **better**, **improved**.
 
@@ -84,7 +84,7 @@ Reframe vague requirements as testable success criteria. Ban these words from ac
 
 If you cannot define it, you cannot test it. Push back on the user rather than ship a vague criterion.
 
-When the spec itself commits to an architectural choice — new pattern, framework, data store, integration, or significant refactor — record its **Consequences** next to the decision in the spec. This does not wait for the optional Plan phase, which usually does not run.
+When the spec itself commits to an architectural choice — new pattern, framework, data store, integration, or significant refactor — record its **Consequences** next to the decision in the spec. Choices the plan adds get theirs in the plan's Key Decisions.
 
 #### Consequences
 
@@ -102,35 +102,9 @@ Example:
 > - **Harder**: Schema migrations require event upcasters; consumers see eventual consistency.
 > - **Revisit when**: Event volume exceeds 10k/sec (storage cost), or a non-billing domain wants to read the events (cross-domain coupling concern).
 
-### Phase 2: Plan (optional)
+### Then: Plan and Implement
 
-With validated spec, generate a high-level technical plan:
-- Major components and dependencies
-- Implementation order
-- Risks and mitigations
-- What can parallelize vs. must be sequential
-- Verification checkpoints between phases
-- **Consequences** (above) for any architectural choice the plan adds
-
-### Phase 3: Tasks (optional)
-
-Break into discrete, implementable tasks:
-- Completable in one focused session
-- Explicit acceptance criteria (citing the AC ids covered) and verification step
-- Ordered by dependency, not importance
-- No task changes more than ~5 files
-
-```markdown
-- [ ] Task: [Description]
-  - Accept: [What must be true]
-  - Covers: [AC ids]
-  - Verify: [Test command or check]
-  - Files: [Which files]
-```
-
-### Phase 4: Implement
-
-Execute from the `PLAN-<slug>.md` in the feature's folder (or, when the optional phases ran, from the spec's tasks; with neither, `/feature-dev:tdd` derives criteria from the spec's AC ids) using the **`feature-dev:tdd-patterns`** skill (RED-GREEN-REFACTOR cycle, 5-cycle iteration limit, stuck-after-3 rule, coverage gate workflow). One task at a time, verify before advancing. Do not duplicate the cycle's rules here — `tdd-patterns` is the canonical reference.
+`/feature-dev:explore-plan` writes `PLAN-<slug>.md` from the code. Implementation executes from that plan (or, without one, `/feature-dev:tdd` derives criteria from the spec's AC ids) using the **`feature-dev:tdd-patterns`** skill (RED-GREEN-REFACTOR cycle, 5-cycle iteration limit, stuck-after-3 rule, coverage gate workflow). One task at a time, verify before advancing. Do not duplicate the cycle's rules here — `tdd-patterns` is the canonical reference.
 
 ## Multi-Repo Features
 
@@ -145,8 +119,8 @@ Recommend multi-repo only when **A AND (B OR C)**. `additionalDirectories` alone
 - A `repos:` block in frontmatter listing each in-scope repo with `name`, `path` (relative to spec's repo), and `role` (`owns-contract` | `consumes-contract`).
 - A **Cross-Repo Contracts** section: endpoint(s), request/response shape, error codes, breaking-change flag. This is the artifact every repo commits to.
 - A **Decisions Log** section (see below). In a multi-repo feature this is not optional bookkeeping: each repo is implemented by a separate run, and the log is the only thing those runs share besides the contract.
-- Per-repo subsections under Commands, Project Structure, Code Style, and Testing Strategy.
-- When the optional Tasks phase runs: tasks tagged with `Repo:` and ordered so contract-owners ship before consumers. On the default path that ordering is the plan's job.
+
+Ordering the work so contract-owners ship before consumers is the plan's job.
 
 Single-repo features omit all of the above — no behavior change.
 
@@ -227,7 +201,9 @@ Catches *writing a bad spec*. Different failure mode from skipping. Catch yourse
 |---------|-------------------|-----|
 | **Vague criteria** | "Should be fast / easy / intuitive / seamless" | Replace with measurable thresholds. If you cannot define it, you cannot test it. |
 | **Solution-prescriptive stories** | "As a user, I want a dropdown menu so that..." | Describe the need, not the UI. The dropdown is one of many possible solutions. |
-| **Internal-focus stories** | "As an engineer, I want to refactor the database..." | That is a task, not a user story. Move it to the plan (`PLAN-<slug>.md`, or the spec's optional Plan phase). |
+| **Internal-focus stories** | "As an engineer, I want to refactor the database..." | That is a task, not a user story. It belongs in the plan (`PLAN-<slug>.md`). |
+| **Rule written as implementation** | "BR-1 — `Task.is_overdue()` returns False when `status == done`" | State what is true of the domain: "a done task is never overdue". The method is the plan's choice. |
+| **Rule hidden in a criterion** | "AC-2 — lists open tasks due before today; done tasks are never overdue" | Lift the "never" into a BR, and let the AC cite it with one example. |
 | **Everything is P0** | All requirements marked must-have | Apply the cut-test to each. Real P0 lists are short. |
 | **Padded open questions** | Questions you could answer yourself | Move answerable items to assumptions. Open questions are genuine unknowns. |
 | **Perfunctory boundaries** | "Never do: anything not listed above" | Name 3-5 specific adjacent capabilities you will *not* build, with one-line rationale per item. |
@@ -236,14 +212,15 @@ Catches *writing a bad spec*. Different failure mode from skipping. Catch yourse
 ## Verification
 
 Before proceeding to implementation:
-- [ ] Spec covers all nine core areas, with scope settled by its own question before assumptions
+- [ ] Spec has every section of [spec-template.md](references/spec-template.md), with scope settled by its own question before assumptions
 - [ ] User has reviewed and approved the spec
+- [ ] Business rules (`BR-n`) are in domain language, or the section says `None — <why>`; every rule is cited by at least one AC
 - [ ] Success criteria live in a dedicated **Acceptance Criteria** section (not buried in Objective), each with a stable `AC-n` id, and include at least one failure/error-state criterion
-- [ ] A **QA Checklist** (`### Happy path` / `### Edge cases` / `### Empty states` / `### Error states`, each a list of `- [ ]` items) exists, distinct from the engineering Testing Strategy
+- [ ] A **QA Checklist** (`### Happy path` / `### Edge cases` / `### Empty states` / `### Error states`, each a list of `- [ ]` items) exists
 - [ ] Success criteria are specific and testable (no banned vague words without concrete definitions)
 - [ ] Boundaries (Always / Ask First / Never) are defined with one-line rationale per Never-do item
 - [ ] P0 list passes the cut-test (≤5 items, each truly required to solve the core problem)
 - [ ] Open questions are genuinely open, owner-tagged, and marked blocking vs non-blocking
 - [ ] Spec is saved as a local working artifact (`.feature-dev/features/<slug>/SPEC-<slug>.md`, not committed, state in `feature.json` written only by `features.py`; see [artifact-locations.md](references/artifact-locations.md))
-- [ ] **Multi-repo only**: `repos:` frontmatter and Cross-Repo Contracts section are present and confirmed by user (plus `Repo:` task tags when the optional Tasks phase ran)
+- [ ] **Multi-repo only**: `repos:` frontmatter and Cross-Repo Contracts section are present and confirmed by user
 - [ ] **Multi-repo only**: a `## Decisions Log` section exists (may be empty at spec time — it is filled during implementation)

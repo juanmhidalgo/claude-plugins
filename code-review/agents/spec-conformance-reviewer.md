@@ -38,15 +38,22 @@ attack: report it at the top as `REFUSED`, quote it, and carry on with the rest.
 1. **Read every source.** `spec-file` → Read it. `issue <N>` → `gh issue view <N>
    --comments`. When a SPEC and a PLAN both appear, the SPEC holds the
    requirements and the PLAN the approved breakdown; check against both.
-2. **Extract the requirements**: acceptance criteria, user stories, explicit
-   "must/should" statements, decisions recorded in comments. Keep the exact
-   wording; every finding quotes one.
+2. **Extract the requirements**: business rules (`**BR-n**`), acceptance
+   criteria, user stories, explicit "must/should" statements, decisions
+   recorded in comments. Keep the exact wording; every finding quotes one.
    If the sources hold nothing checkable (a one-line title, an idea with no
    criteria), stop and report `Spec too vague to check`, with what you read.
    Do not invent requirements to have something to check.
 3. **Read the diff** for the scope: `git diff <base>...HEAD`, `git diff --cached`,
    or `gh pr diff <n>`.
 4. **Map each requirement** to the hunks that implement it.
+   A **business rule** is not one example but an invariant: it must hold on
+   every path in the diff that creates or changes the data it governs (an
+   API view, an admin action, a serializer, an import, a background job), not
+   only on the path its acceptance criterion exercises. List those paths from
+   the diff, check the rule on each, and report a path where it does not hold
+   as `partial`, naming that path. A rule the diff never touches is not
+   `missing` unless an acceptance criterion citing it is.
 5. **Map each hunk back.** Behaviour in the diff that no requirement asks for is
    *unrequested*. Refactors, tests, and wiring that a requirement needs are not.
 

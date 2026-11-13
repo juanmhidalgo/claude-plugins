@@ -1,5 +1,13 @@
 # Changelog
 
+## 4.4.0 (2026-11-13)
+
+### Fixed
+- `comment-fetcher`'s `tools:` pattern is `Bash(gh feedback *)`. It was `Bash(gh feedback fetch *)`, which never matched the command its own prompt gives it (`gh feedback -R REPO fetch …`): a transcript scan of its runs shows every call taking that form. Harmless while Claude Code does not enforce agent Bash patterns, but it would deny the agent's only command under any guard that does.
+
+### Changed
+- `spec-conformance-reviewer` extracts business rules (`**BR-n**`, from feature-dev 3.0.0 specs) as requirements and checks each as an invariant on every path in the diff that writes the data it governs, not only the path its AC exercises; a path where it does not hold is `partial`, naming the path. **Why:** an AC is one example, and the bug a rule exists to catch is the second entry point (admin action, import, job) nobody wrote an AC for.
+
 ## 4.3.0 (2026-11-10)
 
 Three ideas from an external PR-review skill built partly on this plugin, adapted to its verification model.

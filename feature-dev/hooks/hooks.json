@@ -1,1 +1,19 @@
-{ "modules": ["./register.tsx"] }
+{
+  "description": "feature-dev: lint a SPEC or PLAN in .feature-dev/features/ after every write or edit; the Features pane mod",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": ["-B", "${CLAUDE_PLUGIN_ROOT}/scripts/lint_artifact.py", "--hook"],
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  },
+  "modules": ["./register.tsx"]
+}

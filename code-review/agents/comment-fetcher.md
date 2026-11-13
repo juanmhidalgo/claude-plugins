@@ -1,7 +1,7 @@
 ---
 name: comment-fetcher
 description: "Runs `gh feedback fetch --split` for a PR and returns the printed metadata as structured output. First stage of the triage-comments workflow; never reads a comment body."
-tools: Bash(gh feedback fetch *)
+tools: Bash(gh feedback *)
 model: sonnet
 maxTurns: 5
 ---
