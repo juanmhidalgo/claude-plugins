@@ -23,11 +23,11 @@ Claude Code plugins marketplace. Each top-level directory (e.g., `code-review/`,
   README.md
 ```
 
-**Shared files**: plugins cannot read each other's files at runtime, so a file several plugins need lives once under `shared/<name>/` and is copied into each plugin listed in `shared/<name>/plugins` (`*.sh` → `scripts/`, `*.md` → `references/`). Edit the canonical file, then run `shared/sync.sh --write`; `shared-sync-check.sh` warns on drift. Every plugin that receives a changed copy needs its own version bump.
+**Shared files**: plugins cannot read each other's files at runtime, so a file several plugins need lives once under `shared/<name>/` and is copied into each plugin listed in `shared/<name>/plugins` (`*.sh` and `*.py` → `scripts/`, `*.md` → `references/`). Edit the canonical file, then run `shared/sync.sh --write`; `shared-sync-check.sh` warns on drift. Every plugin that receives a changed copy needs its own version bump.
 
 For deeper conventions (frontmatter fields, discoverability, progressive disclosure), see `.claude/rules/plugin-creation.md` (auto-loaded when working in a plugin directory). For skill testing, see `.claude/rules/skill-testing.md`.
 
-**Tests.** Workflow scripts (`<plugin>/workflows/*.js`) have unit tests under `tests/workflows/`: `node --test tests/workflows/` from the repo root (no dependencies). `harness.mjs` loads a script the way the Workflow tool does and injects stubbed globals; the test supplies `agent(prompt, opts)` and dispatches on `opts.label`, the harness provides `parallel`/`pipeline` with the tool's semantics and records every call. When you change a workflow's retry, aggregation or sort rules, update its test file. Shell scripts have bash tests next to them (`<plugin>/tests/test-*.sh`, `shared/args/tests/`, `scripts/test-release-check.sh`); run the ones for the scripts you touched.
+**Tests.** Workflow scripts (`<plugin>/workflows/*.js`) have unit tests under `tests/workflows/`: `node --test tests/workflows/` from the repo root (no dependencies). `harness.mjs` loads a script the way the Workflow tool does and injects stubbed globals; the test supplies `agent(prompt, opts)` and dispatches on `opts.label`, the harness provides `parallel`/`pipeline` with the tool's semantics and records every call. When you change a workflow's retry, aggregation or sort rules, update its test file. Shell scripts have bash tests next to them (`<plugin>/tests/test-*.sh`, `shared/args/tests/`, `scripts/test-release-check.sh`); Python scripts have unittest files beside them (`<plugin>/scripts/test_*.py`, `shared/agent-bash-guard/tests/`). Run the ones for the scripts you touched.
 
 </architecture>
 

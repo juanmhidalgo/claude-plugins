@@ -1,5 +1,5 @@
 {
-  "description": "feature-dev: lint a SPEC or PLAN in .feature-dev/features/ after every write or edit; the Features pane mod",
+  "description": "feature-dev: lint a SPEC or PLAN in .feature-dev/features/ after every write or edit; agent-bash-guard audits the Bash calls of read-only agents (AGENT_BASH_GUARD=audit|enforce|off); the Features pane mod",
   "hooks": {
     "PostToolUse": [
       {
@@ -8,12 +8,34 @@
           {
             "type": "command",
             "command": "python3",
-            "args": ["-B", "${CLAUDE_PLUGIN_ROOT}/scripts/lint_artifact.py", "--hook"],
+            "args": [
+              "-B",
+              "${CLAUDE_PLUGIN_ROOT}/scripts/lint_artifact.py",
+              "--hook"
+            ],
             "timeout": 30
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash",
+            "args": [
+              "${CLAUDE_PLUGIN_ROOT}/scripts/agent-bash-guard.sh",
+              "${CLAUDE_PLUGIN_ROOT}"
+            ],
+            "timeout": 10
           }
         ]
       }
     ]
   },
-  "modules": ["./register.tsx"]
+  "modules": [
+    "./register.tsx"
+  ]
 }

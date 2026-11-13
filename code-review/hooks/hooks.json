@@ -1,0 +1,18 @@
+{
+  "description": "code-review: agent-bash-guard — audits the Bash calls of this plugin's read-only agents (deny-list; AGENT_BASH_GUARD=audit|enforce|off, default audit)",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash",
+            "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/agent-bash-guard.sh", "${CLAUDE_PLUGIN_ROOT}"],
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

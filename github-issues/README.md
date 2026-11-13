@@ -72,3 +72,15 @@ Inside [Herdr](https://herdr.dev) only; outside it, `--pane` says so and runs no
 - For `verify`, a local checkout of the repo the issues belong to; sibling repos checked out next to it are used as consumer evidence
 - Optional: a ClickUp MCP server named `clickup-local`, used by `work` to link the PR to a task
 - No browser
+
+## Read-only agent guard (`agent-bash-guard`)
+
+A `PreToolUse` hook watches the Bash calls of this plugin's read-only agents — those whose `tools:` grants Bash only with patterns (`Bash(git diff *)`) and no Write/Edit. Claude Code does not enforce those patterns, so the hook is what does. It classifies each call against a deny-list of commands that change something (writes outside `/tmp`, file mutation, git and gh commands that write, scripts and build tools) and logs the decision to `${CLAUDE_CONFIG_DIR:-~/.claude}/agent-bash-guard/audit.jsonl`. Reads, and anything matching the agent's own declared patterns, pass. The main session and agents with plain `Bash` are never touched.
+
+| `AGENT_BASH_GUARD` | Effect |
+|---|---|
+| `audit` (default) | Never blocks; logs `allow` / `would-deny` with the rule |
+| `enforce` | Denies, telling the agent which rule and what to use instead |
+| `off` | Does nothing |
+
+It is text matching, not a sandbox, and it fails open. Canonical source and tests: `shared/agent-bash-guard/` in the plugin repository.
