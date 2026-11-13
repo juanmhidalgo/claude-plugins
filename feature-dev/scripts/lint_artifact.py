@@ -55,6 +55,9 @@ BR_NONE = re.compile(r"^\s*(?:[-*]\s+)?None\b", re.IGNORECASE)
 BULLET = re.compile(r"^\s*[-*]\s+\S")
 BR_REF = re.compile(r"\bBR-(\d+)\b")
 AC_REF = re.compile(r"\bAC-(\d+)\b")
+# A Risks bullet that leaves ACs out of the plan, with a reason after the dash:
+# "- Excluded: AC-2, AC-3 — the list view is not built yet".
+AC_EXCLUDED = re.compile(r"^[ \t]*[-*][ \t]*Excluded:[ \t]*((?:AC-\d+[ \t,]*)+)[—–-]+[ \t]*\S", re.MULTILINE)
 STEP_HEAD = re.compile(r"^(\d+)\.\s+\*\*(.+?)\*\*")
 STEP_FIELD = re.compile(
     r"^\s+[-*]\s+(Kind|Accept|Pins|Covers|Impl|Test|Verify|Depends on|Rationale):\s*(.*)$"
@@ -560,7 +563,9 @@ def ac_coverage(text: str, steps: list[Step], secs: list[Section], plan_path: Pa
         return [], None
     out: list[Finding] = []
     risks_i = find(secs, "Risks")
-    excluded = set(_ids(AC_REF, "\n".join(body(secs, risks_i)))) & set(acs) if risks_i is not None else set()
+    risks = "\n".join(body(secs, risks_i)) if risks_i is not None else ""
+    excluded = {n for m in AC_EXCLUDED.finditer(risks) for n in _ids(AC_REF, m.group(1))} & set(acs)
+    mentioned = set(_ids(AC_REF, risks))
     covered: set[int] = set()
     missing_covers = []
     for step in steps:
@@ -580,7 +585,10 @@ def ac_coverage(text: str, steps: list[Step], secs: list[Section], plan_path: Pa
     for n in uncovered:
         if n not in excluded:
             out.append(Finding(WARN, "Implementation Order",
-                               f"AC-{n} is covered by no step and not excluded by id in Risks"))
+                               f"AC-{n} is covered by no step and not excluded in Risks"))
+            if n in mentioned:
+                out.append(Finding(NOTE, "Risks",
+                                   f"AC-{n} is mentioned but not excluded: write `- Excluded: AC-{n} — <why>`"))
     summary = Coverage(len(set(acs) & covered), len(acs),
                        [f"AC-{n}" for n in uncovered if n not in excluded],
                        [f"AC-{n}" for n in uncovered if n in excluded])

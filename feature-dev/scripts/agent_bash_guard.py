@@ -14,7 +14,9 @@ alone.
 What it decides: a deny-list of commands that change something — writes
 outside /tmp, file mutation, git and gh commands that write, scripts and build
 tools. Everything else is allowed. A segment that matches one of the agent's
-own declared Bash patterns is always allowed. This is text matching, not a
+own declared Bash patterns is allowed when it is one plain command: separators,
+``$(...)`` and backticks disqualify it, and its redirections and
+``--output=`` targets are checked before the match. This is text matching, not a
 sandbox: it raises the cost of an accidental write, it does not stop a
 determined one. A write whose target it cannot resolve (an unknown variable, a
 command substitution) gets its own rule, ``write-unresolved``.
@@ -235,11 +237,69 @@ def _is_redirect_amp(command: str, i: int) -> bool:
     return prev == ">"
 
 
+class Word(str):
+    """A shlex word that remembers which of its characters were quoted or escaped."""
+
+    quoted: tuple[bool, ...] = ()
+
+
+def _quote_masks(segment: str) -> list[tuple[str, tuple[bool, ...]]]:
+    """Words of ``segment`` as shlex (posix) splits them, with a per-character
+    "came from inside quotes or after a backslash" mask."""
+    words, chars, mask, started, quote, i = [], [], [], False, None, 0
+    while i < len(segment):
+        ch = segment[i]
+        if quote == "'":
+            if ch == "'":
+                quote = None
+            else:
+                chars.append(ch)
+                mask.append(True)
+        elif quote == '"':
+            if ch == '"':
+                quote = None
+            elif ch == "\\" and i + 1 < len(segment) and segment[i + 1] in '"\\':
+                i += 1
+                chars.append(segment[i])
+                mask.append(True)
+            else:
+                chars.append(ch)
+                mask.append(True)
+        elif ch in " \t\r\n":  # shlex's whitespace, not str.isspace()
+            if started:
+                words.append(("".join(chars), tuple(mask)))
+                chars, mask, started = [], [], False
+        elif ch in "'\"":
+            quote, started = ch, True
+        elif ch == "\\" and i + 1 < len(segment):
+            i += 1
+            chars.append(segment[i])
+            mask.append(True)
+            started = True
+        else:
+            chars.append(ch)
+            mask.append(False)
+            started = True
+        i += 1
+    if started:
+        words.append(("".join(chars), tuple(mask)))
+    return words
+
+
 def tokens(segment: str) -> list[str] | None:
     try:
-        return shlex.split(segment, comments=False, posix=True)
+        split = shlex.split(segment, comments=False, posix=True)
     except ValueError:
         return None
+    masked = _quote_masks(segment)
+    if [w for w, _ in masked] != split:
+        return split  # scanners disagree: no quote information
+    out = []
+    for w, mask in masked:
+        word = Word(w)
+        word.quoted = mask
+        out.append(word)
+    return out
 
 
 # --- rules --------------------------------------------------------------------
@@ -259,6 +319,19 @@ def _write_rule(ctx: Context, what: str, target: str) -> str | None:
     return None if _under_tmp(path) else f"write-outside-tmp: {what} {path!r}"
 
 
+def _inner_redirect(word: str, quoted: tuple[bool, ...]) -> int:
+    """Index of an unquoted ``>`` inside ``word`` that starts a redirection
+    after an argument (``HEAD>x``), else 0. A leading fd (``2>``, ``&>``) is
+    left to REDIRECT."""
+    for j, ch in enumerate(word):
+        if ch == ">" and not (j < len(quoted) and quoted[j]):
+            head = word[:j]
+            if not head or re.fullmatch(r"\d*|&", head):
+                return 0
+            return j
+    return 0
+
+
 def _redirects(words: list[str]) -> tuple[list[str], list[str]]:
     """(words without redirections, redirection targets that write)."""
     rest, targets, skip = [], [], False
@@ -266,7 +339,14 @@ def _redirects(words: list[str]) -> tuple[list[str], list[str]]:
         if skip:
             skip = False
             continue
+        quoted = getattr(w, "quoted", ())
+        cut = _inner_redirect(w, quoted)
+        if cut:  # `HEAD>out.patch`: the word before the operator is an argument
+            rest.append(w[:cut])
+            w, quoted = w[cut:], quoted[cut:]
         m = REDIRECT.match(w)
+        if m and any(quoted[: m.end(1)]):
+            m = None  # the operator came from inside quotes: an argument, not a redirect
         if m:
             target = m.group(2)
             if not target:
@@ -534,8 +614,36 @@ def bash_patterns(root: Path, agent: str) -> list[str] | None:
     return re.findall(r"Bash\(([^)]*)\)", tools) or None
 
 
+def _plain(text: str) -> bool:
+    """True when ``text`` has no active shell metacharacter (separator, redirect,
+    backtick, ``$(``, newline) outside single quotes."""
+    quote, i = None, 0
+    while i < len(text):
+        ch = text[i]
+        if ch == "\\" and quote != "'" and i + 1 < len(text):
+            i += 2
+            continue
+        if quote == "'":
+            if ch == "'":
+                quote = None
+        elif ch in "`" or (ch == "$" and text[i + 1:i + 2] == "("):
+            return False
+        elif quote == '"':
+            if ch == '"':
+                quote = None
+        elif ch in "'\"":
+            quote = ch
+        elif ch in ";&|<>\n":
+            return False
+        i += 1
+    return True
+
+
 def declared(segment: str, patterns: list[str]) -> bool:
+    """True when ``segment`` is one plain command matching a declared pattern."""
     segment = segment.strip()
+    if not _plain(segment):
+        return False
     for p in patterns:
         if fnmatch.fnmatchcase(segment, p) or (p.endswith(" *") and segment == p[:-2]):
             return True
@@ -543,9 +651,13 @@ def declared(segment: str, patterns: list[str]) -> bool:
 
 
 def check_for_agent(command: str, patterns: list[str], cwd: str | None = None) -> str | None:
-    """Like check_command, but a segment matching a declared pattern always passes."""
-    if declared(strip_heredocs(command), patterns):
-        return None
+    """Like check_command, but a plain segment matching a declared pattern passes.
+
+    Redirections and ``--output=`` targets are checked first, and a segment with
+    a separator, ``$(...)`` or a backtick never counts as declared, so a declared
+    prefix does not exempt those writes or anything chained after it. Other
+    writes a declared program can make through its own flags are not checked.
+    """
     ctx = Context(cwd)
     stripped, inner = replace_subshells(strip_heredocs(command))
     for body in inner:
@@ -557,7 +669,22 @@ def check_for_agent(command: str, patterns: list[str], cwd: str | None = None) -
         words = tokens(segment)
         if not words:
             continue
-        if declared(segment, patterns):
+        rest, targets = _redirects(words)
+        for t in targets:
+            broken = _write_rule(ctx, "redirect into", t)
+            if broken:
+                return broken
+        # Match the spelling the agent wrote when nothing was removed, so `~`,
+        # `$VAR` and quoted arguments still match their pattern; otherwise the
+        # remaining words, joined plainly and shell-quoted.
+        forms = ([segment] if not targets else []) + [" ".join(rest), shlex.join(rest)]
+        # `--output=<file>` writes without a redirect; check it even when declared.
+        outputs = [a.split("=", 1)[1] for a in rest if a.startswith("--output=")]
+        for t in outputs:
+            broken = _write_rule(ctx, "--output", t)
+            if broken:
+                return broken
+        if any(declared(f, patterns) for f in forms):
             _program(words, ctx)  # still record assignments
             continue
         broken = check_segment(words, ctx)

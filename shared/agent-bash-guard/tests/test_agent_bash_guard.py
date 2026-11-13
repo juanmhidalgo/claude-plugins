@@ -123,6 +123,29 @@ class CommandTest(unittest.TestCase):
         self.assertTrue((g.check_command("echo x > /tmp/../etc/x", g.Context(REPO)) or "").startswith("write-outside-tmp"))
 
 
+    def test_quoted_redirect_operator_is_an_argument(self):
+        for command in ("grep -n '>' README.md", "echo '>x'", 'printf "%s" ">>"'):
+            with self.subTest(command=command):
+                self.assertIsNone(g.check_command(command, g.Context(REPO)))
+        self.assertTrue((g.check_command("echo hi > out.txt", g.Context(REPO)) or "").startswith("write-outside-tmp"))
+        self.assertTrue((g.check_command('echo hi >"/etc/x"', g.Context(REPO)) or "").startswith("write-outside-tmp"))
+
+    def test_redirect_glued_to_an_argument(self):
+        for command in ("git diff HEAD>x.patch", "echo hi>>notes.md", "grep x a.py>out"):
+            with self.subTest(command=command):
+                self.assertTrue((g.check_command(command, g.Context(REPO)) or "").startswith("write-outside-tmp"))
+        for command in ("git diff HEAD>/tmp/x.patch", "grep 'a>b' x.py", "grep a x.py 2>/dev/null", "ls 2>&1"):
+            with self.subTest(command=command):
+                self.assertIsNone(g.check_command(command, g.Context(REPO)))
+
+    def test_quote_scanner_agrees_with_shlex(self):
+        corpus = ["grep -n 'a b' \"c d\" e\\ f", "echo a\x0cb", "printf '%s\\n' x", "echo \"a\\\"b\" 'c'\"d\"",
+                  "git log --format='%h %s' -- x", "echo a\tb\rc"]
+        for command in corpus:
+            with self.subTest(command=command):
+                self.assertEqual([w for w, _ in g._quote_masks(command)], g.shlex.split(command, posix=True))
+
+
 class AgentTest(unittest.TestCase):
     def setUp(self):
         self._tmp = tempfile.TemporaryDirectory()
@@ -164,6 +187,29 @@ class AgentTest(unittest.TestCase):
     def test_declared_pattern_passes_even_when_a_rule_would_not(self):
         self.assertIsNone(g.check_for_agent("python3 -B /p/scripts/lint.py SPEC.md --json", ["python3 -B *lint.py *"], REPO))
         self.assertIsNotNone(g.check_for_agent("python3 /p/scripts/other.py", ["python3 -B *lint.py *"], REPO))
+
+    def test_declared_prefix_does_not_exempt_chained_or_redirected_commands(self):
+        pats = ["git diff *"]
+        for cmd in ("git diff > x.patch", "git diff && rm -rf b", "git diff $(git stash)", "git diff\nrm x",
+                    "git diff | tee review.txt"):
+            with self.subTest(cmd=cmd):
+                self.assertIsNotNone(g.check_for_agent(cmd, pats, REPO))
+        self.assertIsNone(g.check_for_agent("git diff master...HEAD", pats, REPO))
+        self.assertIsNone(g.check_for_agent("git diff 2>&1", pats, REPO))
+        self.assertIsNone(g.check_for_agent("python3 -B /p/scripts/lint_artifact.py SPEC.md --json",
+                                            ["python3 -B *lint_artifact.py *"], REPO))
+        self.assertIsNotNone(g.check_for_agent("git diff master...HEAD>review.patch", pats, REPO))
+        self.assertIsNotNone(g.check_for_agent("git diff --output=review.patch", pats, REPO))
+        self.assertIsNone(g.check_for_agent("git diff --output=/tmp/x/review.patch", pats, REPO))
+
+    def test_declared_pattern_matches_the_written_spelling(self):
+        lint = ["python3 -B *lint_artifact.py *"]
+        for cmd in ("python3 -B ~/p/scripts/lint_artifact.py SPEC.md --json",
+                    "python3 -B $ROOT/scripts/lint_artifact.py SPEC.md --json",
+                    "python3 -B /p/scripts/lint_artifact.py SPEC.md --json 2>&1"):
+            with self.subTest(cmd=cmd):
+                self.assertIsNone(g.check_for_agent(cmd, lint, REPO))
+        self.assertIsNone(g.check_for_agent("git log --format='%h' x", ["git log --format='%h' *"], REPO))
 
     def test_main_session_and_other_plugins_are_ignored(self):
         self.assertEqual(g.hook(self.payload("rm -rf x", None), self.root, "enforce"), "")

@@ -355,9 +355,23 @@ class PlanTest(PlanCase):
 
     def test_uncovered_ac_excluded_in_risks(self):
         text = PLAN.replace("   - Covers: AC-1\n", "").replace(
-            "- none worth naming", "- AC-1 is left to the next milestone: the list view is not built yet")
+            "- none worth naming", "- Excluded: AC-1 — left to the next milestone, the list view is not built yet")
         findings = self.lint(text)
         self.assertFalse(has(findings, lint.WARN, "AC-1 is covered by no step"))
+
+    def test_ac_mentioned_in_risks_is_not_excluded(self):
+        text = PLAN.replace("   - Covers: AC-1\n", "").replace(
+            "- none worth naming", "- AC-1 relies on a timezone-sensitive query; flaky around midnight")
+        findings = self.lint(text)
+        self.assertTrue(has(findings, lint.WARN, "AC-1 is covered by no step"))
+        self.assertTrue(has(findings, lint.NOTE, "AC-1 is mentioned but not excluded"))
+
+    def test_excluded_without_reason_does_not_count(self):
+        text = PLAN.replace("   - Covers: AC-1\n", "").replace("- none worth naming", "- Excluded: AC-1")
+        self.assertTrue(has(self.lint(text), lint.WARN, "AC-1 is covered by no step"))
+        text = PLAN.replace("   - Covers: AC-1\n", "").replace(
+            "- none worth naming", "- Excluded: AC-1\n- The migration is slow on large tables")
+        self.assertTrue(has(self.lint(text), lint.WARN, "AC-1 is covered by no step"))
 
     def test_covers_unknown_ac(self):
         findings = self.lint(PLAN.replace("   - Covers: AC-2\n", "   - Covers: AC-2, AC-7\n"))
@@ -410,7 +424,7 @@ class PlanRowsTest(PlanCase):
 
     def test_coverage_summary(self):
         self.plan.write_text(PLAN.replace("   - Covers: AC-1\n", "").replace(
-            "- none worth naming", "- AC-1 is left out: no list view yet"))
+            "- none worth naming", "- Excluded: AC-1 — no list view yet"))
         self.assertEqual(lint.coverage_of(self.plan)._asdict(),
                          {"covered": 1, "total": 2, "uncovered": [], "excluded": ["AC-1"]})
         self.plan.write_text(PLAN)
